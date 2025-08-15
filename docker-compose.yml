@@ -9,19 +9,11 @@ services:
       - DJANGO_ENV=production
     volumes:
       - /var/www/AutoBotCk_Backend/.env.production:/app/.env.production
+    depends_on:
+      - stock-predict-postgres
     networks:
       - stock-predict_new
-    # Nếu không dùng Docker Swarm, bỏ phần deploy đi
-    deploy:
-      mode: replicated
-      placement:
-        constraints: [node.role == manager]
-      replicas: 1
-      update_config:
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: any
+    restart: always
 
   stock-predict-postgres:
     image: postgres:15
@@ -40,19 +32,11 @@ services:
       retries: 5
     networks:
       - stock-predict_new
-    deploy:
-      mode: replicated
-      placement:
-        constraints: [node.role == manager]
-      replicas: 1
-      update_config:
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: any
+    restart: always
 
 networks:
   stock-predict_new:
+
     # driver: overlay
 
 
