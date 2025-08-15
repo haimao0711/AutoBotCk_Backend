@@ -1,31 +1,24 @@
-#! /bin/sh
-printenv > .env
-# Build docker image #
+#!/bin/sh
+
+# ==========================
+# Config biến môi trường
+# ==========================
+DOCKER_IMAGE_NAME=backend_autobot
+DOCKER_IMAGE_TAG=latest
+
+echo "🔧 Building Docker image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ..."
+
+# Kiểm tra Docker
 docker --version
-docker buildx build -t backend_autobot:latest .
+
+# Build image
+docker buildx build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
+
+# Kiểm tra image
 docker images
-echo "...[done] build image backend_autobot:latest"
 
+# (Tuỳ chọn) Push image lên registry nếu cần
+# docker login -u <username> -p $(cat ~/.password.txt)
+# docker push ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
-# #!/bin/sh
-
-# set -e
-
-# # Ghi lại biến môi trường để container có thể sử dụng
-# printenv > .env
-
-# # In thông tin docker
-# docker --version
-
-# # Sử dụng CI_COMMIT_SHA làm tag nếu có, để đảm bảo uniqueness
-# export DOCKER_IMAGE_TAG="${CI_COMMIT_SHA:-latest}"
-
-# # Build image và push lên registry
-# docker buildx build \
-#   --no-cache \
-#   --push \
-#   -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
-#   -f Dockerfile .
-
-# docker images | grep ${DOCKER_IMAGE_NAME}
-# echo "...[done] build image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+echo "...[done] build image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
