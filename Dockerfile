@@ -20,7 +20,7 @@ RUN pipenv install --deploy --ignore-pipfile
 COPY . /app/
 
 # Copy .env production vào container
-COPY ./env/.env.production /app/.env
+COPY ./.env.production /app/.env
 
 # Mở port mặc định Django
 EXPOSE 8000
