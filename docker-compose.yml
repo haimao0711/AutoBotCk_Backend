@@ -6,7 +6,7 @@ services:
     ports:
       - '8000:8000'
     volumes:
-      - /home/stock-predict-cms/.env:/app/.env
+      - /var/www/AutoBotCk_Backend/.env:/app/.env
     deploy:
       mode: replicated
       placement:
