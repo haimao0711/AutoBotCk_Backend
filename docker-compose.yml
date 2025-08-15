@@ -5,8 +5,13 @@ services:
     image: 'backend_autobot:latest'
     ports:
       - '8000:8000'
+    environment:
+      - DJANGO_ENV=production
     volumes:
-      - /var/www/AutoBotCk_Backend/.env:/app/.env
+      - /var/www/AutoBotCk_Backend/.env.production:/app/.env.production
+    networks:
+      - stock-predict_new
+    # Nếu không dùng Docker Swarm, bỏ phần deploy đi
     deploy:
       mode: replicated
       placement:
@@ -17,8 +22,6 @@ services:
         delay: 10s
       restart_policy:
         condition: any
-    networks:
-      - stock-predict_new
 
   stock-predict-postgres:
     image: postgres:15
@@ -35,6 +38,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - stock-predict_new
     deploy:
       mode: replicated
       placement:
@@ -45,8 +50,6 @@ services:
         delay: 10s
       restart_policy:
         condition: any
-    networks:
-      - stock-predict_new
 
 networks:
   stock-predict_new:
