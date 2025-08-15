@@ -4,8 +4,8 @@ FROM python:3.11
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Cài pipenv
-RUN pip install --upgrade pip && pip install pipenv
+# Cài pipenv và python-dotenv (để load .env)
+RUN pip install --upgrade pip && pip install pipenv python-dotenv
 
 # Tạo thư mục app và đặt làm working dir
 WORKDIR /app
@@ -19,8 +19,11 @@ RUN pipenv install --deploy --ignore-pipfile
 # Copy toàn bộ code vào container
 COPY . /app/
 
+# Copy .env production vào container
+COPY ./env/.env.production /app/.env
+
 # Mở port mặc định Django
 EXPOSE 8000
 
 # Chạy app bằng pipenv và Django dev server
-CMD ["pipenv", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["pipenv", "run", "python", "-m", "dotenv", "run", "--", "python", "manage.py", "runserver", "0.0.0.0:8000"]
