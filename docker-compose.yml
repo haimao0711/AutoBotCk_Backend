@@ -18,7 +18,7 @@ services:
       restart_policy:
         condition: any
     networks:
-      - stock-predict_net
+      - stock-predict_new
 
   stock-predict-postgres:
     image: postgres:15
@@ -46,10 +46,10 @@ services:
       restart_policy:
         condition: any
     networks:
-      - stock-predict_net
+      - stock-predict_new
 
 networks:
-  stock-predict_net:
+  stock-predict_new:
     driver: overlay
 
 
