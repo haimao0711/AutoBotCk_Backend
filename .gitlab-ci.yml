@@ -1,0 +1,54 @@
+stages:
+  - development
+  - production
+build-development:
+  stage: development
+  only:        
+   - develop
+  tags:
+   - development
+  variables:
+      DOCKER_IMAGE_NAME: lamnh/stock-predict-api
+      DOCKER_IMAGE_TAG: ${CI_JOB_TOKEN}
+      DOCKER_CONTAINER_NAME: stock-predict-api-container-dev
+  before_script:
+    - cat /home/gitlab-runner/.password.txt | docker login --username lamnh --password-stdin
+  script:
+    - chmod u+x ./deploy/develop/build.sh
+    - ./deploy/develop/build.sh
+    - chmod u+x ./deploy/develop/run.sh
+    - ./deploy/develop/run.sh
+
+
+# stages:
+#   - development
+#   - production
+#   - logs  # Thêm stage mới để xem log
+
+# build-development:
+#   stage: development
+#   only:
+#     - develop
+#   tags:
+#     - development
+#   variables:
+#     DOCKER_IMAGE_NAME: lamnh/stock-predict-api
+#     DOCKER_IMAGE_TAG: ${CI_JOB_TOKEN}
+#     DOCKER_CONTAINER_NAME: stock-predict-api-container-dev
+#   before_script:
+#     - cat /home/gitlab-runner/.password.txt | docker login --username lamnh --password-stdin
+#   script:
+#     - chmod u+x ./deploy/develop/build.sh
+#     - ./deploy/develop/build.sh
+#     - chmod u+x ./deploy/develop/run.sh
+#     - ./deploy/develop/run.sh
+#     # Ghi log container vào file trên server
+#     - docker logs -f stock-predict-api-container-dev > /var/log/stock-predict-api.log 2>&1 &
+
+# view-runtime-logs:
+#   stage: logs  # Stage mới để xem log
+#   only:
+#     - develop
+#   script:
+#     - echo "📜 Lấy 50 dòng log mới nhất từ server:"
+#     - cat /var/log/stock-predict-api.log | tail -n 50

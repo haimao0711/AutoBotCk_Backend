@@ -1,0 +1,7 @@
+import sys
+
+VALID_TIME_REQUEST_BUY = 12 * 3600
+VALID_TIME_REQUEST_SELL = 12 * 3600
+
+DEFAULT_VALUE_PREVIOUS = sys.float_info.min
+DEFAULT_VALUE_CURRENT = sys.float_info.min

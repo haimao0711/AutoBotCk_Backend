@@ -1,0 +1,110 @@
+version: '3'
+
+services:
+  stock-predict-api:
+    image: '${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}'
+    ports:
+      - '8000:8000'
+    volumes:
+      - /home/stock-predict-cms/.env:/app/.env
+    deploy:
+      mode: replicated
+      placement:
+        constraints: [node.role == manager]
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+    networks:
+      - stock-predict_net
+
+  stock-predict-postgres:
+    image: postgres:15
+    volumes:
+      - /home/stock-predict-cms/postgres-15:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    ports:
+      - '5433:5432'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      mode: replicated
+      placement:
+        constraints: [node.role == manager]
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+    networks:
+      - stock-predict_net
+
+networks:
+  stock-predict_net:
+    driver: overlay
+
+
+
+# version: '3'
+
+# services:
+#   stock-predict-api:
+#     build:
+#       context: ./
+#       dockerfile: Dockerfile
+#     ports:
+#       - '8000:8000'
+#     volumes:    
+#       - ./:/app/
+#     environment:
+#       - POSTGRES_DB=${DB_NAME}
+#       - POSTGRES_USER=${DB_USER}
+#       - POSTGRES_PASSWORD=${DB_PASSWORD}
+#     deploy:
+#       mode: replicated
+#       placement:
+#         constraints: [node.role == manager]
+#       replicas: 1
+#       update_config:
+#         parallelism: 1
+#         delay: 10s
+#       restart_policy:
+#         condition: any
+#     networks:
+#       - stock-predict_net
+
+#   stock-predict-postgres:
+#     image: postgres:15
+#     volumes:
+#       - /home/stock-predict-cms/postgres-15:/var/lib/postgresql/data
+#     environment:
+#       - POSTGRES_DB=${DB_NAME}
+#       - POSTGRES_USER=${DB_USER}
+#       - POSTGRES_PASSWORD=${DB_PASSWORD}
+#     ports:
+#       - '5433:5432'
+#     deploy:
+#       mode: replicated
+#       placement:
+#         constraints: [node.role == manager]
+#       replicas: 1
+#       update_config:
+#         parallelism: 1
+#         delay: 10s
+#       restart_policy:
+#         condition: any
+#     networks:
+#       - stock-predict_net
+
+# networks:
+#   stock-predict_net:
+#     driver: bridge  # dùng bridge cho local
