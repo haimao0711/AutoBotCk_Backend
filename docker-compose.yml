@@ -50,7 +50,7 @@ services:
 
 networks:
   stock-predict_new:
-    driver: overlay
+    # driver: overlay
 
 
 
