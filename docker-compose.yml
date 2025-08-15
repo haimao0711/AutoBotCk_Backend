@@ -19,13 +19,13 @@ services:
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: x_stock
-      POSTGRES_USER: x_stock
-      POSTGRES_PASSWORD: stock123
+      POSTGRES_DB: stock_predict_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespass
     ports:
       - "5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U x_stock -d x_stock"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d stock_predict_db"]
       interval: 10s
       timeout: 5s
       retries: 5
