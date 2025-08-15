@@ -2,7 +2,7 @@ version: '3'
 
 services:
   stock-predict-api:
-    image: '${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}'
+    image: 'backend_autobot:latest'
     ports:
       - '8000:8000'
     volumes:
@@ -25,13 +25,13 @@ services:
     volumes:
       - /home/stock-predict-cms/postgres-15:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=x_stock
+      - POSTGRES_USER=x_stock
+      - POSTGRES_PASSWORD=stock123
     ports:
       - '5433:5432'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -U x_stock -d x_stock"]
       interval: 10s
       timeout: 5s
       retries: 5
