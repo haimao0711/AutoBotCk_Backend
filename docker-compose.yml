@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   stock-predict-postgres:
     image: postgres:15
@@ -24,13 +22,12 @@ services:
       POSTGRES_DB: stockdb
       POSTGRES_HOST: stock-predict-postgres
     depends_on:
-      stock-predict-postgres:
-        condition: service_healthy
+      - stock-predict-postgres   # Compose v3+ chỉ cần tên service
     ports:
       - "8000:8000"
     command: >
-      bash /usr/local/bin/wait-for-postgres.sh stock-predict-postgres
-      gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3
+      bash -c "/usr/local/bin/wait-for-postgres.sh stock-predict-postgres &&
+               gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
 
 volumes:
   postgres_data:
