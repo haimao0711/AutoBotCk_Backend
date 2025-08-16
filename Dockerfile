@@ -13,7 +13,7 @@ WORKDIR /app
 # Copy Pipfile trước để tối ưu layer cache
 COPY Pipfile Pipfile.lock /app/
 
-# Cài thư viện từ Pipfile.lock
+# Cài thư viện từ Pipfile.lock (trong đó đã có pandas)
 RUN pipenv install --deploy --ignore-pipfile
 
 # Copy toàn bộ code vào container

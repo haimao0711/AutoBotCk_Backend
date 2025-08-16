@@ -7,7 +7,7 @@ name = "pypi"
 django = "*"
 djangorestframework = "*"
 djangorestframework-simplejwt = "*"
-python-dotenv = { version="*", extras=["cli"] }  # bắt buộc có [cli]
+python-dotenv = "*"
 django-cors-headers = "*"
 psycopg2-binary = "*"
 apscheduler = "*"
@@ -16,6 +16,7 @@ bs4 = "*"
 pandas = "*"
 ta = "*"
 django-db-connection-pool = "*"
+
 
 [dev-packages]
 
