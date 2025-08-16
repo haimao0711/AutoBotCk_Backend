@@ -25,4 +25,4 @@ RUN chmod +x /usr/local/bin/wait-for-postgres.sh
 EXPOSE 8000
 
 # CMD mặc định: wait DB rồi start gunicorn
-CMD ["bash", "-c", "/usr/local/bin/wait-for-postgres.sh stock-predict-postgres && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"]
+CMD ["/usr/local/bin/wait-for-postgres.sh", "stock-predict-postgres", "gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
