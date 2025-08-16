@@ -7,14 +7,23 @@ services:
     container_name: "${DOCKER_CONTAINER_NAME}"
     ports:
       - "8000:8000"
-    env_file:
-      - .env.production
+    environment:
+      DJANGO_ENV: production
+      SECRET_KEY: '9f3L!v@7gB#1sTzR8wQx2YkP$$uM0eHjA5nV4pZrF'
+      DEBUG: 'False'
+      ALLOWED_HOSTS: '14.225.253.51'
+      DB_NAME: stock_predict_db
+      DB_USER: postgres
+      DB_PASSWORD: postgrespass
+      DB_HOST: stock-predict-postgres
+      DB_PORT: 5432
     depends_on:
       - stock-predict-postgres
     restart: always
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
     networks:
       - stock-predict_net
+
 
   stock-predict-postgres:
     image: postgres:15
