@@ -1,43 +1,43 @@
-version: "3.9"
+version: '3'
 
 services:
   stock-predict-api:
-    build: .
-    image: lamnh/stock-predict-api:latest
+    image: 'stock-predict-api:latest'
     ports:
-      - "8000:8000"
-    depends_on:
-      - stock-predict-postgres
+      - '8000:8000'
+    volumes:
+      - ./env/.env.production:/app/.env
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
     networks:
-      - stock-predict-net
-    restart: always
-    environment:
-      # Đảm bảo Django đọc được env
-      DJANGO_SETTINGS_MODULE: stock_predict.settings
-      # Nếu cần thêm env khác, copy từ .env hoặc thêm trực tiếp
-    command: >
-      sh -c "pipenv run dotenv run -- python manage.py makemigrations &&
-             pipenv run dotenv run -- python manage.py migrate &&
-             pipenv run dotenv run -- python manage.py runserver 0.0.0.0:8000"
+      - stock-predict_net
 
   stock-predict-postgres:
     image: postgres:15
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
+      - ./postgres-15:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: stock_predict_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespass
+      - POSTGRES_DB=stock_predict_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgrespass
     ports:
-      - "5433:5432"
+      - '5433:5432'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d stock_predict_db"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -U postgres -d stock_predict_db"]
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
     networks:
-      - stock-predict-net
-    restart: always
+      - stock-predict_net
 
 networks:
-  stock-predict-net:
+  stock-predict_net:
+    driver: overlay

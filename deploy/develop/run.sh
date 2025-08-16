@@ -1,20 +1,16 @@
 #!/bin/sh
+# Load biến môi trường từ .env.production
+export $(grep -v '^#' .env.production | xargs)
 
-# ==========================
-# Config biến môi trường
-# ==========================
-CONTAINER_NAME="backend_vps"
-
-# Dừng và xóa container cũ nếu có
-OLD_CONTAINER=$(docker ps -a --quiet --filter "name=${CONTAINER_NAME}")
+# Kiểm tra container cũ
+OLD_CONTAINER=$(docker ps -a -q --filter "name=${DOCKER_CONTAINER_NAME}")
 if [ -n "$OLD_CONTAINER" ]; then
-  echo "♻️ Stopping and removing old container ${CONTAINER_NAME}..."
-  docker stop $OLD_CONTAINER
-  docker rm $OLD_CONTAINER
-  echo "...[done] remove old container ${CONTAINER_NAME}"
+  echo "Stopping and removing old container ${DOCKER_CONTAINER_NAME}..."
+  docker stop $OLD_CONTAINER && docker rm $OLD_CONTAINER
+  echo "...[done] removed old container ${DOCKER_CONTAINER_NAME}"
 fi
 
-# Khởi chạy container mới với docker-compose
-echo "🚀 Starting new container ${CONTAINER_NAME}..."
-docker-compose -f docker-compose.yml up -d
-echo "...[done] start new container ${CONTAINER_NAME}"
+# Deploy bằng Docker stack
+echo "Deploying stack ${DOCKER_CONTAINER_NAME}..."
+docker stack deploy --compose-file docker-compose.yml --with-registry-auth ${DOCKER_CONTAINER_NAME}
+echo "...[done] stack ${DOCKER_CONTAINER_NAME} deployed"
