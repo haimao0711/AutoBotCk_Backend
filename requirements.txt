@@ -8,6 +8,7 @@ python-dotenv==1.0.0
 requests==2.31.0
 beautifulsoup4==4.12.2
 pandas==2.0.3
+numpy==1.26.2
 ta==0.10.2
 django-db-connection-pool==1.2.4
 gunicorn==21.2.0
