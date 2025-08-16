@@ -1,16 +1,28 @@
 #!/bin/bash
+set -e  # exit ngay khi có lỗi
 
-# Thiết lập môi trường, nếu cần
 echo "🔧 Running environment setup..."
 
-# Migrate database (áp dụng các migration của Django)
-python manage.py migrate
+# Chờ database sẵn sàng
+echo "⏳ Waiting for PostgreSQL to be ready..."
+until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; do
+  sleep 2
+done
+echo "✅ PostgreSQL is ready!"
 
-# Thu thập các file static của Django
+# Áp dụng migrations
+python manage.py migrate --noinput
+
+# Thu thập static files
 python manage.py collectstatic --noinput
 
-# Restart tất cả các schedulers (nếu có)
-python manage.py restart_schedulers
+# Khởi động lại schedulers (nếu có)
+if python manage.py restart_schedulers 2>/dev/null; then
+    echo "✅ Schedulers restarted"
+fi
 
-# Khởi động Gunicorn (hoặc server web bạn sử dụng)
-exec gunicorn myproject.wsgi:application --bind 0.0.0.0:8000
+# Khởi động Gunicorn với settings chính xác
+exec gunicorn config.wsgi:application \
+    --bind 0.0.0.0:8000 \
+    --workers 3 \
+    --timeout 120

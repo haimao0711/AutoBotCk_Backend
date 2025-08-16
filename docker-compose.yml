@@ -1,4 +1,4 @@
-version: '3'
+version: '3.9'
 
 services:
   stock-predict-api:
@@ -12,7 +12,7 @@ services:
     depends_on:
       - stock-predict-postgres
     restart: always
-    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
     networks:
       - stock-predict_net
 
@@ -20,11 +20,11 @@ services:
     image: postgres:15
     container_name: stock-predict-postgres
     volumes:
-      - /home/stock-predict-cms/postgres-15:/var/lib/postgresql/data
+      - ./postgres-15:/var/lib/postgresql/data
     env_file:
       - .env.production
     ports:
-      - "5433:5432"
+      - "5433:5432"  # VPS port 5433 map vào container 5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h localhost -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
