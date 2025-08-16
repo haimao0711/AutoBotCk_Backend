@@ -1,3 +1,4 @@
+version: "3.9"
 
 services:
   stock-predict-api:
@@ -10,6 +11,14 @@ services:
     networks:
       - stock-predict-net
     restart: always
+    environment:
+      # Đảm bảo Django đọc được env
+      DJANGO_SETTINGS_MODULE: stock_predict.settings
+      # Nếu cần thêm env khác, copy từ .env hoặc thêm trực tiếp
+    command: >
+      sh -c "pipenv run dotenv run -- python manage.py makemigrations &&
+             pipenv run dotenv run -- python manage.py migrate &&
+             pipenv run dotenv run -- python manage.py runserver 0.0.0.0:8000"
 
   stock-predict-postgres:
     image: postgres:15
