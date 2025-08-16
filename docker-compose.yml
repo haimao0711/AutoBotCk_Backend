@@ -15,11 +15,12 @@ services:
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
     networks:
       - stock-predict_net
+
   stock-predict-postgres:
     image: postgres:15
     container_name: stock-predict-postgres
     volumes:
-      - /home/stock-predict-cms/postgres-15:/var/lib/postgresql/data
+      - stock-predict-postgres-data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -35,7 +36,9 @@ services:
     networks:
       - stock-predict_net
 
-
 networks:
   stock-predict_net:
     driver: bridge
+
+volumes:
+  stock-predict-postgres-data:
