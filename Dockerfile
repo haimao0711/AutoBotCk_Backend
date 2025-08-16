@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Cài các công cụ cần thiết + psql client
+# Cài PostgreSQL client và các build tools
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
