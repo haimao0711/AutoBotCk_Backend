@@ -12,7 +12,7 @@ services:
     depends_on:
       - stock-predict-postgres
     restart: always
-    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    command: gunicorn wsgi:application --bind 0.0.0.0:8000 --workers 3
     networks:
       - stock-predict_net
 
