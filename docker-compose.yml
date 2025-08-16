@@ -1,12 +1,10 @@
 
 services:
   stock-predict-api:
-    image: lamnh/stock-predict-api:latest
     build: .
+    image: lamnh/stock-predict-api:latest
     ports:
       - "8000:8000"
-    env_file:
-      - ./.env.production
     depends_on:
       - stock-predict-postgres
     networks:
