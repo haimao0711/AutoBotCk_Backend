@@ -7,7 +7,7 @@ name = "pypi"
 django = "*"
 djangorestframework = "*"
 djangorestframework-simplejwt = "*"
-python-dotenv = "*"
+python-dotenv = { version="*", extras=["cli"] }
 django-cors-headers = "*"
 psycopg2-binary = "*"
 apscheduler = "*"
