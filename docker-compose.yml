@@ -20,10 +20,8 @@ services:
     container_name: stock-predict-postgres
     volumes:
       - /home/stock-predict-cms/postgres-15:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    env_file:
+      - .env.production
     ports:
       - "5433:5432"
     healthcheck:
