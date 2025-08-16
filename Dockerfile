@@ -19,8 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy toàn bộ code
 COPY . .
 
-# Expose cổng (nếu Django chạy devserver)
+# Expose cổng
 EXPOSE 8000
 
-# Lệnh chạy (sửa lại nếu bạn dùng gunicorn/uvicorn)
-CMD ["gunicorn", "project.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Start server bằng Gunicorn
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
