@@ -1,52 +1,35 @@
-version: '3.9'
+version: "3.9"
 
 services:
-  stock-predict-api:
-    build: .
-    image: "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-    container_name: "${DOCKER_CONTAINER_NAME}"
-    ports:
-      - "8000:8000"
-    environment:
-      DJANGO_ENV: production
-      SECRET_KEY: '9f3L!v@7gB#1sTzR8wQx2YkP$$uM0eHjA5nV4pZrF'
-      DEBUG: 'False'
-      ALLOWED_HOSTS: '14.225.253.51'
-      DB_NAME: stock_predict_db
-      DB_USER: postgres
-      DB_PASSWORD: postgrespass
-      DB_HOST: stock-predict-postgres
-      DB_PORT: 5432
-    depends_on:
-      - stock-predict-postgres
-    restart: "no"
-    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
-    networks:
-      - stock-predict_net
-
   stock-predict-postgres:
     image: postgres:15
-    container_name: stock-predict-postgres
-    volumes:
-      - stock-predict-postgres-data:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: stock_predict_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespass
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: stockdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
+      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -U postgres -d stock_predict_db"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "pg_isready -U myuser"]
+      interval: 5s
       retries: 5
-    restart: always
-    networks:
-      - stock-predict_net
+      timeout: 5s
 
-networks:
-  stock-predict_net:
-    driver: bridge
+  stock-predict-api:
+    build: .
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: stockdb
+      POSTGRES_HOST: stock-predict-postgres
+    depends_on:
+      stock-predict-postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    command: ["bash", "/usr/local/bin/wait-for-postgres.sh", "stock-predict-postgres", "gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
 
 volumes:
-  stock-predict-postgres-data:
+  postgres_data:
