@@ -192,7 +192,9 @@ AUTH_PASSWORD_VALIDATORS = [
 #Front end local cors
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:4000",
+    "http://localhost:4000",     # dev local
+    "http://14.225.253.51:3000",      # test trên VPS
+    "https://http://autobotchungkhoan.pro.vn",      # production
 ]
 
 CORS_ALLOW_METHODS = [
