@@ -1,14 +1,26 @@
+# Base image Python 3.11
 FROM python:3.11-slim
 
+# Set thư mục làm việc
 WORKDIR /app
 
-# Cài dependencies
+# Cài đặt các gói hệ thống cần thiết (nếu dùng psycopg2)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements.txt trước để tận dụng cache Docker
 COPY requirements.txt .
+
+# Cài Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy toàn bộ code
 COPY . .
 
-# Expose port & run server
+# Expose cổng (nếu Django chạy devserver)
 EXPOSE 8000
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+# Lệnh chạy (sửa lại nếu bạn dùng gunicorn/uvicorn)
+CMD ["gunicorn", "project.wsgi:application", "--bind", "0.0.0.0:8000"]
