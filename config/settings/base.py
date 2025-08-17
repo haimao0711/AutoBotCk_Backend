@@ -194,7 +194,8 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4000",     # dev local
     "http://14.225.253.51:3000",      # test trên VPS
-    "https://autobotchungkhoan.pro.vn",      # production
+    "http://autobotchungkhoan.pro.vn",      # production
+    "https://autobotchungkhoan.pro.vn",
 ]
 
 CORS_ALLOW_METHODS = [
