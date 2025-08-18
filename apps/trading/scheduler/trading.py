@@ -90,7 +90,7 @@ def start_scheduler_for_user(user):
 
     scheduler.start()
     user_schedulers[user.id] = scheduler  # dùng user.id thay vì object làm key
-    print(f'check user_schedulers {user.username}: ', user_schedulers)
+    logger.info(f'check user_schedulers {user.username}: ', user_schedulers)
     # Chạy 1 lần ngay lập tức (cũng dùng safe_run)
     safe_run(trading.cancel_trading, user, "cancel_trading (initial)")
     safe_run(trading.restart_request_trade, user, "restart_request_trade (initial)")
@@ -145,7 +145,8 @@ def ensure_db_connection():
 
 
 def restart_schedulers():
-    print('bắt đầu chạy hàm restart_schedulers')
+    logger.info('bắt đầu chạy hàm restart_schedulers')
+    logger.info("User schedulers keys:", list(user_schedulers.keys()))
     """Khi Django reload, kiểm tra user nào có scheduler_status = True thì chạy lại Scheduler"""
     ensure_db_connection()  # Đảm bảo database kết nối trước khi truy vấn
 
@@ -175,19 +176,19 @@ def check_scheduler_health():
         try:
             # Chỉ restart nếu scheduler chết và user vẫn có flag scheduler_status=True
             user = User.objects.get(id=user_id)
-            print(f'check {user.username} user_schedulers check_scheduler_health : ', user_id)
-            print(f'check {user.username} scheduler.running check_scheduler_health : ', scheduler.running)
-            print(f'check {user.username} user.scheduler_status check_scheduler_health : ', user.scheduler_status)
+            logger.info(f'check {user.username} user_schedulers check_scheduler_health : ', user_id)
+            logger.info(f'check {user.username} scheduler.running check_scheduler_health : ', scheduler.running)
+            logger.info(f'check {user.username} user.scheduler_status check_scheduler_health : ', user.scheduler_status)
             if not scheduler.running and user.scheduler_status:
-                print(f"⚠️ Scheduler của user {user.username} đã tắt. Đang khởi động lại.")
+                logger.info(f"⚠️ Scheduler của user {user.username} đã tắt. Đang khởi động lại.")
                 logger.warning(f"⚠️ Scheduler của user {user.username} đã tắt. Đang khởi động lại.")
                 start_scheduler_for_user(user)
         except User.DoesNotExist:
-            print(f"⚠️ Không tìm thấy user với ID {user_id}. Xóa scheduler khỏi bộ nhớ.")
+            logger.info(f"⚠️ Không tìm thấy user với ID {user_id}. Xóa scheduler khỏi bộ nhớ.")
             logger.warning(f"⚠️ Không tìm thấy user với ID {user_id}. Xóa scheduler khỏi bộ nhớ.")
             del user_schedulers[user_id]
         except Exception as e:
-            print(f"❌ Lỗi khi kiểm tra scheduler user ID {user_id}: {e}")
+            logger.info(f"❌ Lỗi khi kiểm tra scheduler user ID {user_id}: {e}")
             logger.exception(f"❌ Lỗi khi kiểm tra scheduler user ID {user_id}: {e}")
 
 
