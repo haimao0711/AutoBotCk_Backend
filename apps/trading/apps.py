@@ -54,4 +54,4 @@ class TradingConfig(AppConfig):
             except Exception as e:
                 logger.exception(f"❌ Lỗi khởi động Scheduler hoặc DB: {e}")
 
-        threading.Thread(target=bootstrap_schedulers, daemon=True).start()
+        bootstrap_schedulers()
