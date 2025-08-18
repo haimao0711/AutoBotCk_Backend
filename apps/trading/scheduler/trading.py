@@ -89,6 +89,7 @@ def start_scheduler_for_user(user):
     )
 
     scheduler.start()
+    print("Scheduler started for user:", user.username)
     user_schedulers[user.id] = scheduler  # dùng user.id thay vì object làm key
     print(f'check user_schedulers {user.username}: ', user_schedulers)
     # Chạy 1 lần ngay lập tức (cũng dùng safe_run)
