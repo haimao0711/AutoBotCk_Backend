@@ -69,9 +69,7 @@ class AuthencationStockExchagesView(APIView):
         if is_trading:
             cancel_all_orders(user, account_name, account_num, '', url, session_id, '', 'All')
             result = update_vps_data(session_id, "Trading is stopped!", 2)
-
-            # Dừng scheduler
-            stop_scheduler_for_user(user)
+            stop_scheduler_for_user(user)  # Dừng scheduler của user
         else:
             # Đăng nhập để lấy session mới
             session_login_1 = login_get_session_vps_step_1(account_name, pass_login)

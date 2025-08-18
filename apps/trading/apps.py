@@ -18,26 +18,31 @@ class TradingConfig(AppConfig):
 
         logger.info('🚀 Bắt đầu khởi động hệ thống Scheduler và kiểm tra DB...')
 
-        # 🔹 Khởi động tất cả scheduler đồng bộ ngay khi ready
-        from .scheduler.trading import restart_schedulers
-        restart_schedulers()
-
-        # Thread để chạy health checker và đảm bảo DB luôn kết nối
         def bootstrap_schedulers():
             try:
                 from .scheduler.trading import (
                     ensure_db_connection,
+                    restart_schedulers,
                     check_scheduler_health,
                 )
                 from django.db import connection
 
                 connection.ensure_connection()
 
+                # Restart scheduler các user có flag True
+                restart_schedulers()
+
                 health_checker = BackgroundScheduler(timezone='Asia/Ho_Chi_Minh')
                 health_checker.add_job(
                     check_scheduler_health,
-                    trigger=CronTrigger(minute='*/3', hour='9-22'),  # Mỗi 3 phút trong giờ giao dịch
+                    trigger=CronTrigger(minute='*/3', hour='9-22'),  # Mỗi 15 phút trong giờ giao dịch
                     id="check_all_schedulers",
+                    replace_existing=True
+                )
+                health_checker.add_job(
+                    restart_schedulers,
+                    trigger=CronTrigger(hour=8, minute=59),
+                    id="daily_restart_schedulers",
                     replace_existing=True
                 )
                 health_checker.start()

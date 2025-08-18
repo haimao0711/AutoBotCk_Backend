@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
-import sys
 from dotenv import load_dotenv
 # from decouple import config
 
@@ -210,46 +209,6 @@ CORS_ALLOW_HEADERS = [
     "Authorization",
     "Content-Type"
 ]
-
-
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "standard": {
-            "format": "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s",
-        },
-    },
-    "handlers": {
-        "console": {
-            "level": "INFO",
-            "class": "logging.StreamHandler",
-            "stream": sys.stdout,  # Đảm bảo log ra stdout (Docker logs sẽ thấy)
-            "formatter": "standard",
-        },
-    },
-    "loggers": {
-        # Logger cho Django
-        "django": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        # Logger riêng cho APScheduler
-        "apscheduler": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        # Logger chung cho app bạn
-        "myapp": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-    },
-}
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
