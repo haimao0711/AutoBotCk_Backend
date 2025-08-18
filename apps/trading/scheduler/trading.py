@@ -105,6 +105,10 @@ def stop_scheduler_for_user(user):
     """Dừng Scheduler của một user"""
     user_id = user.id
 
+    # Nếu scheduler chưa tồn tại trong memory, khởi tạo trước
+    if user_id not in user_schedulers:
+        start_scheduler_for_user(user)
+
     if user_id in user_schedulers:
         scheduler = user_schedulers[user_id]
         scheduler.shutdown(wait=False)  # Dừng ngay, không đợi job chạy xong
@@ -116,6 +120,7 @@ def stop_scheduler_for_user(user):
 
         logger.info(f"⏹️ Scheduler đã dừng cho user {user.username}")
     else:
+        # Trường hợp cực hiếm: start_scheduler không tạo được scheduler
         logger.info(f"⚠️ Không tìm thấy Scheduler của user {user.username}!")
 
 def get_scheduler_status_for_user(user):
