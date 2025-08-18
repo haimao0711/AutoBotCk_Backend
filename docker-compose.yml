@@ -6,10 +6,11 @@ services:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: stockdb
+      TZ: "Asia/Ho_Chi_Minh"  # <-- đổi timezone hợp lệ
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"   # <-- expose port ra host để DBeaver kết nối
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U myuser -d stockdb"]
       interval: 5s
