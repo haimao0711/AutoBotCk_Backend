@@ -13,9 +13,6 @@ class TradingConfig(AppConfig):
     name = 'apps.trading'
 
     def ready(self) -> None:
-        if os.environ.get('RUN_MAIN') != 'true':
-         return
-
         logger.info('🚀 Bắt đầu khởi động hệ thống Scheduler và kiểm tra DB...')
 
         def bootstrap_schedulers():
@@ -35,7 +32,7 @@ class TradingConfig(AppConfig):
                 health_checker = BackgroundScheduler(timezone='Asia/Ho_Chi_Minh')
                 health_checker.add_job(
                     check_scheduler_health,
-                    trigger=CronTrigger(minute='*/3', hour='9-22'),  # Mỗi 15 phút trong giờ giao dịch
+                    trigger=CronTrigger(minute='*/3', hour='9-22'),
                     id="check_all_schedulers",
                     replace_existing=True
                 )
@@ -47,7 +44,6 @@ class TradingConfig(AppConfig):
                 )
                 health_checker.start()
 
-                # Khởi động thread đảm bảo DB kết nối (nếu cần)
                 threading.Thread(target=ensure_db_connection, daemon=True).start()
 
                 logger.info("✅ Scheduler và Health Checker đã được khởi động!")
