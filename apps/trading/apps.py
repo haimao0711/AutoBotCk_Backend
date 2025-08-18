@@ -13,8 +13,8 @@ class TradingConfig(AppConfig):
     name = 'apps.trading'
 
     def ready(self) -> None:
-        if os.environ.get('RUN_MAIN') != 'true' or 'runserver' not in sys.argv:
-            return
+        if os.environ.get('RUN_MAIN') != 'true' and 'gunicorn' not in sys.argv:
+         return
 
         logger.info('🚀 Bắt đầu khởi động hệ thống Scheduler và kiểm tra DB...')
 
