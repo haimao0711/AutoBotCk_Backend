@@ -4,13 +4,29 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.interval import IntervalTrigger
 from datetime import datetime, timedelta
-import logging
 import time
 from django.db import connection, OperationalError
 from django.contrib.auth import get_user_model
 from django.db import close_old_connections
 from django.db import InterfaceError
+import sys
+import logging
+# ================= Logger cho module scheduler =================
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s"))
+    logger.addHandler(ch)
+
+# ================= Logger cho APScheduler =====================
+aps_logger = logging.getLogger("apscheduler")
+aps_logger.setLevel(logging.INFO)
+if not aps_logger.handlers:
+    ch2 = logging.StreamHandler(sys.stdout)
+    ch2.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s"))
+    aps_logger.addHandler(ch2)
+# ===============================================================
 
 # Quản lý Scheduler riêng cho từng user
 user_schedulers = {}
