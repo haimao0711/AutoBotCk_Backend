@@ -22,7 +22,7 @@ from common.signal.enums import SignalTelegramEnum
 from apps.telegram.enum.enums import MessageTypeEnum
 from common.api.smartone.handler import validate_session
 from apps.trading.service.handlers import cancel_all_orders
-from apps.trading.scheduler.trading import start_scheduler_for_user, stop_scheduler_for_user, user_schedulers
+from apps.trading.scheduler.trading import start_scheduler_for_user, stop_scheduler_for_user
 from common.errors.messages import ErrorMessages
 from apps import api
 
@@ -69,12 +69,9 @@ class AuthencationStockExchagesView(APIView):
         if is_trading:
             cancel_all_orders(user, account_name, account_num, '', url, session_id, '', 'All')
             result = update_vps_data(session_id, "Trading is stopped!", 2)
-            
-            # Nếu chưa có scheduler, khởi tạo trước
-            if user.id not in user_schedulers:
-                start_scheduler_for_user(user)
-            
-            stop_scheduler_for_user(user)  # Dừng scheduler của user
+
+            # Dừng scheduler
+            stop_scheduler_for_user(user)
         else:
             # Đăng nhập để lấy session mới
             session_login_1 = login_get_session_vps_step_1(account_name, pass_login)
