@@ -102,7 +102,7 @@ class AutomationLogoutStockExchangesView(APIView):
 
     @staticmethod
     def logout_smartone():
-        logger.info("Logout all account in smartOne vps has status login is LoginSuccess...")
+        print("Logout all account in smartOne vps has status login is LoginSuccess...")
         _ = AccountService.update_all_accounts_login_status()
 
     def post(self, requests):

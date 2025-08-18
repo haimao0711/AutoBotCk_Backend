@@ -16,28 +16,26 @@ logger = logging.getLogger(__name__)
 user_schedulers = {}
 
 def safe_run(func, user, job_name=""):
+    """Chạy một job với quản lý lỗi và log chi tiết"""
+    logger.info(f"🔹 Bắt đầu job '{job_name}' cho user {user.username}")
     try:
-        # Đóng connection cũ trước khi chạy
         close_old_connections()
-
         func(user)
-
     except InterfaceError as e:
         logger.exception(f"❌ DB connection error trong job '{job_name}' của user {user.username}: {str(e)}")
-        # Đóng connection lỗi, lần sau job sẽ dùng connection mới
         close_old_connections()
-
     except Exception as e:
         logger.exception(f"❌ Lỗi trong job '{job_name}' của user {user.username}: {str(e)}")
-
     finally:
-        # Đảm bảo luôn đóng connection sau job
         close_old_connections()
+        logger.info(f"🔹 Kết thúc job '{job_name}' cho user {user.username}")
 
 
 def start_scheduler_for_user(user):
     """Bật Scheduler cho một user cụ thể, nếu bị crash thì tự động restart"""
     global user_schedulers
+    logger.info(f"🚀 Bắt đầu start_scheduler_for_user cho user {user.username} (ID: {user.id})")
+    logger.info(f"Trước khi tạo scheduler, user_schedulers keys: {list(user_schedulers.keys())}")
 
     if user.id in user_schedulers:
         scheduler = user_schedulers[user.id]
@@ -47,15 +45,13 @@ def start_scheduler_for_user(user):
         else:
             logger.warning(f"⚠️ Scheduler của user {user.username} đã bị dừng! Đang khởi động lại...")
 
-    logger.info(f"🚀 Khởi động Scheduler cho user {user.username}...")
-
     scheduler = BackgroundScheduler(
         timezone='Asia/Ho_Chi_Minh',
         executors={'default': ThreadPoolExecutor(20)}
     )
-
     trading = TradingViews()
 
+    # Thêm job
     scheduler.add_job(
         lambda: safe_run(trading.user_trading, user, "user_trading"),
         trigger=CronTrigger(day_of_week='mon-fri', hour='9-14', minute='*/1', timezone='Asia/Ho_Chi_Minh'),
@@ -63,23 +59,20 @@ def start_scheduler_for_user(user):
         replace_existing=True,
         max_instances=20
     )
-
     scheduler.add_job(
         lambda: safe_run(trading.cancel_trading, user, "cancel_trading_morning"),
         trigger=CronTrigger(day_of_week='mon-fri', hour=11, minute=29, timezone='Asia/Ho_Chi_Minh'),
-        id=f"cancel_morning{user.username}",
+        id=f"cancel_morning_{user.username}",
         replace_existing=True,
         max_instances=1
     )
-
     scheduler.add_job(
         lambda: safe_run(trading.cancel_trading, user, "cancel_trading_afternoon"),
         trigger=CronTrigger(day_of_week='mon-fri', hour=14, minute=29, timezone='Asia/Ho_Chi_Minh'),
-        id=f"cancel_afternoon{user.username}",
+        id=f"cancel_afternoon_{user.username}",
         replace_existing=True,
         max_instances=1
     )
-
     scheduler.add_job(
         lambda: safe_run(trading.restart_request_trade, user, "restart_request_trade"),
         trigger=CronTrigger(day_of_week='mon-fri', hour=14, minute=30, timezone='Asia/Ho_Chi_Minh'),
@@ -88,37 +81,40 @@ def start_scheduler_for_user(user):
         max_instances=1
     )
 
+    # Start scheduler
     scheduler.start()
-    user_schedulers[user.id] = scheduler  # dùng user.id thay vì object làm key
-    logger.info(f'check user_schedulers {user.username}: ', user_schedulers)
-    # Chạy 1 lần ngay lập tức (cũng dùng safe_run)
+    user_schedulers[user.id] = scheduler
+    logger.info(f"Sau khi start scheduler, user_schedulers keys: {list(user_schedulers.keys())}")
+    logger.info(f"Scheduler running: {scheduler.running}")
+
+    # Chạy 1 lần ngay lập tức
     safe_run(trading.cancel_trading, user, "cancel_trading (initial)")
     safe_run(trading.restart_request_trade, user, "restart_request_trade (initial)")
 
+    # Cập nhật database
     user.scheduler_status = True
     user.save()
-
     logger.info(f"✅ Scheduler đã khởi động thành công cho user {user.username}!")
 
 
 def stop_scheduler_for_user(user):
     """Dừng Scheduler của một user"""
     user_id = user.id
+    logger.info(f"⏹️ Bắt đầu stop_scheduler_for_user cho user {user.username} (ID: {user_id})")
+    logger.info(f"Keys hiện tại trong user_schedulers: {list(user_schedulers.keys())}")
 
-    # Nếu scheduler chưa tồn tại trong memory, khởi tạo trước
     if user_id not in user_schedulers:
-        logger.info(f"⚠️ Scheduler của user {user.username} chưa tồn tại trong memory, sẽ khởi tạo trước khi dừng.")
+        logger.warning(f"⚠️ Scheduler của user {user.username} chưa tồn tại trong memory, sẽ khởi tạo trước khi dừng.")
         start_scheduler_for_user(user)
 
     if user_id in user_schedulers:
         scheduler = user_schedulers[user_id]
-        scheduler.shutdown(wait=False)  # Dừng ngay, không đợi job chạy xong
+        logger.info(f"Tìm thấy scheduler: {scheduler}, running={scheduler.running}. Dừng scheduler...")
+        scheduler.shutdown(wait=False)
         del user_schedulers[user_id]
 
-        # Cập nhật trạng thái scheduler trong database
         user.scheduler_status = False
         user.save()
-
         logger.info(f"⏹️ Scheduler đã dừng cho user {user.username}")
     else:
         logger.error(f"❌ Thất bại: Scheduler vẫn không tìm thấy sau khi start, user {user.username}!")
@@ -126,10 +122,13 @@ def stop_scheduler_for_user(user):
 
 def get_scheduler_status_for_user(user):
     """Lấy trạng thái Scheduler của user"""
+    running = user.id in user_schedulers and user_schedulers[user.id].running
+    logger.info(f"Trạng thái scheduler của user {user.username}: running={running}")
     return {
         "user": user.username,
-        "running": user.id in user_schedulers and user_schedulers[user.id].running
+        "running": running
     }
+
 
 def ensure_db_connection():
     """Tự động kết nối lại database nếu bị mất kết nối"""
@@ -140,15 +139,13 @@ def ensure_db_connection():
             return
         except OperationalError:
             logger.warning("🔴 Database mất kết nối! Chờ 5 phút thử lại...")
-            time.sleep(300)  # Đợi 5 phút rồi thử lại
-
+            time.sleep(300)
 
 
 def restart_schedulers():
-    logger.info('bắt đầu chạy hàm restart_schedulers')
-    logger.info("User schedulers keys:", list(user_schedulers.keys()))
-    """Khi Django reload, kiểm tra user nào có scheduler_status = True thì chạy lại Scheduler"""
-    ensure_db_connection()  # Đảm bảo database kết nối trước khi truy vấn
+    logger.info("🔄 Bắt đầu chạy hàm restart_schedulers")
+    logger.info(f"User schedulers keys: {list(user_schedulers.keys())}")
+    ensure_db_connection()
 
     User = get_user_model()
     users_with_scheduler = User.objects.filter(scheduler_status=True)
@@ -158,7 +155,6 @@ def restart_schedulers():
         return
 
     logger.info(f"🔄 Restarting Scheduler cho {users_with_scheduler.count()} user(s)...")
-
     for user in users_with_scheduler:
         try:
             start_scheduler_for_user(user)
@@ -166,6 +162,7 @@ def restart_schedulers():
             logger.exception(f"❌ Lỗi khi restart Scheduler cho user {user.username}: {e}")
 
     logger.info("✅ Hoàn thành việc restart Scheduler cho các user.")
+
 
 
 def check_scheduler_health():
