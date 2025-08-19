@@ -67,7 +67,8 @@ class ConfigurationOverviewServices:
 
                 low_price = query_data_m1['low'] if query_data_m1 else 0
                 high_price = query_data_m1['high'] if query_data_m1 else 0
-                current_price = (float(low_price) + float(high_price)) / 2
+                # current_price = (float(low_price) + float(high_price)) / 2
+                current_price = query_data_m1['close'] if query_data_m1 else 0
 
                 stock_data[stock_name] = {
                     'id': stock_id,
