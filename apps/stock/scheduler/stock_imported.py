@@ -18,9 +18,6 @@ def safe_run(func):
 
 def start():
     global scheduler, scheduler_started
-
-    if os.environ.get('RUN_MAIN') != 'true':
-        return
     if scheduler_started:
         logger.info("Scheduler is already initialized.")
         return

@@ -44,7 +44,7 @@ class ConfigurationOverviewServices:
         except Configuration.DoesNotExist:
             return {}
     def get_detail_stock_configurations(user):
-        print('Bat dau hàm get_detail_stock_configurations')
+        # print('Bat dau hàm get_detail_stock_configurations')
         overview = ConfigurationTypeServices.get_overview()
         try:
             configurations = Configuration.objects.filter(
@@ -76,7 +76,7 @@ class ConfigurationOverviewServices:
                     'low': low_price,
                     'high': high_price,
                     'close': query_data_m1['close'] if query_data_m1 else 0,
-                    'current_price': current_price,
+                    'average_price': current_price,
                 }
             vps_account = AccountService.get_account_by_user(user)
             account_name = vps_account.name
@@ -91,7 +91,7 @@ class ConfigurationOverviewServices:
             # Xử lý đồng thời với ThreadPoolExecutor
             def process_configuration(configuration):
                 stock_name = configuration.stock.name
-                current_price = stock_data[stock_name]['current_price']
+                current_price = stock_data[stock_name]['close']
                 # trading_data = trading_data_map.get(configuration.id, {})
                 balance_by_stock = next((stock for stock in stock_balance_data if stock.get('symbol') == stock_name), None)
                 return {
@@ -123,7 +123,8 @@ class ConfigurationOverviewServices:
             with ThreadPoolExecutor() as executor:
                 futures = [executor.submit(process_configuration, config) for config in configurations]
                 data = [future.result() for future in futures]
-            print('Kết thúc hàm get_detail_stock_configurations')
+            # sorted_data = sorted(data, key=lambda x: int(x["volume_buy"]), reverse=True)
+            # print('Kết thúc hàm get_detail_stock_configurations')
             return data
 
         except Exception as error:
