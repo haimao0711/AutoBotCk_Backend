@@ -196,7 +196,9 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
     print(f'Bắt đầu chạy hàm update lệnh bán {symbol} ' )   
     ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
     tz = pytz.timezone("Asia/Ho_Chi_Minh")
-    start_time_update = datetime.now(tz)     
+    time_now  = datetime.now(tz)
+    start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")    
+    
     message_sell_update = []
     print(f'Nhắc lại giới hạn update lệnh bán {symbol}: ', limited_price )   
     res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', 'S')
@@ -206,7 +208,7 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
             'user_account': account,
             'stock': symbol,
             'number_order': len(res_not_matcheds),
-            'start_time_order': start_time_update,
+            'start_time_order': start_time_order,
             'times_update': times_update
             } 
         message_sell_update.append({
@@ -263,7 +265,8 @@ def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, req
     print(f'Bắt đầu chạy hàm cancel lệnh sell {symbol}')
     ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
     tz = pytz.timezone("Asia/Ho_Chi_Minh")
-    start_time_cancel = datetime.now(tz)  
+    time_now  = datetime.now(tz)
+    start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y") 
     message_cancel = []
     res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', 'S')    
     if res_not_matcheds:
@@ -273,7 +276,7 @@ def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, req
             'stock': symbol,
             'reason': reason,
             'number_order': len(res_not_matcheds),
-            'start_time_order': start_time_cancel
+            'start_time_order': start_time_order
         } 
         message_cancel.append({
             'status_signal': SignalTelegramEnum.SELL_CANCEL_OVERRAL,
@@ -1248,15 +1251,18 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Điều kiện mua không còn thỏa mãn ', "B")
                         break
 
-            #Tổng kết các lệnh đã khớp theo symbol để send telegram           
-                res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B')
+            #Tổng kết các lệnh đã khớp theo symbol để send telegram   
+                res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
                 if res_matcheds:
                     print(f'danh sách các lệnh mua {symbol} đã khớp: ', res_matcheds )
+                    time_now = datetime.now(timezone)
+                    start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
                     message_buy_matched = []
                     buy_matched_overrall_attrs = {
                         'user_account': account,
                         'stock': symbol,
                         'number_order': len(res_matcheds),
+                        'start_time_order': start_time_order,
                         } 
                     message_buy_matched.append({
                         'status_signal': SignalTelegramEnum.BUY_MATCHED_OVERRAL,
@@ -1396,7 +1402,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 # print(f'check time_to_buy stock {symbol}: ', time_to_sell)
                 start_price = round_up_to_unit(open_last_row, close_last_row, step_price)  
                 number_order = trading_config.stock_config_number_pid_sell_once_time - 1
-                start_time_order = datetime.now(timezone)
+                time_now = datetime.now(timezone)
+                start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
                 slippage_sell = trading_config.stock_config_slippage_sell
             # Dao động cộng trừ     
                 add_price_sell = trading_config.stock_config_add_price_sell
@@ -1514,6 +1521,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
                 if res_matcheds:
                     print(f'danh sách các lệnh bán {symbol} đã khớp: ', res_matcheds )
+                    # time_now = datetime.now(timezone)
+                    # start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
                     message_sell_matched = []
                     sell_matched_overrall_attrs = {
                         'user_account': account,
