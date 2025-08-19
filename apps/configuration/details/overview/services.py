@@ -44,7 +44,7 @@ class ConfigurationOverviewServices:
         except Configuration.DoesNotExist:
             return {}
     def get_detail_stock_configurations(user):
-        # print('Bat dau hàm get_detail_stock_configurations')
+        print('Bat dau hàm get_detail_stock_configurations')
         overview = ConfigurationTypeServices.get_overview()
         try:
             configurations = Configuration.objects.filter(
@@ -67,8 +67,8 @@ class ConfigurationOverviewServices:
 
                 low_price = query_data_m1['low'] if query_data_m1 else 0
                 high_price = query_data_m1['high'] if query_data_m1 else 0
-                # current_price = (float(low_price) + float(high_price)) / 2
-                current_price = query_data_m1['close'] if query_data_m1 else 0
+                current_price = (float(low_price) + float(high_price)) / 2
+                # current_price = query_data_m1['close'] if query_data_m1 else 0
 
                 stock_data[stock_name] = {
                     'id': stock_id,
@@ -118,17 +118,12 @@ class ConfigurationOverviewServices:
                     'current_profit': balance_by_stock.get('gain_loss_per') if balance_by_stock else 0,
                     "chart_type": configuration.config_type.name,
                     "level": configuration.level,
-                    # "chart_following_buy": configuration.chart,
-                    # "chart_following_sell": configuration.chart_sell,
-                    # "chart_trading_buy": configuration.chart,
-                    # "chart_trading_sell": configuration.chart_sell,
                 }
 
             with ThreadPoolExecutor() as executor:
                 futures = [executor.submit(process_configuration, config) for config in configurations]
                 data = [future.result() for future in futures]
-            # sorted_data = sorted(data, key=lambda x: int(x["volume_buy"]), reverse=True)
-            # print('Kết thúc hàm get_detail_stock_configurations')
+            print('Kết thúc hàm get_detail_stock_configurations')
             return data
 
         except Exception as error:
