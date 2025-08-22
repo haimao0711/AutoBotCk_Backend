@@ -457,7 +457,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         start_price = round_up_to_unit(open_last_row, close_last_row, step_price)       
         price_current = stock_data_trading.iloc[-1]['close']
         percent_first_buy = trading_config.stock_config_percent_first_buy
-        number_order = trading_config.stock_config_number_pid_sell_once_time
+        number_order = trading_config.stock_config_number_pid_buy_once_time
         time_now = datetime.now(timezone)
         start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
         slippage_buy = trading_config.stock_config_slippage_buy
@@ -768,7 +768,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         time_to_sell = time_to_sell if time_to_sell >= 60 else 60
         start_price = round_up_to_unit(open_last_row, close_last_row, step_price)       
         price_current = stock_data_trading.iloc[-1]['close']
-        number_order = overview_config.stock_config_number_pid_sell_once_time - 1
+        number_order = trading_config.stock_config_number_pid_sell_once_time - 1
         start_time_order = datetime.now(timezone)
         slippage_sell = trading_config.stock_config_slippage_sell
     # Dao động cộng trừ     
@@ -1025,7 +1025,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             print(f'check is_buy {symbol}', is_buy)
             print(f'check buy_reason {symbol}', buy_reason)     
 
-            number_order = trading_config.stock_config_number_pid_sell_once_time
+            number_order = trading_config.stock_config_number_pid_buy_once_time
 
             if is_buy:
                 status_buy = SignalTelegramEnum.BUY_SUCCESS
@@ -1068,7 +1068,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
                 sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
                 start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
-                number_order = trading_config.stock_config_number_pid_sell_once_time
+                number_order = trading_config.stock_config_number_pid_buy_once_time
                 # print(f'check number_order stock ban dau {symbol}: ', number_order)
                 slippage_buy = trading_config.stock_config_slippage_buy
             # Dao động cộng trừ    

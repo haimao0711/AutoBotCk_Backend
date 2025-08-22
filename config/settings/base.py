@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     "apps.authencation",
     "apps.stock",
     "apps.account",
-    # "apps.balance",
+    'apps.stockSocket.apps.StockSocketConfig',
     "apps.transaction",
     "apps.configuration",
     "apps.otp",
@@ -137,6 +137,17 @@ if ENVIRONMENT == 'production':
         'LOCATION': '127.0.0.1:11211',
     }
 
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django.core.cache.backends.redis.RedisCache",
+#         "LOCATION": "redis://redis:6379/0",  # 👈 service name "redis" trong docker-compose
+#     }
+# }
+# if ENVIRONMENT == 'production':
+#     CACHES['default'] = {
+#         "BACKEND": "django.core.cache.backends.redis.RedisCache",
+#         "LOCATION": "redis://redis:6379/0",
+#     }
     
 DATABASES = {
     'default': {
@@ -169,6 +180,35 @@ DATABASES = {
 #         'PORT': config('DB_PORT', default='5432'),
 #     }
 # }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',   # bạn có thể đổi thành DEBUG nếu muốn nhiều log hơn
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

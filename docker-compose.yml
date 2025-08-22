@@ -6,7 +6,8 @@ services:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: stockdb
-      TZ: "Asia/Ho_Chi_Minh"  # <-- đổi timezone hợp lệ
+      TZ: "Asia/Ho_Chi_Minh"  
+      PGTZ: "Asia/Ho_Chi_Minh" 
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -31,6 +32,13 @@ services:
     command: >
       bash -c "/usr/local/bin/wait-for-postgres.sh stock-predict-postgres &&
                gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1"
+    
+  # redis:
+  #   image: redis:7
+  #   restart: always
+  #   ports:
+  #     - "6379:6379"
+
 
 volumes:
   postgres_data:

@@ -28,6 +28,7 @@ from concurrent.futures import ThreadPoolExecutor
 from apps.authencation.user.models import User
 from apps.account.detail.models import Account
 from common.api.smartone.api import  get_stock_balance
+from apps.stockSocket.services.cache_service import get_price
 from apps import api
 import json
 
@@ -67,16 +68,17 @@ class ConfigurationOverviewServices:
 
                 low_price = query_data_m1['low'] if query_data_m1 else 0
                 high_price = query_data_m1['high'] if query_data_m1 else 0
-                current_price = (float(low_price) + float(high_price)) / 2
-                # current_price = query_data_m1['close'] if query_data_m1 else 0
+                # current_price = get_price(stock_name)
+                average_price = (float(low_price) + float(high_price)) / 2
+                current_price = query_data_m1['close'] if query_data_m1 else 0
 
                 stock_data[stock_name] = {
                     'id': stock_id,
                     'name': stock_name,
                     'low': low_price,
                     'high': high_price,
-                    'close': query_data_m1['close'] if query_data_m1 else 0,
-                    'average_price': current_price,
+                    'close': current_price,
+                    'average_price': average_price,
                 }
             vps_account = AccountService.get_account_by_user(user)
             account_name = vps_account.name
