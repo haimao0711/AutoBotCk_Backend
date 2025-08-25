@@ -19,6 +19,8 @@ from datetime import datetime, timedelta
 import time
 from django.db import transaction
 from django.db import close_old_connections
+import logging
+logger = logging.getLogger(__name__)
 
 class StockViews(APIView):
     def get_permissions(self):
@@ -73,61 +75,61 @@ class StockImportedViews(APIView):
 
     @staticmethod
     def save_stock_data_w1():
-        print('job download w1 is running...')
+        logger.info('job download w1 is running...')
         try:
             _ = StockService.download_and_imported_data_to_datbase_chart_w1()
         except Exception as e:
-            print(f"Error in job w1: {e}")
+            logger.warning(f"Error in job w1: {e}")
         finally:
             close_old_connections()
 
     @staticmethod
     def save_stock_data_d1():
-        print('job download d1 is running...')
+        logger.info('job download d1 is running...')
         try:
             _ = StockService.download_and_imported_data_to_datbase_chart_d1()
         except Exception as e:
-            print(f"Error in job d1: {e}")
+            logger.warning(f"Error in job d1: {e}")
         finally:
             close_old_connections()
 
     @staticmethod
     def save_stock_data_h1():
-        print('job download h1 is running...')
+        logger.info('job download h1 is running...')
         try:
             _ = StockService.download_and_imported_data_to_datbase_chart_h1()
         except Exception as e:
-            print(f"Error in job h1: {e}")
+            logger.warning(f"Error in job h1: {e}")
         finally:
             close_old_connections()
 
     @staticmethod
     def save_stock_data_m15():
-        print('job download m15 is running...')
+        logger.info('job download m15 is running...')
         try:
             _ = StockService.download_and_imported_data_to_datbase_chart_m15()
         except Exception as e:
-            print(f"Error in job m15: {e}")
+            logger.warning(f"Error in job m15: {e}")
         finally:
             close_old_connections()
 
     @staticmethod
     def save_stock_data_m5():
-        print('job download m5 is running...')
+        logger.info('job download m5 is running...')
         try:
             _ = StockService.download_and_imported_data_to_datbase_chart_m5()
         except Exception as e:
-            print(f"Error in job m5: {e}")
+            logger.warning(f"Error in job m5: {e}")
         finally:
             close_old_connections()
 
     @staticmethod
     def save_stock_data_m1():
-        print('job download m1 is running...')
+        logger.info('job download m1 is running...')
         try:
             _ = StockService.download_and_imported_data_to_datbase_chart_m1()
         except Exception as e:
-            print(f"Error in job m1: {e}")
+            logger.warning(f"Error in job m1: {e}")
         finally:
             close_old_connections()
     
@@ -143,13 +145,13 @@ class StockImportedViews(APIView):
         }
 
         batch_size = 1000  # Số lượng bản ghi xóa mỗi lần
-        print("Bắt đầu xóa các bản ghi cũ...")
+        logger.info("Bắt đầu xóa các bản ghi cũ...")
 
         for model, days in retention_policy.items():
             cutoff_datetime = datetime.now() - timedelta(days=days)
             cutoff_ts = int(cutoff_datetime.timestamp())
             model_name = model.__name__
-            print(f"Bắt đầu xóa các bản ghi cũ cho {model_name} (dữ liệu trước {cutoff_datetime})...")
+            logger.info(f"Bắt đầu xóa các bản ghi cũ cho {model_name} (dữ liệu trước {cutoff_datetime})...")
             
             while True:
                 # Lấy danh sách ID của các bản ghi cũ (theo cutoff_ts, giới hạn batch_size)
@@ -160,20 +162,20 @@ class StockImportedViews(APIView):
                 )
 
                 if not old_record_ids:
-                    print(f"Không còn bản ghi cũ để xóa cho {model_name}.")
+                    logger.info(f"Không còn bản ghi cũ để xóa cho {model_name}.")
                     break
 
                 try:
                     with transaction.atomic():  # Xóa an toàn trong một transaction
                         model.objects.filter(id__in=old_record_ids).delete()
-                    print(f"[{datetime.now()}] Đã xóa {len(old_record_ids)} bản ghi trong {model_name}.")
+                    logger.info(f"[{datetime.now()}] Đã xóa {len(old_record_ids)} bản ghi trong {model_name}.")
                 except Exception as e:
-                    print(f"Lỗi khi xóa bản ghi trong {model_name}: {e}")
+                    logger.warning(f"Lỗi khi xóa bản ghi trong {model_name}: {e}")
                     break  # Thoát vòng lặp nếu có lỗi
 
                 time.sleep(1)  # Delay để tránh tải nặng database
 
-        print("Hoàn thành xóa các bản ghi cũ.")
+        logger.info("Hoàn thành xóa các bản ghi cũ.")
             
     def get(self, requests):
         stocks = StockService.get_stocks_for_configuration()
@@ -188,7 +190,7 @@ class DownloadStockView(APIView):
         stock = StockService.get_stock_by_symbol('VNINDEX')
         data = DownloadService.download_data_single(stock, CandleEnum.D1, download_status=DownloadStatusEnum.NEW.value)
         adding_idicator(data)
-        print(data)
+        logger.info(data)
         return Response({
             "data": True
         }, status=status.HTTP_200_OK)
