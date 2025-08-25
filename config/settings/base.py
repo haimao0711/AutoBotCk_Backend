@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     "apps.authencation",
     "apps.stock",
     "apps.account",
-    'apps.stockSocket.apps.StockSocketConfig',
+    # 'apps.stockSocket.apps.StockSocketConfig',
     "apps.transaction",
     "apps.configuration",
     "apps.otp",
