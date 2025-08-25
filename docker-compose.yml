@@ -33,11 +33,11 @@ services:
       bash -c "/usr/local/bin/wait-for-postgres.sh stock-predict-postgres &&
                gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1"
     
-  # redis:
-  #   image: redis:7
-  #   restart: always
-  #   ports:
-  #     - "6379:6379"
+  memcached:
+    image: memcached:alpine
+    restart: always
+    ports:
+      - "11211:11211"
 
 
 volumes:
