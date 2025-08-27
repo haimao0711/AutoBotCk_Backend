@@ -144,7 +144,6 @@ def restart_schedulers():
 
     User = get_user_model()
     users_with_scheduler = User.objects.filter(scheduler_status=True)
-    logger.info('check User: ', User)
     if not users_with_scheduler.exists():
         logger.info("🔄 Không có user nào có Scheduler đang chạy.")
         return
