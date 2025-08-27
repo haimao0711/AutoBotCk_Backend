@@ -222,6 +222,7 @@ def handle_stock_balance_service(user_account, trade_account, symbol, url, sessi
         # print('check data stock_balance_object: ', data)
         # number_stock_existing = int(len(data) - 1) if data else 0
         list_stock_existing = [item for item in data if item.get("actual_vol", 0) != '0']
+        print('check list_stock_existing: ', list_stock_existing)
         list_symbols_existing = [item["symbol"] for item in list_stock_existing]
         number_stock_existing = int(len(list_stock_existing) - 1) if list_stock_existing else 0
         stock_balance_by_symbol = [item for item in data if item["symbol"] == symbol]
