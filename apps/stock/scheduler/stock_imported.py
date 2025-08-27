@@ -46,6 +46,6 @@ def start():
     try:
         scheduler.start()
         scheduler_started = True
-        logger.info("Scheduler started.")
+        logger.info("Scheduler download data started.")
     except Exception as e:
         logger.exception(f"Failed to start scheduler: {e}")
