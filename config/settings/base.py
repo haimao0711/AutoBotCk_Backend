@@ -121,7 +121,7 @@ ENVIRONMENT = os.getenv('DJANGO_ENV', 'development')
 if ENVIRONMENT == 'production':
     dotenv_path = '.env.production'
 else:
-    dotenv_path = '.env'
+    dotenv_path = '.env.development'
 
 load_dotenv(dotenv_path=dotenv_path)
 

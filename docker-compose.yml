@@ -42,3 +42,27 @@ services:
 
 volumes:
   postgres_data:
+
+# version: "3.9"
+
+# services:
+#   stock-predict-api:
+#     build: .
+#     container_name: stock-predict-api
+#     environment:
+#       POSTGRES_USER: myuser
+#       POSTGRES_PASSWORD: mypassword
+#       POSTGRES_DB: stockdb
+#       POSTGRES_HOST: 14.225.253.51   # IP public của server production
+#     ports:
+#       - "8000:8000"
+#     restart: always
+#     command: >
+#       gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1
+
+#   memcached:
+#     image: memcached:alpine
+#     container_name: stock-predict-memcached
+#     restart: always
+#     ports:
+#       - "11211:11211"

@@ -224,11 +224,11 @@ def handle_stock_balance_service(user_account, trade_account, symbol, url, sessi
         # tính tổng actual_vol và avaiable_vol
         total_volume_buy = sum(int(item.get("actual_vol", 0)) for item in list_stock_existing)
         total_volume_trade = sum(int(item.get("avaiable_vol", 0)) for item in list_stock_existing)
-        percent_buy_trade = (total_volume_buy / total_volume_trade * 100) if total_volume_trade else 0
+        percent_buy_trade = (total_volume_trade / total_volume_buy * 100) if total_volume_trade else 0
 
-        print("Tổng actual_vol:", total_volume_buy)
-        print("Tổng avaiable_vol:", total_volume_trade)
-        print("Tỉ lệ % actual_vol / avaiable_vol:", percent_buy_trade)
+        print("Tổng khối lượng đã mua:", total_volume_buy)
+        print("Tổng khối lượng đã về:", total_volume_trade)
+        print("Tỉ lệ % đã về:", percent_buy_trade)
         list_symbols_existing = [item["symbol"] for item in list_stock_existing]
         print("check list_symbols_existing: ", list_symbols_existing)
         number_stock_existing = int(len(list_stock_existing) - 1) if list_stock_existing else 0

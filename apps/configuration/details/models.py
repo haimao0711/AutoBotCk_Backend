@@ -580,7 +580,7 @@ class Configuration(models.Model):
     stock_config_percent_bolinger_a_part_to_take_profit = models.FloatField(
         default=0.5, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)
     
-    #buy up, sell down, buy foreign and sell foreign 
+    #buy up, sell down, buy foreign and sell foreign, volume_trade 
     stock_config_use_buy_up_obl_to_buy = models.BooleanField(default=False)
     stock_config_value_buy_up_obl_to_buy = models.FloatField(
         default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])   
@@ -593,6 +593,10 @@ class Configuration(models.Model):
     stock_config_use_sell_foreign_obl_to_sell = models.BooleanField(default=False)
     stock_config_value_sell_foreign_obl_to_sell = models.FloatField(
         default=50, validators=[MinValueValidator(0), MaxValueValidator(100)]) 
+    
+    stock_config_use_volume_trade_obl_to_buy = models.BooleanField(default=False)
+    stock_config_value_volume_trade_obl_to_buy = models.FloatField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]) 
 
     # advance mode
     stock_config_is_use_time_to_buy = models.BooleanField(
