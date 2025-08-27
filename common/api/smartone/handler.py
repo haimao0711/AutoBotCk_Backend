@@ -270,3 +270,4 @@ def validate_session(user_account: str, trade_account: str, url: str, session: s
             "cash_available": int(data.get("cash_avai", 0)),  # Số tiền có thể mua cổ phiếu
         }
     return True, result
+

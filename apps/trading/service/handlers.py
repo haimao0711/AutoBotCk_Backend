@@ -1670,6 +1670,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
     stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
     number_stock_existing = res_stock_balance.get('number_stock_existing', 0) if res_stock_balance else 0
     symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
+    print('data res_stock_balance: ', res_stock_balance )
     print('danh sach cac ma có cổ phiếu: ', symbols_existing )
 
     # configurations_test_trading = [
