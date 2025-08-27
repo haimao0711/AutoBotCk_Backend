@@ -246,7 +246,8 @@ def handle_stock_balance_service(user_account, trade_account, symbol, url, sessi
         return {
                 'number_stock_existing': number_stock_existing,
                 'stock_balance': stock_balance,
-                'symbols_existing': list_symbols_existing
+                'symbols_existing': list_symbols_existing,
+                'percent_buy_trade': percent_buy_trade
             }
     else:
         print('rơi vào trường hợp response_type lỗi ')

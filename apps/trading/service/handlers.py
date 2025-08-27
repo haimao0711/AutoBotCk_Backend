@@ -926,7 +926,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Hết thời gian đặt lệnh bán tay', "S")
     time.sleep(10) 
     revert_status_request_trade(user, stock_id)
-def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, symbols_existing: List[str]):
+def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, percent_buy_trade: float):
     try:        
         # Các giá trị mặc định
         timezone = pytz.timezone('Asia/Ho_Chi_Minh')
@@ -956,6 +956,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         percent_first_buy = trading_config.stock_config_percent_first_buy
 
         print('Cổ phiếu đang kiểm tra:', {symbol})
+        print(f'check percent_buy_trade {symbol}:', percent_buy_trade)
         is_block_buy_stock = overview_config.is_block_buy
         is_block_sell_stock = overview_config.is_block_sell
         stock_id = trading_config.stock_id
@@ -985,8 +986,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     return int(val) if val is not None else 0
                 except (ValueError, TypeError):
                     return 0   
-            floor_price = sales_data.get('floor_price') 
-
+            floor_price = sales_data.get('floor_price')
             buyForeignQtty = safe_int(sales_data.get('buyForeignQtty'))
             sellForeignQtty = safe_int(sales_data.get('sellForeignQtty'))
             total_foreign = buyForeignQtty + sellForeignQtty
@@ -996,8 +996,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 value_buy_foreign = 0
 
             # Gán cho 3 dòng cuối
-            stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign
-
+            stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign             
+            print(f'check percent_buy_trade {symbol}:', percent_buy_trade)
+            stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
             is_use_vnindex_following = following_config.is_use_vnindex_config
             is_use_vnindex_trading = trading_config.is_use_vnindex_config
 
@@ -1564,7 +1565,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         print(f"Error in {current_thread_name}: {str(e)}")
 
 
-def  trading_configurations(user: User, configurations: object, vps_account: Account, symbols_existing: List[str]) -> None:
+def  trading_configurations(user: User, configurations: object, vps_account: Account, percent_buy_trade: float) -> None:
     print('Job trading_configurations is running...')
 
     # Lấy dữ liệu cần thiết
@@ -1612,7 +1613,7 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
             user, 
             vnindex_stock, 
             vps_account, 
-            symbols_existing,
+            percent_buy_trade,
         )
 
     # Sử dụng ThreadPoolExecutor với tối đa 100 worker (thread)
@@ -1669,6 +1670,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
     res_stock_balance = handle_stock_balance_service(account_name, account_num, '', request_url, session_id, '','' )
     stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
     number_stock_existing = res_stock_balance.get('number_stock_existing', 0) if res_stock_balance else 0
+    percent_buy_trade = res_stock_balance.get('percent_buy_trade', 0) if res_stock_balance else 0
     symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
     print('data res_stock_balance: ', res_stock_balance )
     print('danh sach cac ma có cổ phiếu: ', symbols_existing )
@@ -1685,7 +1687,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         for config in configurations_handle_trading
     ]
     print('danh sach cac ma process trading: ', list_symbol_handle_trading )
-    trading_configurations(user, configurations_handle_trading, vps_account, symbols_existing)
+    trading_configurations(user, configurations_handle_trading, vps_account, percent_buy_trade)
 
 
 def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str, request_buy: bool, request_sell: bool, volume_sell: str) -> bool:
