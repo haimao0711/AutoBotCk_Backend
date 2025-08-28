@@ -20,50 +20,50 @@ NOT_VALID_TIME_TO_BUY = '''
 
 
 VNINDEX_CONFIG_MAX_VnIndex_BUY_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị VnIndex <=, VnIndex cấu hình ({previous}) *<=* VnIndex hiện tại ({current}) '''
+        # **ĐK đủ:**  VnIndex <=, VnIndex cấu hình ({previous}) *<=* VnIndex hiện tại ({current}) '''
 
 VNINDEX_CONFIG_MIN_VnIndex_BUY_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**: Giá trị VnIndex >=, VnIndex cấu hình ({previous}) *>=* VnIndex hiện tại ({current}) '''
+        # **ĐK đủ:**:  VnIndex >=, VnIndex cấu hình ({previous}) *>=* VnIndex hiện tại ({current}) '''
 
 VNINDEX_CONFIG_RSI_TO_BUY_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị RSI *(VnIndex)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
+        # **ĐK đủ:**  RSI *(VnIndex)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
 VNINDEX_CONFIG_USE_RSI_OBL_TO_BUY = '''
-        # **ĐK bắt buộc:** Giá trị RSI *(VnIndex)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
+        # **ĐK bắt buộc:**  RSI *(VnIndex)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
 VNINDEX_CONFIG_STOCH_RSI_TO_BUY_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị StochRSI *(VnIndex)* <=, StochRSI hiện tại ({current}) *<=* StochRSI cấu hình ({previous})'''
+        # **ĐK đủ:**  StochRSI *(VnIndex)* <=, StochRSI hiện tại ({current}) *<=* StochRSI cấu hình ({previous})'''
 VNINDEX_CONFIG_USE_STOCH_RSI_OBL_TO_BUY = '''
-        # **ĐK bắt buộc:** Giá trị StochRSI *(VnIndex)* <=, StochRSI hiện tại ({current}) *<=*  StochRSI cấu hình ({previous})'''
+        # **ĐK bắt buộc:**  StochRSI *(VnIndex)* <=, StochRSI hiện tại ({current}) *<=*  StochRSI cấu hình ({previous})'''
 VNINDEX_CONFIG_MACD_TO_BUY_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị MACD *(VnIndex)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
+        # **ĐK đủ:**  MACD *(VnIndex)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
 VNINDEX_CONFIG_USE_MACD_OBL_TO_BUY = '''
-        # **ĐK bắt buộc:** Giá trị MACD *(VnIndex)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
+        # **ĐK bắt buộc:**  MACD *(VnIndex)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
 
 VNINDEX_CONFIG_RSI_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị RSI *(VnIndex)* đảo chiều tăng, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
+        # **ĐK đủ:**  RSI *(VnIndex)* đảo chiều tăng, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
 
 VNINDEX_CONFIG_RSI_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị RSI *(VnIndex)* tăng, RSI mới: {current}, RSI cũ: {previous}'''
+        # **ĐK đủ:**  RSI *(VnIndex)* tăng, RSI mới: {current}, RSI cũ: {previous}'''
 
 VNINDEX_CONFIG_STOCH_RSI_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị StochRSI *(VnIndex)* đảo chiều tăng, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
+        # **ĐK đủ:**  StochRSI *(VnIndex)* đảo chiều tăng, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
 
 VNINDEX_CONFIG_STOCH_RSI_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị StochRSI *(VnIndex)* tăng, StochRSI mới: {current}, StochRSI cũ: {previous}'''
+        # **ĐK đủ:**  StochRSI *(VnIndex)* tăng, StochRSI mới: {current}, StochRSI cũ: {previous}'''
 
 VNINDEX_CONFIG_MACD_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị MACD *(VnIndex)* đảo chiều tăng, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
+        # **ĐK đủ:**  MACD *(VnIndex)* đảo chiều tăng, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
 
 VNINDEX_CONFIG_MACD_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị MACD *(VnIndex)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
+        # **ĐK đủ:**  MACD *(VnIndex)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
 
 VNINDEX_CONFIG_HISTOGRAM_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị Histogram *(VnIndex)* đảo chiều tăng, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
+        # **ĐK đủ:**  Histogram *(VnIndex)* đảo chiều tăng, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
 
 VNINDEX_CONFIG_HISTOGRAM_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị Histogram *(VnIndex)* tăng, Histogram mới: {current}, Histogram cũ: {previous}'''
+        # **ĐK đủ:**  Histogram *(VnIndex)* tăng, Histogram mới: {current}, Histogram cũ: {previous}'''
 
 VNINDEX_CONFIG_VOLUME_TO_BUY_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị Volume > VolumeMA *(VnIndex)*, Volume ({current}) > Giá trị VolumeMA ({previous})'''
+        # **ĐK đủ:**  Volume > VolumeMA *(VnIndex)*, Volume ({current}) >  VolumeMA ({previous})'''
 
 VNINDEX_CONFIG_BOLINGER_TO_BUY_SUFFICIENT_CONDITION = '''              
         # **ĐK đủ:** Giá chạm cạnh dưới Bolinger *(VnIndex)*, Bolinger ({previous}) >= Giá cổ phiếu hiện tại ({previous})'''
@@ -71,46 +71,46 @@ VNINDEX_CONFIG_BOLINGER_TO_BUY_SUFFICIENT_CONDITION = '''
 # ================================================================================================================================================================
 
 VNINDEX_CONFIG_MAX_VnIndex_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị VnIndex <=, VnIndex cấu hình ({previous}) *<=* VnIndex hiện tại ({current}) '''
+        # **ĐK cần:**  VnIndex <=, VnIndex cấu hình ({previous}) *<=* VnIndex hiện tại ({current}) '''
 
 VNINDEX_CONFIG_MIN_VnIndex_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị VnIndex >=, VnIndex cấu hình ({previous}) *>=* VnIndex hiện tại ({current}) '''
+        # **ĐK cần:**  VnIndex >=, VnIndex cấu hình ({previous}) *>=* VnIndex hiện tại ({current}) '''
 
 VNINDEX_CONFIG_RSI_TO_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị RSI *(VnIndex)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
+        # **ĐK cần:**  RSI *(VnIndex)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
 
 VNINDEX_CONFIG_STOCH_RSI_TO_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị StochRSI *(VnIndex)* <=, StochRSI hiện tại ({current}) *<=* StochRSI cấu hình ({previous})'''
+        # **ĐK cần:**  StochRSI *(VnIndex)* <=, StochRSI hiện tại ({current}) *<=* StochRSI cấu hình ({previous})'''
 
 VNINDEX_CONFIG_MACD_TO_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị MACD *(VnIndex)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
+        # **ĐK cần:**  MACD *(VnIndex)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
 
 VNINDEX_CONFIG_RSI_REVERSED_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị RSI *(VnIndex)* đảo chiều tăng, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
+        # **ĐK cần:**  RSI *(VnIndex)* đảo chiều tăng, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
 
 VNINDEX_CONFIG_RSI_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị RSI *(VnIndex)* tăng, RSI mới: {current}, RSI cũ: {previous}'''
+        # **ĐK cần:**  RSI *(VnIndex)* tăng, RSI mới: {current}, RSI cũ: {previous}'''
 
 VNINDEX_CONFIG_STOCH_RSI_REVERSED_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị StochRSI *(VnIndex)* đảo chiều tăng, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
+        # **ĐK cần:**  StochRSI *(VnIndex)* đảo chiều tăng, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
 
 VNINDEX_CONFIG_MACD_REVERSED_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị MACD *(VnIndex)* đảo chiều tăng, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
+        # **ĐK cần:**  MACD *(VnIndex)* đảo chiều tăng, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
 
 VNINDEX_CONFIG_HISTOGRAM_REVERSED_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị Histogram *(VnIndex)* đảo chiều tăng, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
+        # **ĐK cần:**  Histogram *(VnIndex)* đảo chiều tăng, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
 
 VNINDEX_CONFIG_STOCH_RSI_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị StochRSI *(VnIndex)* tăng, StochRSI mới: {current}, StochRSI cũ: {previous}'''
+        # **ĐK cần:**  StochRSI *(VnIndex)* tăng, StochRSI mới: {current}, StochRSI cũ: {previous}'''
 
 VNINDEX_CONFIG_MACD_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị MACD *(VnIndex)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
+        # **ĐK cần:**  MACD *(VnIndex)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
 
 VNINDEX_CONFIG_HISTOGRAM_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị Histogram *(VnIndex)* tăng, Histogram mới: {current}, Histogram cũ: {previous}'''
+        # **ĐK cần:**  Histogram *(VnIndex)* tăng, Histogram mới: {current}, Histogram cũ: {previous}'''
 
 VNINDEX_CONFIG_VOLUME_TO_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị Volume > VolumeMA *(VnIndex)*, Volume ({current}) > VolumeMA ({previous})'''
+        # **ĐK cần:**  Volume > VolumeMA *(VnIndex)*, Volume ({current}) > VolumeMA ({previous})'''
 
 VNINDEX_CONFIG_BOLINGER_TO_BUY_NECESSARY_CONDITION = '''              
         # **ĐK cần:** Giá chạm cạnh dưới Bolinger *(VnIndex)*, Bolinger ({previous}) >= Giá cổ phiếu hiện tại ({previous})'''
@@ -122,13 +122,13 @@ VNINDEX_CONFIG_BOLINGER_TO_BUY_NECESSARY_CONDITION = '''
 # ================================================================================================================================================================
 # ================================================================================================================================================================
 STOCK_CONFIG_USE_RSI_OBL_TO_BUY = '''
-        # **ĐK bắt buộc:** Giá trị RSI *(Stock)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
+        # **ĐK bắt buộc:**  RSI *(Stock)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
 
 STOCK_CONFIG_USE_STOCH_RSI_OBL_TO_BUY = '''
-        # **ĐK bắt buộc:** Giá trị StochRSI *(Stock)* <=, StochRSI hiện tại ({current}) *<=* StochRSI cấu hình ({previous})'''
+        # **ĐK bắt buộc:**  StochRSI *(Stock)* <=, StochRSI hiện tại ({current}) *<=* StochRSI cấu hình ({previous})'''
 
 STOCK_CONFIG_USE_MACD_OBL_TO_BUY = '''
-        # **ĐK bắt buộc:** Giá trị MACD *(Stock)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
+        # **ĐK bắt buộc:**  MACD *(Stock)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
 STOCK_CONFIG_USE_BUY_UP_OBL_TO_BUY = '''
         # **ĐK bắt buộc:** Mua chủ động *(Stock)* >=, Hiện tại ({current}) *>=* Cấu hình ({previous})'''
 STOCK_CONFIG_USE_BUY_FOREIGN_OBL_TO_BUY = '''
@@ -137,78 +137,78 @@ STOCK_CONFIG_USE_VOLUME_TRADE_OBL_TO_BUY = '''
         # **ĐK bắt buộc:** KL đã về *(Stock)* >=, Hiện tại ({current}) *>=* Cấu hình ({previous})'''
 
 STOCK_CONFIG_RSI_TO_BUY_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị RSI *(Stock)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
+        # **ĐK đủ:**  RSI *(Stock)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
 
 STOCK_CONFIG_STOCH_RSI_TO_BUY_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị StochRSI *(Stock)* <=, StochRSI hiện tại ({current}) *<=* StochRSI cấu hình ({previous})'''
+        # **ĐK đủ:**  StochRSI *(Stock)* <=, StochRSI hiện tại ({current}) *<=* StochRSI cấu hình ({previous})'''
 
 STOCK_CONFIG_MACD_TO_BUY_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị MACD *(Stock)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
+        # **ĐK đủ:**  MACD *(Stock)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
 
 STOCK_CONFIG_RSI_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị RSI *(Stock)* đảo chiều tăng, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
+        # **ĐK đủ:**  RSI *(Stock)* đảo chiều tăng, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
 
 STOCK_CONFIG_STOCH_RSI_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị StochRSI *(Stock)* đảo chiều tăng, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
+        # **ĐK đủ:**  StochRSI *(Stock)* đảo chiều tăng, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
 
 STOCK_CONFIG_MACD_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị MACD *(Stock)* đảo chiều tăng, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
+        # **ĐK đủ:**  MACD *(Stock)* đảo chiều tăng, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
 
 STOCK_CONFIG_HISTOGRAM_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị Histogram *(Stock)* đảo chiều tăng, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
+        # **ĐK đủ:**  Histogram *(Stock)* đảo chiều tăng, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
 
 STOCK_CONFIG_RSI_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị RSI *(Stock)* tăng, RSI mới: {current}, RSI cũ: {previous}'''
+        # **ĐK đủ:**  RSI *(Stock)* tăng, RSI mới: {current}, RSI cũ: {previous}'''
 
 STOCK_CONFIG_STOCH_RSI_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị StochRSI *(Stock)* tăng, StochRSI mới: {current}, StochRSI cũ: {previous}'''
+        # **ĐK đủ:**  StochRSI *(Stock)* tăng, StochRSI mới: {current}, StochRSI cũ: {previous}'''
 
 STOCK_CONFIG_MACD_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị MACD *(Stock)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
+        # **ĐK đủ:**  MACD *(Stock)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
 
 STOCK_CONFIG_HISTOGRAM_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị Histogram *(Stock)* tăng, Histogram mới: {current}, Histogram cũ: {previous}'''
+        # **ĐK đủ:**  Histogram *(Stock)* tăng, Histogram mới: {current}, Histogram cũ: {previous}'''
 
 STOCK_CONFIG_VOLUME_TO_BUY_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị Volume > VolumeMA *(Stock)*, Volume ({current}) > VolumeMA ({previous})'''
+        # **ĐK đủ:**  Volume > VolumeMA *(Stock)*, Volume ({current}) > VolumeMA ({previous})'''
 
 # ================================================================================================================================================================
 
 STOCK_CONFIG_RSI_TO_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị RSI *(Stock)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
+        # **ĐK cần:**  RSI *(Stock)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
 
 STOCK_CONFIG_STOCH_RSI_TO_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị StochRSI *(Stock)* <=, StochRSI hiện tại ({current}) *<=* StochRSI cấu hình ({previous})'''
+        # **ĐK cần:**  StochRSI *(Stock)* <=, StochRSI hiện tại ({current}) *<=* StochRSI cấu hình ({previous})'''
 
 STOCK_CONFIG_MACD_TO_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị MACD *(Stock)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
+        # **ĐK cần:**  MACD *(Stock)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
 
 STOCK_CONFIG_RSI_REVERSED_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị RSI *(Stock)* đảo chiều tăng, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
+        # **ĐK cần:**  RSI *(Stock)* đảo chiều tăng, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
 
 STOCK_CONFIG_STOCH_RSI_REVERSED_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị StochRSI *(Stock)* đảo chiều tăng, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
+        # **ĐK cần:**  StochRSI *(Stock)* đảo chiều tăng, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
 
 STOCK_CONFIG_MACD_REVERSED_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị MACD *(Stock)* đảo chiều tăng, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
+        # **ĐK cần:**  MACD *(Stock)* đảo chiều tăng, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
 
 STOCK_CONFIG_HISTOGRAM_REVERSED_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị Histogram *(Stock)* đảo chiều tăng, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
+        # **ĐK cần:**  Histogram *(Stock)* đảo chiều tăng, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
 
 STOCK_CONFIG_RSI_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị RSI *(Stock)* tăng, RSI mới: {current}, RSI cũ: {previous}'''
+        # **ĐK cần:**  RSI *(Stock)* tăng, RSI mới: {current}, RSI cũ: {previous}'''
 
 STOCK_CONFIG_STOCH_RSI_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị StochRSI *(Stock)* tăng, StochRSI mới: {current}, StochRSI cũ: {previous}'''
+        # **ĐK cần:**  StochRSI *(Stock)* tăng, StochRSI mới: {current}, StochRSI cũ: {previous}'''
 
 STOCK_CONFIG_MACD_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị MACD *(Stock)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
+        # **ĐK cần:**  MACD *(Stock)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
 
 STOCK_CONFIG_HISTOGRAM_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị Histogram *(Stock)* tăng, Histogram mới: {current}, Histogram cũ: {previous}'''
+        # **ĐK cần:**  Histogram *(Stock)* tăng, Histogram mới: {current}, Histogram cũ: {previous}'''
 
 STOCK_CONFIG_VOLUME_TO_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị Volume > VolumeMA *(Stock)*, Volume ({current}) > VolumeMA ({previous})'''
+        # **ĐK cần:**  Volume > VolumeMA *(Stock)*, Volume ({current}) > VolumeMA ({previous})'''
 
 # ================================================================================================================================================================
 # ================================================================================================================================================================
@@ -264,43 +264,43 @@ NOT_VALID_TIME_TO_SELL = '''
         # Chưa đến thời gian bắt đầu bán! ❌'''
 
 VNINDEX_CONFIG_MAX_VnIndex_SELL_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**: Giá trị VnIndex <=, VnIndex cấu hình ({previous}) *<=* VnIndex hiện tại ({current}) '''
+        # **ĐK đủ:**:  VnIndex <=, VnIndex cấu hình ({previous}) *<=* VnIndex hiện tại ({current}) '''
 
 VNINDEX_CONFIG_MIN_VnIndex_SELL_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**: Giá trị VnIndex >=, VnIndex cấu hình ({previous}) *>=* VnIndex hiện tại ({current}) '''
+        # **ĐK đủ:**:  VnIndex >=, VnIndex cấu hình ({previous}) *>=* VnIndex hiện tại ({current}) '''
 
 VNINDEX_CONFIG_RSI_TO_SELL_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị RSI *(VnIndex)* >=, RSI hiện tại ({current}) *>=* RSI cấu hình ({previous})'''
+        # **ĐK đủ:**  RSI *(VnIndex)* >=, RSI hiện tại ({current}) *>=* RSI cấu hình ({previous})'''
 
 VNINDEX_CONFIG_STOCH_RSI_TO_SELL_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị StochRSI *(VnIndex)* >=, StochRSI hiện tại ({current}) *>=* StochRSI cấu hình ({previous}) '''
+        # **ĐK đủ:**  StochRSI *(VnIndex)* >=, StochRSI hiện tại ({current}) *>=* StochRSI cấu hình ({previous}) '''
 
 VNINDEX_CONFIG_MACD_TO_SELL_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị MACD *(VnIndex)* >=, MACD hiện tại ({current}) *>=* MACD cấu hình ({previous}) '''
+        # **ĐK đủ:**  MACD *(VnIndex)* >=, MACD hiện tại ({current}) *>=* MACD cấu hình ({previous}) '''
 
 VNINDEX_CONFIG_RSI_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị RSI *(VnIndex)* đảo chiều giảm, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
+        # **ĐK đủ:**  RSI *(VnIndex)* đảo chiều giảm, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
 
 VNINDEX_CONFIG_RSI_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị RSI *(VnIndex)* giảm, RSI mới: {current}, RSI cũ: {previous}'''
+        # **ĐK đủ:**  RSI *(VnIndex)* giảm, RSI mới: {current}, RSI cũ: {previous}'''
 
 VNINDEX_CONFIG_STOCH_RSI_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị StochRSI *(VnIndex)* đảo chiều giảm, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
+        # **ĐK đủ:**  StochRSI *(VnIndex)* đảo chiều giảm, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
 
 VNINDEX_CONFIG_STOCH_RSI_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị StochRSI *(VnIndex)* giảm, StochRSI mới: {current}, StochRSI cũ: {previous}'''
+        # **ĐK đủ:**  StochRSI *(VnIndex)* giảm, StochRSI mới: {current}, StochRSI cũ: {previous}'''
 
 VNINDEX_CONFIG_MACD_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị MACD *(VnIndex)* đảo chiều giảm, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
+        # **ĐK đủ:**  MACD *(VnIndex)* đảo chiều giảm, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
 
 VNINDEX_CONFIG_MACD_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị MACD *(VnIndex)* giảm, MACD mới: {current}, MACD cũ: {previous}'''
+        # **ĐK đủ:**  MACD *(VnIndex)* giảm, MACD mới: {current}, MACD cũ: {previous}'''
 
 VNINDEX_CONFIG_HISTOGRAM_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị Histogram *(VnIndex)* đảo chiều giảm, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
+        # **ĐK đủ:**  Histogram *(VnIndex)* đảo chiều giảm, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
 
 VNINDEX_CONFIG_HISTOGRAM_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị Histogram *(VnIndex)* giảm, Histogram mới: {current}, Histogram cũ: {previous}'''
+        # **ĐK đủ:**  Histogram *(VnIndex)* giảm, Histogram mới: {current}, Histogram cũ: {previous}'''
 
 VNINDEX_CONFIG_BOLINGER_TO_SELL_SUFFICIENT_CONDITION = '''              
         # **ĐK đủ:** Giá chạm cạnh dưới Bolinger *(VnIndex)*, Bolinger ({previous}) >= Giá cổ phiếu hiện tại ({current})'''
@@ -308,43 +308,43 @@ VNINDEX_CONFIG_BOLINGER_TO_SELL_SUFFICIENT_CONDITION = '''
 # ================================================================================================================================================================
 
 VNINDEX_CONFIG_MAX_VnIndex_SELL_NECESSARY_CONDITION = '''
-        # **ĐK cần:**: Giá trị VnIndex <=, VnIndex cấu hình ({previous}) *<=* VnIndex hiện tại ({current}) '''
+        # **ĐK cần:**:  VnIndex <=, VnIndex cấu hình ({previous}) *<=* VnIndex hiện tại ({current}) '''
 
 VNINDEX_CONFIG_MIN_VnIndex_SELL_NECESSARY_CONDITION = '''
-        # **ĐK cần:**: Giá trị VnIndex >=, VnIndex cấu hình ({previous}) *>=* VnIndex hiện tại ({current}) '''
+        # **ĐK cần:**:  VnIndex >=, VnIndex cấu hình ({previous}) *>=* VnIndex hiện tại ({current}) '''
 
 VNINDEX_CONFIG_RSI_TO_SELL_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị RSI *(VnIndex)* >=, RSI hiện tại ({current}) *>=* RSI cấu hình ({previous})'''
+        # **ĐK cần:**  RSI *(VnIndex)* >=, RSI hiện tại ({current}) *>=* RSI cấu hình ({previous})'''
 
 VNINDEX_CONFIG_STOCH_RSI_TO_SELL_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị StochRSI *(VnIndex)* >=, StochRSI hiện tại ({current}) *>=* StochRSI cấu hình ({previous}) '''
+        # **ĐK cần:**  StochRSI *(VnIndex)* >=, StochRSI hiện tại ({current}) *>=* StochRSI cấu hình ({previous}) '''
 
 VNINDEX_CONFIG_MACD_TO_SELL_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị MACD *(VnIndex)* >=, MACD hiện tại ({current}) *>=* MACD cấu hình ({previous}) '''
+        # **ĐK cần:**  MACD *(VnIndex)* >=, MACD hiện tại ({current}) *>=* MACD cấu hình ({previous}) '''
 
 VNINDEX_CONFIG_RSI_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị RSI *(VnIndex)* giảm, RSI mới: {current}, RSI cũ: {previous}'''
+        # **ĐK cần:**  RSI *(VnIndex)* giảm, RSI mới: {current}, RSI cũ: {previous}'''
 
 VNINDEX_CONFIG_STOCH_RSI_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị StochRSI *(VnIndex)* giảm, StochRSI mới: {current}, StochRSI cũ: {previous}'''
+        # **ĐK cần:**  StochRSI *(VnIndex)* giảm, StochRSI mới: {current}, StochRSI cũ: {previous}'''
 
 VNINDEX_CONFIG_MACD_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị MACD *(VnIndex)* giảm,  MACD mới: {current}, MACD cũ: {previous}'''
+        # **ĐK cần:**  MACD *(VnIndex)* giảm,  MACD mới: {current}, MACD cũ: {previous}'''
 
 VNINDEX_CONFIG_HISTOGRAM_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị Histogram *(VnIndex)* giảm, Histogram mới: {current}, Histogram cũ: {previous}'''
+        # **ĐK cần:**  Histogram *(VnIndex)* giảm, Histogram mới: {current}, Histogram cũ: {previous}'''
 
 VNINDEX_CONFIG_RSI_REVERSED_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị RSI *(VnIndex)* đảo chiều giảm, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
+        # **ĐK cần:**  RSI *(VnIndex)* đảo chiều giảm, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
 
 VNINDEX_CONFIG_STOCH_RSI_REVERSED_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị StochRSI *(VnIndex)* đảo chiều giảm, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
+        # **ĐK cần:**  StochRSI *(VnIndex)* đảo chiều giảm, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
 
 VNINDEX_CONFIG_MACD_REVERSED_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị MACD *(VnIndex)* đảo chiều giảm, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
+        # **ĐK cần:**  MACD *(VnIndex)* đảo chiều giảm, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
 
 VNINDEX_CONFIG_HISTOGRAM_REVERSED_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị Histogram *(VnIndex)* đảo chiều giảm, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
+        # **ĐK cần:**  Histogram *(VnIndex)* đảo chiều giảm, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
 
 VNINDEX_CONFIG_BOLINGER_TO_SELL_NECESSARY_CONDITION = '''              
         # **ĐK cần:** Giá chạm cạnh dưới Bolinger *(VnIndex)*, Bolinger ({previous}) >= Giá cổ phiếu hiện tại ({current})'''
@@ -356,73 +356,73 @@ VNINDEX_CONFIG_BOLINGER_TO_SELL_NECESSARY_CONDITION = '''
 # ================================================================================================================================================================
 # ================================================================================================================================================================
 STOCK_CONFIG_RSI_TO_SELL_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị RSI *(Stock)* >=, RSI hiện tại ({current}) *>=* RSI cấu hình ({previous})'''
+        # **ĐK đủ:**  RSI *(Stock)* >=, RSI hiện tại ({current}) *>=* RSI cấu hình ({previous})'''
 
 STOCK_CONFIG_STOCH_RSI_TO_SELL_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị StochRSI *(Stock)* >=, StochRSI hiện tại ({current}) *>=* StochRSI cấu hình ({previous}) '''
+        # **ĐK đủ:**  StochRSI *(Stock)* >=, StochRSI hiện tại ({current}) *>=* StochRSI cấu hình ({previous}) '''
 
 STOCK_CONFIG_MACD_TO_SELL_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị MACD *(Stock)* >=, MACD hiện tại ({current}) *>=* MACD cấu hình ({previous}) '''
+        # **ĐK đủ:**  MACD *(Stock)* >=, MACD hiện tại ({current}) *>=* MACD cấu hình ({previous}) '''
 
 STOCK_CONFIG_RSI_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị RSI *(Stock)* đảo chiều giảm, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
+        # **ĐK đủ:**  RSI *(Stock)* đảo chiều giảm, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
 
 STOCK_CONFIG_STOCH_RSI_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị StochRSI *(Stock)* đảo chiều giảm, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
+        # **ĐK đủ:**  StochRSI *(Stock)* đảo chiều giảm, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
 
 STOCK_CONFIG_MACD_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị MACD *(Stock)* đảo chiều giảm, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
+        # **ĐK đủ:**  MACD *(Stock)* đảo chiều giảm, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
 
 STOCK_CONFIG_HISTOGRAM_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị Histogram *(Stock)* đảo chiều giảm, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
+        # **ĐK đủ:**  Histogram *(Stock)* đảo chiều giảm, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
 
 
 STOCK_CONFIG_RSI_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị RSI *(Stock)* giảm, RSI mới: {current}, RSI cũ: {previous}'''
+        # **ĐK đủ:**  RSI *(Stock)* giảm, RSI mới: {current}, RSI cũ: {previous}'''
 
 STOCK_CONFIG_STOCH_RSI_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị StochRSI *(Stock)* giảm, StochRSI mới: {current}, StochRSI cũ: {previous}'''
+        # **ĐK đủ:**  StochRSI *(Stock)* giảm, StochRSI mới: {current}, StochRSI cũ: {previous}'''
 
 STOCK_CONFIG_MACD_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị MACD *(Stock)* giảm, MACD mới: {current}, MACD cũ: {previous}'''
+        # **ĐK đủ:**  MACD *(Stock)* giảm, MACD mới: {current}, MACD cũ: {previous}'''
 
 STOCK_CONFIG_HISTOGRAM_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:** Giá trị Histogram *(Stock)* giảm, Histogram mới: {current}, Histogram cũ: {previous}'''
+        # **ĐK đủ:**  Histogram *(Stock)* giảm, Histogram mới: {current}, Histogram cũ: {previous}'''
 
 # ================================================================================================================================================================
 
 STOCK_CONFIG_RSI_TO_SELL_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị RSI *(Stock)* >=, RSI hiện tại ({current}) *>=* RSI cấu hình ({previous})'''
+        # **ĐK cần:**  RSI *(Stock)* >=, RSI hiện tại ({current}) *>=* RSI cấu hình ({previous})'''
 
 STOCK_CONFIG_STOCH_RSI_TO_SELL_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị StochRSI *(Stock)* >=, StochRSI hiện tại ({current}) *>=* StochRSI cấu hình ({previous}) '''
+        # **ĐK cần:**  StochRSI *(Stock)* >=, StochRSI hiện tại ({current}) *>=* StochRSI cấu hình ({previous}) '''
 
 STOCK_CONFIG_MACD_TO_SELL_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị MACD *(Stock)* >=, MACD hiện tại ({current}) *>=* MACD cấu hình ({previous}) '''
+        # **ĐK cần:**  MACD *(Stock)* >=, MACD hiện tại ({current}) *>=* MACD cấu hình ({previous}) '''
 STOCK_CONFIG_RSI_REVERSED_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị RSI *(Stock)* đảo chiều giảm, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
+        # **ĐK cần:**  RSI *(Stock)* đảo chiều giảm, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
 
 STOCK_CONFIG_STOCH_RSI_REVERSED_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị StochRSI *(Stock)* đảo chiều giảm, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
+        # **ĐK cần:**  StochRSI *(Stock)* đảo chiều giảm, StochRSI D2: {old_previous}, StochRSI D1: {previous}, StochRSI D0: {current}'''
 
 STOCK_CONFIG_MACD_REVERSED_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị MACD *(Stock)* đảo chiều giảm, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
+        # **ĐK cần:**  MACD *(Stock)* đảo chiều giảm, MACD D2: {old_previous}, MACD D1: {previous}, MACD D0: {current}'''
 
 STOCK_CONFIG_HISTOGRAM_REVERSED_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị Histogram *(Stock)* đảo chiều giảm, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
+        # **ĐK cần:**  Histogram *(Stock)* đảo chiều giảm, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
 
 
 STOCK_CONFIG_RSI_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị RSI *(Stock)* giảm, RSI mới: {current}, RSI cũ: {previous}'''
+        # **ĐK cần:**  RSI *(Stock)* giảm, RSI mới: {current}, RSI cũ: {previous}'''
 
 STOCK_CONFIG_STOCH_RSI_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị StochRSI *(Stock)* giảm, StochRSI mới: {current}, StochRSI cũ: {previous}'''
+        # **ĐK cần:**  StochRSI *(Stock)* giảm, StochRSI mới: {current}, StochRSI cũ: {previous}'''
 
 STOCK_CONFIG_MACD_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị MACD *(Stock)* giảm, MACD mới: {current}, MACD cũ: {previous}'''
+        # **ĐK cần:**  MACD *(Stock)* giảm, MACD mới: {current}, MACD cũ: {previous}'''
 
 STOCK_CONFIG_HISTOGRAM_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:** Giá trị Histogram *(Stock)* giảm, Histogram mới: {current}, Histogram cũ: {previous}'''
+        # **ĐK cần:**  Histogram *(Stock)* giảm, Histogram mới: {current}, Histogram cũ: {previous}'''
 
 # ================================================================================================================================================================
 # ================================================================================================================================================================
