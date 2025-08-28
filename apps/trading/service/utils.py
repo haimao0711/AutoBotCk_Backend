@@ -161,6 +161,8 @@ def get_current_value_from_key(prefix: str, indicator_name: str, last_data: pd.S
         return last_data['close']
     elif 'histogram' in indicator_name and prefix in indicator_name:
         return last_data['histogram']
+    elif 'volume_trade' in indicator_name and prefix in indicator_name:
+        return last_data['volume_trade']
     elif 'volume' in indicator_name and prefix in indicator_name:
         return last_data['volume']
     # elif 'buy_up' in indicator_name and prefix in indicator_name:
