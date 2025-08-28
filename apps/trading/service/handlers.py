@@ -490,7 +490,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 "slippage_buy": slippage_buy,
                 "add_price_buy": add_price_buy,
                 "sleeping_time_buy": sleeping_time_buy,                     
-                'number_order': int(number_order) + 1 if trading_config.stock_config_is_mode_sensitive_buy else int(number_order),
+                'number_order': int(number_order) if trading_config.stock_config_is_mode_sensitive_buy else int(number_order) - 1,
                 'start_time_order': start_time_order
             }
 
@@ -705,10 +705,6 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 data_trading_df=stock_data_trading,            
                 config_type='stock_config'
             )
-
-            print(f'Check is_sell ham request sell {symbol}', is_sell)
-            # print(f'Check sell_reason {symbol}', sell_reason)
-
             if is_sell:
                 status_sell = SignalTelegramEnum.SELL_REQUEST_SUCCESS
             messages_to_sell = render_message(
@@ -794,7 +790,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             "add_price_sell": add_price_sell,
             "sleeping_time_sell": sleeping_time_sell,
             'limit_price': round(start_price + add_price_sell - slippage_sell, 2),  
-            'number_order': int(number_order) + 1 if trading_config.stock_config_is_mode_sensitive_sell else int(number_order),
+            'number_order': int(number_order) if trading_config.stock_config_is_mode_sensitive_sell else int(number_order) - 1,
             'start_time_order': start_time_order
         }
         sell_messages = []
@@ -1093,7 +1089,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     "slippage_buy": slippage_buy,
                     "add_price_buy": add_price_buy, 
                     "sleeping_time_buy": sleeping_time_buy,                   
-                    'number_order': int(number_order) + 1 if trading_config.stock_config_is_mode_sensitive_buy else int(number_order),
+                    'number_order': int(number_order)  if trading_config.stock_config_is_mode_sensitive_buy else int(number_order) - 1,
                     'start_time_order': start_time_order
                 }
                 buy_messages = []
@@ -1292,17 +1288,12 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         if not is_block_sell_stock and symbol in symbols_existing:
             print(f'bắt đầu hàm thực hiện sell {symbol}')
         # Handle take profit
-            res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'S')
-            # print(f'check res_stock_balance {symbol}', res_stock_balance)  
+            res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'S') 
             stock_balance = res_stock_balance.get('stock_balance', {}).get('available_vol', 0) if res_stock_balance else 0 
-            # print(f'check stock_balance {symbol}: ', stock_balance) 
             ceil_price = res_stock_balance.get('stock_balance', {}).get('ceil_price', 0) if res_stock_balance else 0 
-            # print(f'check ceil_price {symbol}: ', ceil_price)  
             volume_balance = (stock_balance // 100) * 100
             use_take_profit_first_part = trading_config.stock_config_use_take_profit_first_part
             use_bolinger_a_part_to_take_profit = trading_config.stock_config_use_bolinger_a_part_to_take_profit
-            # print(f'CHECK use_take_profit_first_part {symbol} TRƯỚC CHỐT', use_take_profit_first_part)
-            # print(f'CHECK use_bolinger_a_part_to_take_profit {symbol} TRƯỚC CHỐT', use_bolinger_a_part_to_take_profit)
             percentage_loss = res_stock_balance.get('stock_balance', {}).get('percentage_loss', 0) if res_stock_balance else 0            
             percent_take_profit_sell_first = trading_config.stock_config_percent_take_profit_sell_first*100
             percent_take_profit_sell_second = trading_config.stock_config_percent_take_profit_sell_second
@@ -1346,9 +1337,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 data_trading_df = stock_data_trading,            
                 config_type = 'stock_config'
             )
-
-            # print(f'kết thúc hàm should sell {symbol}') 
-            # print(f'Check is_sell {symbol}: ', is_sell)
             # print(f'Check sell_reason {symbol}: ', sell_reason)
             if is_take_profit:
                 status_sell = SignalTelegramEnum.TAKEPROFIT                                        
@@ -1421,7 +1409,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     "slippage_sell": slippage_sell,
                     "add_price_sell": add_price_sell,
                     "sleeping_time_sell": sleeping_time_sell, 
-                    'number_order': int(number_order),
+                    'number_order': int(number_order) if trading_config.stock_config_is_mode_sensitive_sell else int(number_order) - 1,
                     'start_time_order': start_time_order
                 }
                 sell_messages = []
@@ -1663,7 +1651,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         config["stock"].name
         for config in configurations_handle_trading
     ]
-    print('danh sach cac ma chưa trading: ', list_symbol_not_trading )
+    print('List list_symbol_not_trading: ', list_symbol_not_trading )
 
     # Get stock balance 
     res_stock_balance = handle_stock_balance_service(account_name, account_num, '', request_url, session_id, '','' )
@@ -1671,8 +1659,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
     number_stock_existing = res_stock_balance.get('number_stock_existing', 0) if res_stock_balance else 0
     percent_buy_trade = res_stock_balance.get('percent_buy_trade', 0) if res_stock_balance else 0
     symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
-    print('data res_stock_balance: ', res_stock_balance )
-    print('danh sach cac ma có cổ phiếu: ', symbols_existing )
+    print('List symbols_existing: ', symbols_existing )
 
     # configurations_test_trading = [
     #     config for config in configurations_handle_trading
@@ -1681,11 +1668,11 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         configurations_handle_trading = [
             config for config in configurations_handle_trading
             if (stock := config.get("stock")) and stock.name in symbols_existing ]
-    list_symbol_handle_trading  = [
+    list_symbols_process_trading  = [
         config["stock"].name
         for config in configurations_handle_trading
     ]
-    print('danh sach cac ma process trading: ', list_symbol_handle_trading )
+    print('List list_symbols_process_trading: ', list_symbols_process_trading )
     trading_configurations(user, configurations_handle_trading, vps_account, percent_buy_trade)
 
 
