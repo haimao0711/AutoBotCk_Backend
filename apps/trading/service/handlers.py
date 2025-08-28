@@ -1642,7 +1642,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         config["stock"].name
         for config in configurations_is_trading
     ]
-    print('danh sach cac ma dang trading: ', list_symbol_is_trading )
+    print('List symbol_is_trading: ', list_symbol_is_trading )
     configurations_handle_trading = [
         config for config in user_configurations
         if (trading_config := config.get("trading_config")) and trading_config.is_trading is False
@@ -1651,7 +1651,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         config["stock"].name
         for config in configurations_handle_trading
     ]
-    print('List list_symbol_not_trading: ', list_symbol_not_trading )
+    print('List symbol_not_trading: ', list_symbol_not_trading )
 
     # Get stock balance 
     res_stock_balance = handle_stock_balance_service(account_name, account_num, '', request_url, session_id, '','' )
