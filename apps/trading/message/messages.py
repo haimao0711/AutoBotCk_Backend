@@ -133,7 +133,8 @@ STOCK_CONFIG_USE_BUY_UP_OBL_TO_BUY = '''
         # **Điều kiện bắt buộc:** Giá trị Mua chủ động *(Stock)* >=, Mua chủ động hiện tại ({current}) *>=* Mua chủ động cấu hình ({previous})'''
 STOCK_CONFIG_USE_BUY_FOREIGN_OBL_TO_BUY = '''
         # **Điều kiện bắt buộc:** Giá trị Mua nước ngoài *(Stock)* >=, Mua nước ngoài hiện tại ({current}) *>=* Mua nước ngoài cấu hình ({previous})'''
-
+STOCK_CONFIG_USE_VOLUME_TRADE_OBL_TO_BUY = '''
+        # **Điều kiện bắt buộc:** Giá trị KL đã về *(Stock)* >=, KL đã về hiện tại ({current}) *>=* KL đã về cấu hình ({previous})'''
 
 STOCK_CONFIG_RSI_TO_BUY_SUFFICIENT_CONDITION = '''
         # **Điều kiện đủ:** Giá trị RSI *(Stock)* <=, RSI hiện tại ({current}) *<=* RSI cấu hình ({previous})'''
