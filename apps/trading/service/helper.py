@@ -143,6 +143,10 @@ def is_valid_buy_up_compare(value_macd_attr: float, curr_macd_attr: float, opera
 
 def is_valid_buy_foreign_compare(value_macd_attr: float, curr_macd_attr: float, operator: str) -> bool:
     return is_valid_compare(value_macd_attr, curr_macd_attr, operator)
+
+def is_valid_volume_trade_compare(value_macd_attr: float, curr_macd_attr: float, operator: str) -> bool:
+    return is_valid_compare(value_macd_attr, curr_macd_attr, operator)
+
 def is_valid_stoch_rsi_compare(value_stoch_rsi_attr: float, curr_stoch_rsi_attr: float, operator: str) -> bool:
     return is_valid_compare(value_stoch_rsi_attr, curr_stoch_rsi_attr, operator)
 
@@ -304,6 +308,7 @@ keyword_to_function = {
     'macd_obl_to_buy': (is_valid_macd_compare, '<'),
     'buy_up_obl_to_buy': (is_valid_buy_up_compare, '>'),
     'buy_foreign_obl_to_buy': (is_valid_buy_foreign_compare, '>'),
+    'volume_trade_obl_to_buy': (is_valid_volume_trade_compare, '>'),
     'macd_to_sell': (is_valid_macd_compare, '>'),
     'macd_reversed_increase': (is_valid_macd_trend_reserved, 'increase'),
     'macd_reversed_decrease': (is_valid_macd_trend_reserved, 'decrease'),

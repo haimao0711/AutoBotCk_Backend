@@ -956,7 +956,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         percent_first_buy = trading_config.stock_config_percent_first_buy
 
         print('Cổ phiếu đang kiểm tra:', {symbol})
-        print(f'check percent_buy_trade {symbol}:', percent_buy_trade)
         is_block_buy_stock = overview_config.is_block_buy
         is_block_sell_stock = overview_config.is_block_sell
         stock_id = trading_config.stock_id
@@ -997,7 +996,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
             # Gán cho 3 dòng cuối
             stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign             
-            print(f'check percent_buy_trade {symbol}:', percent_buy_trade)
+            print(f'check percent_buy_trade hiện tại {symbol}:', percent_buy_trade)
+            print(f'check percent_buy_trade cấu hình {symbol}:', following_config.stock_config_value_volume_trade_obl_to_buy)
             stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
             is_use_vnindex_following = following_config.is_use_vnindex_config
             is_use_vnindex_trading = trading_config.is_use_vnindex_config
