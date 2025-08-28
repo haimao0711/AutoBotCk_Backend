@@ -363,7 +363,8 @@ def should_do_obligatory(
         last_previous = round(get_last_previous_value_from_key(obl, d2), number_decimal)
         previous = round(getattr(config, key_obl_value, 0.0), number_decimal)
         current = round(get_current_value_from_key(config_type, obl, d0), number_decimal)
-        # print(f'check current {obl}: ', current)
+        if obl == "stock_config_use_volume_trade_obl_to_buy":
+          print(f'check current {obl}: ', current)
         # print(f'check previous {obl}: ', previous)
         if not handle_condition(obl, last_previous, previous, current):
             return False, [(obl, last_previous, previous, current)]
