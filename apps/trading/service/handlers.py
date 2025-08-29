@@ -764,7 +764,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         time_to_sell = time_to_sell if time_to_sell >= 60 else 60
         start_price = round_up_to_unit(open_last_row, close_last_row, step_price)       
         price_current = stock_data_trading.iloc[-1]['close']
-        number_order = trading_config.stock_config_number_pid_sell_once_time - 1
+        number_order = trading_config.stock_config_number_pid_sell_once_time 
         start_time_order = datetime.now(timezone)
         slippage_sell = trading_config.stock_config_slippage_sell
     # Dao động cộng trừ     
@@ -773,12 +773,11 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     # Get stock balance to set volume
         res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
         stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
-        stock_balance = res_stock_balance.get('stock_balance', {}).get('available_vol', 0) if res_stock_balance else 0 
+        stock_balance = res_stock_balance.get('stock_balance', {}).get('available_vol', 0) if res_stock_balance else 0
+        ceil_price = res_stock_balance.get('stock_balance', {}).get('ceil_price', 0) if res_stock_balance else 0  
         volume_balance = (stock_balance // 100) * 100
         half = volume_balance / 2
-        print('check volume sell half: ', half)
         volume = int(volume_balance) if volume_sell == 'all' else int(half + 50) if half % 100 == 50 else int(half)
-        print('check volume sell full: ', volume)
         sell_order_overrall_attrs = {
             'user_account': account,
             'stock': symbol,
@@ -790,7 +789,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             "add_price_sell": add_price_sell,
             "sleeping_time_sell": sleeping_time_sell,
             'limit_price': round(start_price + add_price_sell - slippage_sell, 2),  
-            'number_order': int(number_order) if trading_config.stock_config_is_mode_sensitive_sell else int(number_order) - 1,
+            'number_order': int(number_order),
             'start_time_order': start_time_order
         }
         sell_messages = []
@@ -798,19 +797,18 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             **sell_order_overrall_attrs })
         
         if volume >= 100:
-        # Xử lý bán nhạy cảm 
+        # Xử lý mua nhạy cảm 
             if trading_config.stock_config_is_mode_sensitive_sell:
                 sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
                 volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
                 volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100
                 sell_order_attrs_send = {
                     'stock': symbol,
-                    'price': round(float(low_last_row + add_price_sell), 2), 
+                    'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
                     'volume': int(volume_sell_sensitive)
                 }
                 res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
                 if res_sell:
-                    print(f'Rơi vào trường hợp có res_sell {symbol}')
                     is_send_order_sell = True
                     sell_order_sensitive_attrs = {
                         'stock': res_sell['symbol'],
@@ -821,8 +819,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                     sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
                                         **sell_order_sensitive_attrs })
                     volume -= int(res_sell['volume'])
+                    number_order -= 1
                 else:
-                    print(f'Rơi vào trường hợp không có res_sell {symbol}')
                     print(f"Error: lệnh bán nhạy cảm handle_sell_service  của {symbol} phản hồi là rỗng") 
         # Chia đều phần còn lại của volume to sell
             if volume >= 100:
@@ -836,7 +834,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                     volume -= volume_sell
                     #Gửi các lệnh sell
                     ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                    price = round(start_price + add_price_sell + i*step_price, 2)
+                    price = round(start_price + add_price_sell + i*step_price, 2) if round(start_price + add_price_sell + i*step_price, 2) < ceil_price else round(ceil_price, 2)
                     if volume_sell >= 100:
                         res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_sell, ref_id)
                         if res_sell:
@@ -853,15 +851,11 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                         print(f"Error: lệnh bán lần thứ {i+1} hàm handle_sell_service  của {symbol} có phản hồi là rỗng") 
         # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
             if is_send_order_sell:
-                send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs) 
-                send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_sell, **sell_attrs)         
-                send_telegram_message_batch(user, MessageTypeEnum.OVERALL, sell_messages) 
-                send_telegram_message_batch(user, MessageTypeEnum.ACT, sell_messages)  
-        else: 
-            print(f'Không có cổ phiếu {symbol} trong tài khoản')
-               
-        print('kết thúc hàm đặt lệnh sell')
-        # time.sleep(sleeping_time_sell)       
+                send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)
+                send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_sell, **sell_attrs)
+                send_telegram_message_batch(user, MessageTypeEnum.OVERALL, sell_messages)
+                send_telegram_message_batch(user, MessageTypeEnum.ACT, sell_messages) 
+        print('kết thúc hàm đặt lệnh sell')     
     
     if is_send_order_sell:
         time.sleep(sleeping_time_sell)
@@ -1409,7 +1403,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     "slippage_sell": slippage_sell,
                     "add_price_sell": add_price_sell,
                     "sleeping_time_sell": sleeping_time_sell, 
-                    'number_order': int(number_order) if trading_config.stock_config_is_mode_sensitive_sell else int(number_order) - 1,
+                    'number_order': int(number_order),
                     'start_time_order': start_time_order
                 }
                 sell_messages = []
