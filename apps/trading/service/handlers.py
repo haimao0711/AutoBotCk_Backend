@@ -82,8 +82,8 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
 
         if not res_not_matcheds:
             retry_count += 1
-            print(f"Lần thử {retry_count}/{max_retry}: Chưa có danh sách chưa khớp cho symbol {symbol}. Thử lại sau {10} giây...")
-            time.sleep(10)
+            print(f"Lần thử {retry_count}/{max_retry}: Chưa có danh sách chưa khớp cho symbol {symbol}. Thử lại sau {5} giây...")
+            time.sleep(5)
 
     message_buy_update = []
 
@@ -315,8 +315,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     account = vps_account.account_num
     session = vps_account.vps_session_id
     request_url = api.TRADING_URL
-    ref_id = f"{user_name}.I.test.{int(time.time() * 1000)}"
-    
+    ref_id = f"{user_name}.I.test.{int(time.time() * 1000)}"    
     
     # Lấy dữ liệu đã chuẩn bị  
     trading_candle = prepared["trading_candle"]
@@ -450,7 +449,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         step_price = trading_config.stock_config_slippage_volume_buy_per_pid
         print(f'check step_price mua tay stock {symbol}: ', step_price)
         time_to_buy = trading_config.stock_config_time_to_buy
-        time_to_buy = time_to_buy if time_to_buy > 60 else 60
+        time_to_buy = time_to_buy if time_to_buy > 30 else 30
         sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
         print(f'check sleeping_time_buy mua tay stock {symbol}: ', sleeping_time_buy)
         sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
@@ -761,7 +760,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         print(f'check sleeping_time_sell stock {symbol}: ', sleeping_time_sell)
         sleeping_time_sell = sleeping_time_sell if sleeping_time_sell > 5 else 5
         time_to_sell = trading_config.stock_config_time_to_sell
-        time_to_sell = time_to_sell if time_to_sell >= 60 else 60
+        time_to_sell = time_to_sell if time_to_sell >= 30 else 30
         start_price = round_up_to_unit(open_last_row, close_last_row, step_price)       
         price_current = stock_data_trading.iloc[-1]['close']
         number_order = trading_config.stock_config_number_pid_sell_once_time 
@@ -1054,7 +1053,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 high_last_row = last_row['high']
                 step_price = trading_config.stock_config_slippage_volume_buy_per_pid
                 time_to_buy = trading_config.stock_config_time_to_buy
-                time_to_buy = time_to_buy if time_to_buy > 60 else 60
+                time_to_buy = time_to_buy if time_to_buy > 30 else 30
                 sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
                 sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
                 start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
@@ -1163,8 +1162,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     time.sleep(sleeping_time_buy)
                     res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                     number_stock_existing = res_stock.get('number_stock_existing', 0) if res_stock else 0
+                    symbols_existing = res_stock.get('symbols_existing', []) if res_stock_balance else []
                     limit_number_stocks = vps_account.limit_number_stocks
-                    if number_stock_existing >= limit_number_stocks and stock_balance == 0:
+                    if number_stock_existing >= limit_number_stocks and symbol not in symbols_existing:
                         print(f'Vượt quá giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}!')
                         cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt quá giới hạn cổ phiếu tối đa', "B")
                         break
@@ -1177,32 +1177,28 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         following_chart_type=following_chart_type
                     )
                     sales_data = download_sales_volume(symbol=symbol)
-                    if sales_data is None or stock_data_following is None:
-                        print('Download data không thành công, bỏ qua!')
-                        message_download = f'Download data symbol {symbol } to buy not successful. Next!'
-                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
-                        return
-                    def safe_int(val):
-                        try:
-                            return int(val) if val is not None else 0
-                        except (ValueError, TypeError):
-                            return 0   
-                    floor_price = sales_data.get('floor_price') 
 
-                    buyForeignQtty = safe_int(sales_data.get('buyForeignQtty'))
-                    sellForeignQtty = safe_int(sales_data.get('sellForeignQtty'))
-                    total_foreign = buyForeignQtty + sellForeignQtty
-                    if total_foreign > 0:
-                        value_buy_foreign = round((buyForeignQtty / total_foreign) * 100, 2)
+                    # Kiểm tra dữ liệu trước khi xử lý
+                    if sales_data and stock_data_following is not None:
+                        floor_price = sales_data.get('floor_price', 0)
+
+                        # Tính toán số lượng giao dịch nước ngoài
+                        buy_foreign_qty = safe_int(sales_data.get('buyForeignQtty'))
+                        sell_foreign_qty = safe_int(sales_data.get('sellForeignQtty'))
+                        total_foreign = buy_foreign_qty + sell_foreign_qty
+                        value_buy_foreign = round((buy_foreign_qty / total_foreign) * 100, 2) if total_foreign > 0 else 0
+                        # Gán giá trị buy_foreign cho 3 dòng cuối cùng
+                        stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign
+
                     else:
-                        value_buy_foreign = 0
+                        # Xử lý khi dữ liệu không hợp lệ
+                        print('Download data không thành công, bỏ qua!')
+                        message_download = f'Download data symbol {symbol} to buy not successful. Next!'
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
+                        cancel_buy_order( user, user_name, account, symbol, request_url, session, 'Lỗi download dữ liệu khi sửa lệnh', "B")
 
-                    # Gán cho 3 dòng cuối
-                    stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign
-
-                    is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config')
+                    is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config')                    
                     message_vnindex = ''
-
                     if is_use_vnindex_following:
                         is_buy_vnindex, reason_vnindex = should_buy_following(following_config, vnindex_data_following, 'vnindex_config')
                         message_vnindex = render_message(reason_vnindex, trading_candle, following_candle)
@@ -1239,8 +1235,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
                         send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs)
                         cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Điều kiện mua không còn thỏa mãn ', "B")
-                        break
-
+                        
             #Tổng kết các lệnh đã khớp theo symbol để send telegram   
                 res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
                 if res_matcheds:
@@ -1276,6 +1271,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     message_buy_matched_fail = f'Không lấy được danh sách đã khớp lệnh của mã {symbol } từ sàn.'
                     send_message_telegram(user, MessageTypeEnum.OVERALL, message_buy_matched_fail)
                     send_message_telegram(user, MessageTypeEnum.ACT, message_buy_matched_fail)
+                    cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đảm bảo hết lệnh còn đặt khi kết thúc mỗi vòng mua', "B")
+
                 ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
 
     #HANDLE SELL
@@ -1380,10 +1377,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 sleeping_time_sell= trading_config.stock_config_time_update_pid_sell
                 sleeping_time_sell = sleeping_time_sell if sleeping_time_sell > 5 else 5
                 time_to_sell = trading_config.stock_config_time_to_sell
-                time_to_sell = time_to_sell if time_to_sell >= 60 else 60    
+                time_to_sell = time_to_sell if time_to_sell >= 30 else 30    
                 # print(f'check time_to_buy stock {symbol}: ', time_to_sell)
                 start_price = round_up_to_unit(open_last_row, close_last_row, step_price)  
-                number_order = trading_config.stock_config_number_pid_sell_once_time - 1
+                number_order = trading_config.stock_config_number_pid_sell_once_time
                 time_now = datetime.now(timezone)
                 start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
                 slippage_sell = trading_config.stock_config_slippage_sell

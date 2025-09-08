@@ -47,10 +47,10 @@ class TradingViews(APIView):
             timezone = pytz.timezone('Asia/Ho_Chi_Minh')
             now = datetime.now(timezone).time()
 
-            morning_start = time(9, 14)
-            morning_end = time(11, 27)
+            morning_start = time(9, 15)
+            morning_end = time(11, 28)
             afternoon_start = time(13, 0)
-            afternoon_end = time(14, 27)
+            afternoon_end = time(14, 28)
             vps_account = AccountService.get_account_by_user(user)
             if not vps_account:
                 raise ValueError(ErrorMessages.ACCOUNT_DOES_NOT_EXIST)

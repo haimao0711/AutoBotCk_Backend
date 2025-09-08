@@ -119,90 +119,110 @@ def define_message(type: SignalTelegramEnum, **kwargs):
             return DEFAULT_MESSAGE
 
 
+
 # def send_message_telegram(user: User, message_type: MessageTypeEnum, message: str, timeout_per_request=3, max_duration=15) -> None:
-#     TELEGRAM_BOT_TOKEN = user.telegram_bot_token
-#     TELEGRAM_CHANNEL_ID = user.telegram_channel_id
+            
+#     # webhook_url = 'https://discord.com/api/webhooks/1377123602570285147/Z1A-20yyLW5HLeXGcC3MUDYPWv8_uDv_Sd59A-l8C1h0DBGRPzeYPyqzxtAndnpJ-9LQ'
+#     webhook_url = user.telegram_bot_token
 #     if message_type == MessageTypeEnum.ACT:
 #         if not user.telegram_bot_token_atc or not user.telegram_channel_id_atc:
 #             print("❌ Thiếu token hoặc channel ID ATC — không gửi tin nhắn.")
 #             return  # Thoát nếu thiếu thông tin
         
-#         TELEGRAM_BOT_TOKEN = user.telegram_bot_token_atc
-#         TELEGRAM_CHANNEL_ID = user.telegram_channel_id_atc
-    
-#     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHANNEL_ID:
-#         print("❌ Thiếu token hoặc channel ID — không gửi tin nhắn.")
-#         return
-#     url = f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'
-#     params = {
-#         'chat_id': TELEGRAM_CHANNEL_ID,
-#         'text': message,
-#         'parse_mode': 'Markdown'
+#         # webhook_url = 'https://discord.com/api/webhooks/1377464762421481542/llZDUX33gS1lDHyUYlvOaILDvrTbwRo3Tt7HtvCbHsye3VN4wnOaO19m4VEnQJ5jEqrh'
+#         webhook_url = user.telegram_bot_token_atc
+
+#     json_data = {
+#         "content": message
 #     }
 
-#     start_time = time.time()  # Ghi lại thời gian bắt đầu
+#     start_time = time.time()
 
 #     while time.time() - start_time < max_duration:
 #         try:
-#             response = requests.post(url=url, params=params, timeout=timeout_per_request)
-            
-#             if response.status_code == 200:
-#                 print("📩 Gửi tin nhắn thành công!")
-#                 return  # Thành công thì thoát khỏi hàm
+#             response = requests.post(url=webhook_url, json=json_data, timeout=timeout_per_request)
+
+#             if response.status_code in (200, 204):
+#                 print("📩 Gửi tin nhắn Discord thành công!")
+#                 return
             
 #             print(f"⚠️ Lỗi HTTP {response.status_code}: {response.text}")
-        
+
 #         except requests.RequestException as error:
 #             print(f"🚨 Lỗi mạng: {error}")
 
-#         # Nếu chưa hết thời gian, đợi 2 giây rồi thử lại
 #         if time.time() - start_time + 2 < max_duration:
 #             print("🔄 Thử lại sau 2 giây...")
 #             time.sleep(2)
 #         else:
-#             break  # Không còn đủ thời gian để thử lại
+#             break
 
 #     print("❌ Hết thời gian! Bỏ qua tin nhắn.")
 
-def send_message_telegram(user: User, message_type: MessageTypeEnum, message: str, timeout_per_request=3, max_duration=15) -> None:
-            
-    # webhook_url = 'https://discord.com/api/webhooks/1377123602570285147/Z1A-20yyLW5HLeXGcC3MUDYPWv8_uDv_Sd59A-l8C1h0DBGRPzeYPyqzxtAndnpJ-9LQ'
-    webhook_url = user.telegram_bot_token
-    if message_type == MessageTypeEnum.ACT:
-        if not user.telegram_bot_token_atc or not user.telegram_channel_id_atc:
-            print("❌ Thiếu token hoặc channel ID ATC — không gửi tin nhắn.")
-            return  # Thoát nếu thiếu thông tin
-        
-        # webhook_url = 'https://discord.com/api/webhooks/1377464762421481542/llZDUX33gS1lDHyUYlvOaILDvrTbwRo3Tt7HtvCbHsye3VN4wnOaO19m4VEnQJ5jEqrh'
-        webhook_url = user.telegram_bot_token_atc
+def send_message_telegram(
+    user: User,
+    message_type: MessageTypeEnum,
+    message: str,
+    timeout_per_request=3,
+    max_duration=10
+) -> None:
+    """
+    Gửi tin nhắn Telegram với retry trong vòng tối đa 10 giây.
+    - Nếu lỗi mạng hoặc Telegram quá tải -> thử lại cho đến khi hết 10 giây.
+    - Nếu hết thời gian mà vẫn lỗi -> bỏ qua, không làm treo luồng chính.
+    """
+    try:
+        # Xác định webhook URL
+        webhook_url = user.telegram_bot_token
+        if message_type == MessageTypeEnum.ACT:
+            if not user.telegram_bot_token_atc or not user.telegram_channel_id_atc:
+                print("❌ Thiếu token hoặc channel ID ATC — không gửi tin nhắn.")
+                return  # Bỏ qua nếu thiếu dữ liệu
+            webhook_url = user.telegram_bot_token_atc
 
-    json_data = {
-        "content": message
-    }
+        # Nếu không có webhook_url => thoát sớm
+        if not webhook_url:
+            print("❌ Không tìm thấy webhook_url — bỏ qua gửi tin nhắn.")
+            return
 
-    start_time = time.time()
+        json_data = {"content": message}
 
-    while time.time() - start_time < max_duration:
-        try:
-            response = requests.post(url=webhook_url, json=json_data, timeout=timeout_per_request)
+        start_time = time.time()
+        attempt = 0
 
-            if response.status_code in (200, 204):
-                print("📩 Gửi tin nhắn Discord thành công!")
-                return
-            
-            print(f"⚠️ Lỗi HTTP {response.status_code}: {response.text}")
+        while time.time() - start_time < max_duration:
+            attempt += 1
+            try:
+                response = requests.post(
+                    url=webhook_url,
+                    json=json_data,
+                    timeout=timeout_per_request
+                )
 
-        except requests.RequestException as error:
-            print(f"🚨 Lỗi mạng: {error}")
+                # Thành công thì dừng ngay
+                if response.status_code in (200, 204):
+                    print(f"📩 Gửi tin nhắn Telegram thành công sau {attempt} lần thử!")
+                    return
 
-        if time.time() - start_time + 2 < max_duration:
-            print("🔄 Thử lại sau 2 giây...")
+                # Lỗi từ Telegram (ví dụ rate limit)
+                print(f"⚠️ Lỗi HTTP {response.status_code}: {response.text}")
+
+            except requests.Timeout:
+                print(f"⏳ Timeout lần {attempt}.")
+            except requests.RequestException as error:
+                print(f"🚨 Lỗi mạng hoặc kết nối lần {attempt}: {error}")
+
+            # Đợi 2 giây trước khi thử lại, nhưng không vượt quá max_duration
+            if time.time() - start_time + 2 >= max_duration:
+                break
+            print("🔄 Đợi 2 giây trước khi thử lại...")
             time.sleep(2)
-        else:
-            break
 
-    print("❌ Hết thời gian! Bỏ qua tin nhắn.")
+        print("❌ Hết 10 giây mà chưa gửi được tin nhắn, bỏ qua.")
 
+    except Exception as e:
+        # Bắt mọi lỗi bất ngờ, không cho treo luồng chính
+        print(f"[Error] send_message_telegram gặp lỗi nghiêm trọng: {e}")
 
 def send_message(user: User, message_type: MessageTypeEnum, type: SignalTelegramEnum, **kwargs):
     message = define_message(type, kwargs=kwargs)

@@ -71,28 +71,86 @@ def adding_idicator(df: pd.DataFrame):
     df['lower_bolinger'] = df['SMA'] - (df['STD'] * 2)
 
 
-def send_telegram_message(user, message_type: MessageTypeEnum , status_signal: SignalTelegramEnum | None, **kwargs):
-    if isinstance(status_signal, SignalTelegramEnum):
-        send_message(user, message_type, status_signal.value, **kwargs)
-    else:
-        send_message(user, message_type, SignalTelegramEnum.DEFAULT.value, **kwargs)    
+# def send_telegram_message(user, message_type: MessageTypeEnum , status_signal: SignalTelegramEnum | None, **kwargs):
+#     if isinstance(status_signal, SignalTelegramEnum):
+#         send_message(user, message_type, status_signal.value, **kwargs)
+#     else:
+#         send_message(user, message_type, SignalTelegramEnum.DEFAULT.value, **kwargs)    
+
+def send_telegram_message(user, message_type: MessageTypeEnum, status_signal: SignalTelegramEnum | None = None, **kwargs):
+    try:
+        # Kiểm tra biến đầu vào cơ bản
+        if user is None or message_type is None:
+            print("[Warning] send_telegram_message: user hoặc message_type bị thiếu, bỏ qua.")
+            return  # Không làm gì, thoát hàm nhẹ nhàng
+
+        # Xử lý status_signal hợp lệ
+        if isinstance(status_signal, SignalTelegramEnum):
+            send_message(user, message_type, status_signal.value, **kwargs)
+        else:
+            send_message(user, message_type, SignalTelegramEnum.DEFAULT.value, **kwargs)
+
+    except Exception as e:
+        # Chỉ log lỗi, không crash
+        print(f"[Error] send_telegram_message gặp lỗi: {e}")
+
+
+# def send_telegram_message_batch(user, message_type: MessageTypeEnum, batch_messages):
+#     combined_message = ""  # Khởi tạo chuỗi để gộp nội dung
+   
+#     for message in batch_messages:
+#         status_signal = message.get('status_signal')
+#         message_kwargs = {key: value for key, value in message.items() if key != 'status_signal'}
+#         # Xử lý chỉ khi có status_signal hợp lệ
+#         if status_signal:
+#             # Gọi hàm define_message để định dạng tin nhắn
+#             formatted_message = define_message(status_signal.value, kwargs=message_kwargs)
+#             # Thêm thông điệp định dạng vào chuỗi tổng hợp
+#             combined_message += f"{formatted_message}"  # Ngăn cách giữa các tin nhắn để dễ đọc
+
+#     # Gửi toàn bộ nội dung trong một tin nhắn duy nhất
+#     print('check combined_message send telegram: ', combined_message)
+#     send_message_telegram(user=user, message_type=message_type, message=combined_message)
 
 def send_telegram_message_batch(user, message_type: MessageTypeEnum, batch_messages):
-    combined_message = ""  # Khởi tạo chuỗi để gộp nội dung
-   
-    for message in batch_messages:
-        status_signal = message.get('status_signal')
-        message_kwargs = {key: value for key, value in message.items() if key != 'status_signal'}
-        # Xử lý chỉ khi có status_signal hợp lệ
-        if status_signal:
-            # Gọi hàm define_message để định dạng tin nhắn
-            formatted_message = define_message(status_signal.value, kwargs=message_kwargs)
-            # Thêm thông điệp định dạng vào chuỗi tổng hợp
-            combined_message += f"{formatted_message}"  # Ngăn cách giữa các tin nhắn để dễ đọc
+    try:
+        # Kiểm tra đầu vào cơ bản
+        if user is None or message_type is None:
+            print("[Warning] send_telegram_message_batch: user hoặc message_type bị thiếu, bỏ qua.")
+            return
+        
+        if not batch_messages or not isinstance(batch_messages, list):
+            print("[Warning] send_telegram_message_batch: batch_messages rỗng hoặc không phải list, bỏ qua.")
+            return
 
-    # Gửi toàn bộ nội dung trong một tin nhắn duy nhất
-    print('check combined_message send telegram: ', combined_message)
-    send_message_telegram(user=user, message_type=message_type, message=combined_message)
+        combined_message = ""  # Khởi tạo chuỗi để gộp nội dung
+
+        for message in batch_messages:
+            try:
+                status_signal = message.get('status_signal')
+                message_kwargs = {key: value for key, value in message.items() if key != 'status_signal'}
+
+                # Chỉ xử lý khi có status_signal hợp lệ
+                if status_signal:
+                    formatted_message = define_message(status_signal.value, kwargs=message_kwargs)
+                    combined_message += f"{formatted_message}\n"  # Xuống dòng cho dễ đọc
+            except Exception as e:
+                print(f"[Error] Lỗi xử lý message {message}: {e}")
+                continue  # Bỏ qua message lỗi, xử lý message tiếp theo
+
+        # Gửi toàn bộ nội dung trong một tin nhắn duy nhất
+        if combined_message:
+            try:
+                print('check combined_message send telegram: ', combined_message)
+                send_message_telegram(user=user, message_type=message_type, message=combined_message)
+            except Exception as e:
+                print(f"[Error] Lỗi gửi telegram: {e}")
+        else:
+            print("[Info] Không có message hợp lệ để gửi telegram.")
+
+    except Exception as e:
+        print(f"[Error] send_telegram_message_batch gặp lỗi: {e}")
+
 
 
 def render_type(chart_type: str, chart_value: str) -> str:
