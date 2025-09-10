@@ -984,9 +984,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 value_buy_foreign = 0
 
             # Gán cho 3 dòng cuối
-            stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign            
-
+            stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign          
             stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
+
             is_use_vnindex_following = following_config.is_use_vnindex_config
             is_use_vnindex_trading = trading_config.is_use_vnindex_config
 
@@ -1180,7 +1180,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
                     # Kiểm tra dữ liệu trước khi xử lý
                     if sales_data and stock_data_following is not None:
-                        floor_price = sales_data.get('floor_price', 0)
+                        floor_price = sales_data.get('floor_price')
 
                         # Tính toán số lượng giao dịch nước ngoài
                         buy_foreign_qty = safe_int(sales_data.get('buyForeignQtty'))
@@ -1189,14 +1189,14 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         value_buy_foreign = round((buy_foreign_qty / total_foreign) * 100, 2) if total_foreign > 0 else 0
                         # Gán giá trị buy_foreign cho 3 dòng cuối cùng
                         stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign
-
+                        stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
                     else:
                         # Xử lý khi dữ liệu không hợp lệ
                         print('Download data không thành công, bỏ qua!')
                         message_download = f'Download data symbol {symbol} to buy not successful. Next!'
                         send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
                         cancel_buy_order( user, user_name, account, symbol, request_url, session, 'Lỗi download dữ liệu khi sửa lệnh', "B")
-
+                        return
                     is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config')                    
                     message_vnindex = ''
                     if is_use_vnindex_following:
