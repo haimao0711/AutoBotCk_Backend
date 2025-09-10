@@ -133,7 +133,7 @@ def send_telegram_message_batch(user, message_type: MessageTypeEnum, batch_messa
                 # Chỉ xử lý khi có status_signal hợp lệ
                 if status_signal:
                     formatted_message = define_message(status_signal.value, kwargs=message_kwargs)
-                    combined_message += f"{formatted_message}\n"  # Xuống dòng cho dễ đọc
+                    combined_message += f"{formatted_message}" 
             except Exception as e:
                 print(f"[Error] Lỗi xử lý message {message}: {e}")
                 continue  # Bỏ qua message lỗi, xử lý message tiếp theo

@@ -1408,7 +1408,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                     **sell_order_overrall_attrs })
                 
                 if volume >= 100:
-                # Xử lý mua nhạy cảm 
+                # Xử lý bán nhạy cảm 
                     if trading_config.stock_config_is_mode_sensitive_sell:
                         sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
                         volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)

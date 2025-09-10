@@ -167,7 +167,7 @@ def check_scheduler_health():
         try:
             # Chỉ restart nếu scheduler chết và user vẫn có flag scheduler_status=True
             user = User.objects.get(id=user_id)
-            print(f'check {user.username} user_schedulers check_scheduler_health : ', user_id)
+            print(f'check {user.username} user_id check_scheduler_health : ', user_id)
             print(f'check {user.username} scheduler.running check_scheduler_health : ', scheduler.running)
             print(f'check {user.username} user.scheduler_status check_scheduler_health : ', user.scheduler_status)
             if not scheduler.running and user.scheduler_status:
