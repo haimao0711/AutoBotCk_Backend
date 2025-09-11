@@ -1650,7 +1650,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
     percent_buy_trade = res_stock_balance.get('percent_buy_trade', 0) if res_stock_balance else 0
     symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
     print('List symbols_existing: ', symbols_existing )
-
+    print('Check number_stock_existing: ', number_stock_existing )
     # configurations_test_trading = [
     #     config for config in configurations_handle_trading
     #     if (stock := config.get("stock")) and stock.name in ['DBC', 'FCN', 'POW', 'PVS' ] ]
