@@ -66,8 +66,7 @@ def cancel_all_orders(user: User, user_name: str, account: str, symbol: str, req
 
 
 def update_buy_order(user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str, step_price: float, limited_price: float, times_update: int):
-    print(f'Bắt đầu chạy hàm update lệnh mua {symbol} ' )
-    ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
+    print(f'Bắt đầu chạy hàm update lệnh mua {symbol} ' )    
     tz = pytz.timezone("Asia/Ho_Chi_Minh")
     start_time_update = datetime.now(tz)
     start_time = time.time()  # Lấy thời gian bắt đầu
@@ -100,51 +99,53 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
             'status_signal': SignalTelegramEnum.BUY_UPDATE_OVERRAL,
             **buy_update_overrall_attrs
         })               
-        for order in res_not_matcheds:      
+        for order in res_not_matcheds:   
+            ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"   
             old_price = float(order['showPrice'])
             update_price = round(old_price + step_price, 2)            
             update_volume = int(order['volume'])
             order_num = order['orderNo']
-            print('check order_num buy: ', order_num)
-        # Nếu update_price chưa vượt limited_price thì handle update order
-            if update_price < limited_price:
-                handle_update_order_service(user_name, account, request_url, symbol, session, '', order_num, old_price, update_price, update_volume, ref_id, 'B')
-                buy_update_details_attrs = {
-                    'stock': order['symbol'],
-                    'old_price': old_price,
-                    'update_price': update_price,
-                    'volume': order['volume'],
-                    'status': order['status']
-                }
-                print('check data update buy: ', buy_update_details_attrs)
-                message_buy_update.append({
-                        'status_signal': SignalTelegramEnum.BUY_UPDATE_DETAIL,
-                        **buy_update_details_attrs
-                })
-            
-        # Nếu update_price vượt quá limited_price thì handle cancel order
-            else:
-                print(f'Huy lenh vi gia update: {update_price} da toi limited: {limited_price}')
-                res_cancel_order = handle_cancel_order_service(user_name, request_url, session, '', order_num, ref_id)
-                if res_cancel_order:
-                    print(f'Da huy lenh mua {symbol}: ', res_cancel_order)
-                    buy_cancel_details_attrs = {
+            try:
+            # Nếu update_price chưa vượt limited_price thì handle update order
+                if update_price < limited_price:
+                    handle_update_order_service(user_name, account, request_url, symbol, session, '', order_num, old_price, update_price, update_volume, ref_id, 'B')
+                    buy_update_details_attrs = {
                         'stock': order['symbol'],
-                        'price': order['showPrice'],
+                        'old_price': old_price,
+                        'update_price': update_price,
                         'volume': order['volume'],
-                        'status': 'Đã hủy'
+                        'status': order['status']
                     }
+                    print('check data update buy: ', buy_update_details_attrs)
                     message_buy_update.append({
-                        'status_signal': SignalTelegramEnum.BUY_CANCEL_DETAIL,
-                        **buy_cancel_details_attrs
+                            'status_signal': SignalTelegramEnum.BUY_UPDATE_DETAIL,
+                            **buy_update_details_attrs
                     })
+                
+            # Nếu update_price vượt quá limited_price thì handle cancel order
                 else:
-                    print(f'Chua huy duoc lenh mua one order {symbol}')
+                    print(f'Huy lenh vi gia update: {update_price} da toi limited: {limited_price}')
+                    res_cancel_order = handle_cancel_order_service(user_name, request_url, session, '', order_num, ref_id)
+                    if res_cancel_order:
+                        print(f'Da huy lenh mua {symbol}: ', res_cancel_order)
+                        buy_cancel_details_attrs = {
+                            'stock': order['symbol'],
+                            'price': order['showPrice'],
+                            'volume': order['volume'],
+                            'status': 'Đã hủy'
+                        }
+                        message_buy_update.append({
+                            'status_signal': SignalTelegramEnum.BUY_CANCEL_DETAIL,
+                            **buy_cancel_details_attrs
+                        })
+                    else:
+                        print(f'Chua huy duoc lenh mua one order {symbol}')
+            except Exception as e:
+                print(f"[ERROR] Lỗi khi xử lý order {order_num}: {e}")
     else:
         print(f"Thử {max_retry} lần nhưng vẫn chưa có danh sách chưa khớp để update buy stock {symbol}. Ngưng update lệnh")
 
-    return message_buy_update
-    print(f'Kết thúc chạy hàm update lệnh mua {symbol} ' )    
+    return message_buy_update 
 
 def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, request_url: str, session: str, reason: str, side: str):
     print(f'Bắt đầu chạy hàm cancel lệnh mua all oders {symbol} ' )
@@ -193,8 +194,7 @@ def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, reque
     print(f'Kết thúc chạy hàm cancel lệnh mua {symbol} ' )
 
 def update_sell_order(user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str, step_price: float, limited_price: float, times_update: int):
-    print(f'Bắt đầu chạy hàm update lệnh bán {symbol} ' )   
-    ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
+    print(f'Bắt đầu chạy hàm update lệnh bán {symbol} ' )      
     tz = pytz.timezone("Asia/Ho_Chi_Minh")
     time_now  = datetime.now(tz)
     start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")    
@@ -217,6 +217,7 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
         })
             
         for order in res_not_matcheds:      
+            ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
             old_price = float(order['showPrice'])
             update_price = round(old_price - step_price, 2)      
             update_volume = int(order['volume'])
@@ -252,14 +253,11 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
                         **sell_cancel_details_attrs
                     })
                 else:
-                    print(f'Chua huy duoc lenh mua one order {symbol}')
-
-        return message_sell_update
-
+                    print(f'Chua huy duoc lenh mua one order {symbol}') 
     else: 
         print(f'chưa lấy được res danh sach chưa khơp to update sell {symbol} ' )
 
-    print(f'Kết thúc chạy hàm update lệnh sell {symbol} ' )    
+    return message_sell_update  
 
 def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, reason: str, side: str):
     print(f'Bắt đầu chạy hàm cancel lệnh sell {symbol}')
@@ -572,13 +570,13 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             times_update = i + 1
             message_update = update_buy_order(user_name, account, symbol, request_url, session, asp_net_session, "B", 
                                               step_price, limited_price_to_buy, times_update)
-            if message_update:
+            if  message_update:
                 send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
                 send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
                 time.sleep(sleeping_time_buy)
             else:
                 print(f"Sửa lệnh thất bại ở lần thứ {times_update}, sẽ huỷ lệnh.")                
-                cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Sửa lệnh mua bị lỗi', "B")
+                cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Sửa lệnh mua không thành công', "B")
                 revert_status_request_trade(user, stock_id)
                 break             
 
