@@ -1162,7 +1162,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     time.sleep(sleeping_time_buy)
                     res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                     number_stock_existing = res_stock.get('number_stock_existing', 0) if res_stock else 0
-                    symbols_existing = res_stock.get('symbols_existing', []) if res_stock_balance else []
+                    symbols_existing = res_stock.get('symbols_existing', []) if res_stock else []
                     limit_number_stocks = vps_account.limit_number_stocks
                     if number_stock_existing >= limit_number_stocks and symbol not in symbols_existing:
                         print(f'Vượt quá giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}!')
@@ -1235,6 +1235,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
                         send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs)
                         cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Điều kiện mua không còn thỏa mãn ', "B")
+                        break
                         
             #Tổng kết các lệnh đã khớp theo symbol để send telegram   
                 res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 

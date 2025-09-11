@@ -9,6 +9,7 @@ ALLOWED_HOSTS = [
     "autobotchungkhoan.pro.vn",
     "www.autobotchungkhoan.pro.vn",
     "localhost",
+    "0.0.0.0",
 ]
 
 # Database: đồng bộ với POSTGRES_* env
