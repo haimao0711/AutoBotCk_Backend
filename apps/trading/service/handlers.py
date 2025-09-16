@@ -518,6 +518,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
                                     **buy_order_sensitive_attrs })
                     volume -= int(res_buy['volume'])
+                    number_order -= 1
                 else:
                     print(f"Error: lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng")
             else:
@@ -525,9 +526,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         # Chia đều phần còn lại của volume to buy
             number_order = min(number_order, volume // 100)
             if volume >=100:
-                for i in range(int(number_order) - 1):
-                    divisor = number_order - 1 - i
-                    if i != int(number_order) - 2:
+                for i in range(int(number_order)):
+                    divisor = number_order - i
+                    if i != int(number_order) - 1:
                         volume_buy = round_to_nearest_hundred(volume / divisor)
                     else:
                         volume_buy = round_to_nearest_hundred(volume)
@@ -1056,7 +1057,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
                 start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
                 number_order = trading_config.stock_config_number_pid_buy_once_time
-                # print(f'check number_order stock ban dau {symbol}: ', number_order)
                 slippage_buy = trading_config.stock_config_slippage_buy
                 # Dao động cộng trừ    
                 add_price_buy = trading_config.stock_config_add_price_buy
@@ -1110,14 +1110,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
                                         **buy_order_sensitive_attrs })
                         volume -= int(res_buy['volume'])
+                        number_order -= 1
                     else:
                         print(f"Lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng") 
                 # Chia đều phần còn lại của volume to buy
                 number_order = min(number_order, volume // 100)
                 if volume >=100:
-                    for i in range(int(number_order) -1):
-                        divisor = number_order - 1 - i
-                        if i != int(number_order) - 2:
+                    for i in range(int(number_order)):
+                        divisor = number_order - i
+                        if i != int(number_order) - 1:
                             volume_buy = round_to_nearest_hundred(volume / divisor)
                         else:
                             volume_buy = round_to_nearest_hundred(volume)
@@ -1125,7 +1126,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
                         price = round(start_price - add_price_buy - i*step_price, 2) if round(start_price - add_price_buy - i*step_price, 2) > floor_price else round(floor_price, 2)
                         if volume_buy >= 100:
-                            # print(f"i={i}, divisor={divisor}, volume={volume}, volume_buy={volume_buy}")
                             res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_buy, ref_id)
                             if res_buy:
                                 is_send_order_buy = True
