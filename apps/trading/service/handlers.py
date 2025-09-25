@@ -1603,7 +1603,7 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
         for config in prepared_configs:
             try:
                 futures.append(executor.submit(worker, config))
-                time.sleep(5)  # Thêm độ trễ giữa các luồng
+                time.sleep(0.2)  # Thêm độ trễ giữa các luồng
             except RuntimeError as e:
                 print(f"Cannot submit new task: {e}")
                 break  # Dừng nếu executor đã shutdown
@@ -1672,8 +1672,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         config["stock"].name
         for config in configurations_test_trading
     ]
-    print('List list_symbols_test_trading: ', list_symbols_test_trading )
-    trading_configurations(user, configurations_test_trading, vps_account, percent_buy_trade)
+    trading_configurations(user, configurations_handle_trading, vps_account, percent_buy_trade)
 
 
 def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str, request_buy: bool, request_sell: bool, volume_sell: str) -> bool:
