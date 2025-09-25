@@ -1668,6 +1668,11 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         for config in configurations_handle_trading
     ]
     print('List list_symbols_process_trading: ', list_symbols_process_trading )
+    list_symbols_test_trading  = [
+        config["stock"].name
+        for config in configurations_test_trading
+    ]
+    print('List list_symbols_test_trading: ', list_symbols_test_trading )
     trading_configurations(user, configurations_test_trading, vps_account, percent_buy_trade)
 
 
