@@ -487,7 +487,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 "slippage_buy": slippage_buy,
                 "add_price_buy": add_price_buy,
                 "sleeping_time_buy": sleeping_time_buy,                     
-                'number_order': int(number_order) if trading_config.stock_config_is_mode_sensitive_buy else int(number_order) - 1,
+                'number_order': int(number_order),
                 'start_time_order': start_time_order
             }
 
@@ -1080,7 +1080,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     "slippage_buy": slippage_buy,
                     "add_price_buy": add_price_buy, 
                     "sleeping_time_buy": sleeping_time_buy,                   
-                    'number_order': int(number_order)  if trading_config.stock_config_is_mode_sensitive_buy else int(number_order) - 1,
+                    'number_order': int(number_order),
                     'start_time_order': start_time_order
                 }
                 buy_messages = []
