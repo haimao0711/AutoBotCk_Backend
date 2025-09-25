@@ -627,6 +627,11 @@ def  should_buy(
     data_following_df: pd.DataFrame,
     config_type: str
 ):
+    is_use_time_to_buy_following = following_config.stock_config_is_use_time_to_buy
+    start_time, end_time = following_config.stock_config_time_start_buy, following_config.stock_config_time_end_buy
+    print('check is_use_time_to_buy_following: ', is_use_time_to_buy_following)
+    print('check start_time following: ', start_time)
+    print('check end_time following: ', end_time)
     if is_valid_time_to_buy(trading_config):
         if not following_config.is_buy or not trading_config.is_buy:
             if not following_config.is_buy:

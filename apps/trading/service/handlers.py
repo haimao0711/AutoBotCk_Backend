@@ -726,7 +726,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         time.sleep(5) 
 
     if status_sell == SignalTelegramEnum.SELL_REQUEST_FAILED:
-        print('Dừng vòng lặp do vượt thời gian.')
+        print('Dừng vòng lặp do vượt thời gian hoặc yêu cầu ngừng.')
         revert_status_request_trade(user, stock_id)
         sell_attrs = {
             "user_account": account,
@@ -756,7 +756,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         step_price = trading_config.stock_config_slippage_volume_sell_per_pid
         # print(f'check step_price stock {symbol}: ', step_price)
         sleeping_time_sell= trading_config.stock_config_time_update_pid_sell
-        print(f'check sleeping_time_sell stock {symbol}: ', sleeping_time_sell)
+        
         sleeping_time_sell = sleeping_time_sell if sleeping_time_sell > 5 else 5
         time_to_sell = trading_config.stock_config_time_to_sell
         time_to_sell = time_to_sell if time_to_sell >= 30 else 30
@@ -1656,9 +1656,9 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
     print('List symbols_existing: ', symbols_existing )
     print('Check number_stock_existing: ', number_stock_existing )
     print('Check limit_number_stocks: ', limit_number_stocks )
-    # configurations_test_trading = [
-    #     config for config in configurations_handle_trading
-    #     if (stock := config.get("stock")) and stock.name in ['DBC', 'FCN', 'POW', 'PVS' ] ]
+    configurations_test_trading = [
+        config for config in configurations_handle_trading
+        if (stock := config.get("stock")) and stock.name in ['CII', 'HCM', 'DIG'] ]
     if number_stock_existing >= limit_number_stocks:
         configurations_handle_trading = [
             config for config in configurations_handle_trading
@@ -1668,7 +1668,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         for config in configurations_handle_trading
     ]
     print('List list_symbols_process_trading: ', list_symbols_process_trading )
-    trading_configurations(user, configurations_handle_trading, vps_account, percent_buy_trade)
+    trading_configurations(user, configurations_test_trading, vps_account, percent_buy_trade)
 
 
 def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str, request_buy: bool, request_sell: bool, volume_sell: str) -> bool:
