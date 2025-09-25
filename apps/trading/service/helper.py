@@ -630,8 +630,8 @@ def  should_buy(
     is_use_time_to_buy_following = following_config.stock_config_is_use_time_to_buy
     start_time, end_time = following_config.stock_config_time_start_buy, following_config.stock_config_time_end_buy
     print('check is_use_time_to_buy_following: ', is_use_time_to_buy_following)
-    print('check start_time following: ', start_time)
-    print('check end_time following: ', end_time)
+    print('check start_time to buy following: ', start_time)
+    print('check end_time to buy following: ', end_time)
     if is_valid_time_to_buy(trading_config):
         if not following_config.is_buy or not trading_config.is_buy:
             if not following_config.is_buy:
@@ -726,42 +726,42 @@ def  should_buy_trading(
     data_trading_df: pd.DataFrame,
     config_type: str
     ):   
-    # if is_valid_time_to_buy(trading_config):
-    if not trading_config.is_buy:
-        return False, {
-            'trading': {
-                'failed': {
-                    'others': [('error_not_setup_buy_following_configuration', None, None, None)]
+    if is_valid_time_to_buy(trading_config):
+        if not trading_config.is_buy:
+            return False, {
+                'trading': {
+                    'failed': {
+                        'others': [('error_not_setup_buy_following_configuration', None, None, None)]
+                    }
                 }
             }
-        }
 
-    obj_retured = {}
-    
-    trading, trading_reasons = should_buy_chart_trading(
-        trading_config, data_trading_df, config_type)
+        obj_retured = {}
+        
+        trading, trading_reasons = should_buy_chart_trading(
+            trading_config, data_trading_df, config_type)
 
 
-    if not trading:
-        obj_retured['trading'] = {
-            'failed': trading_reasons
-        }
+        if not trading:
+            obj_retured['trading'] = {
+                'failed': trading_reasons
+            }
+        else:
+            obj_retured['trading'] = {
+                'success': trading_reasons
+            }
+
+        return trading , obj_retured
+
     else:
-        obj_retured['trading'] = {
-            'success': trading_reasons
+        return False, {
+            'special_buy': {
+                'failed':
+                    {
+                        'others': [('not_valid_time_to_buy', None, None, None)]
+                    }
+            }
         }
-
-    return trading , obj_retured
-
-    # else:
-    #     return False, {
-    #         'special_buy': {
-    #             'failed':
-    #                 {
-    #                     'others': [('not_valid_time_to_buy', None, None, None)]
-    #                 }
-    #         }
-    #     }
 
 
 
@@ -771,7 +771,12 @@ def should_sell(
     data_trading_df: pd.DataFrame,
     data_following_df: pd.DataFrame,
     config_type: str
-):
+):  
+    is_use_time_to_sell_following = following_config.stock_config_is_use_time_to_sell
+    start_time, end_time = following_config.stock_config_time_start_sell, following_config.stock_config_time_end_sell
+    print('check is_use_time_to_sell_following: ', is_use_time_to_sell_following)
+    print('check start_time to sell following: ', start_time)
+    print('check end_time to sell following: ', end_time)
     if is_valid_time_to_sell(trading_config):
         if not following_config.is_sell or not trading_config.is_sell:
             if not following_config.is_sell:
