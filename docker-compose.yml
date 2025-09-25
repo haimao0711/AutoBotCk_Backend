@@ -1,68 +1,68 @@
-# services:
-#   stock-predict-postgres:
-#     image: postgres:15
-#     restart: always
-#     environment:
-#       POSTGRES_USER: myuser
-#       POSTGRES_PASSWORD: mypassword
-#       POSTGRES_DB: stockdb
-#       TZ: "Asia/Ho_Chi_Minh"  
-#       PGTZ: "Asia/Ho_Chi_Minh" 
-#     volumes:
-#       - postgres_data:/var/lib/postgresql/data
-#     ports:
-#       - "5432:5432"
-#     healthcheck:
-#       test: ["CMD-SHELL", "pg_isready -U myuser -d stockdb"]
-#       interval: 5s
-#       timeout: 5s
-#       retries: 5
-
-#   stock-predict-api:
-#     build: .
-#     environment:
-#       POSTGRES_USER: myuser
-#       POSTGRES_PASSWORD: mypassword
-#       POSTGRES_DB: stockdb
-#       POSTGRES_HOST: stock-predict-postgres
-#     depends_on:
-#       - stock-predict-postgres   # Compose v3+ chỉ cần tên service
-#     ports:
-#       - "8000:8000"
-#     command: >
-#       bash -c "/usr/local/bin/wait-for-postgres.sh stock-predict-postgres &&
-#                gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1"
-    
-#   memcached:
-#     image: memcached:alpine
-#     restart: always
-#     ports:
-#       - "11211:11211"
-
-
-# volumes:
-#   postgres_data:
-
-version: "3.9"
-
 services:
-  stock-predict-api:
-    build: .
-    container_name: stock-predict-api
+  stock-predict-postgres:
+    image: postgres:15
+    restart: always
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: stockdb
-      POSTGRES_HOST: 14.225.253.51   # IP public của server production
+      TZ: "Asia/Ho_Chi_Minh"  
+      PGTZ: "Asia/Ho_Chi_Minh" 
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d stockdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  stock-predict-api:
+    build: .
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: stockdb
+      POSTGRES_HOST: stock-predict-postgres
+    depends_on:
+      - stock-predict-postgres   # Compose v3+ chỉ cần tên service
     ports:
       - "8000:8000"
-    restart: always
     command: >
-      gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1
-
+      bash -c "/usr/local/bin/wait-for-postgres.sh stock-predict-postgres &&
+               gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1"
+    
   memcached:
     image: memcached:alpine
-    container_name: stock-predict-memcached
     restart: always
     ports:
       - "11211:11211"
+
+
+volumes:
+  postgres_data:
+
+# version: "3.9"
+
+# services:
+#   stock-predict-api:
+#     build: .
+#     container_name: stock-predict-api
+#     environment:
+#       POSTGRES_USER: myuser
+#       POSTGRES_PASSWORD: mypassword
+#       POSTGRES_DB: stockdb
+#       POSTGRES_HOST: 14.225.253.51   # IP public của server production
+#     ports:
+#       - "8000:8000"
+#     restart: always
+#     command: >
+#       gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1
+
+#   memcached:
+#     image: memcached:alpine
+#     container_name: stock-predict-memcached
+#     restart: always
+#     ports:
+#       - "11211:11211"
