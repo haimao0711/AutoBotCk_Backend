@@ -48,7 +48,7 @@ class TradingViews(APIView):
             now = datetime.now(timezone).time()
 
             morning_start = time(9, 15)
-            morning_end = time(12, 28)
+            morning_end = time(14, 28)
             afternoon_start = time(13, 0)
             afternoon_end = time(14, 28)
             vps_account = AccountService.get_account_by_user(user)
