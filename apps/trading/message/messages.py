@@ -35,8 +35,12 @@ VNINDEX_CONFIG_USE_STOCH_RSI_OBL_TO_BUY = '''
         # **ĐK bắt buộc:**  StochRSI *(VnIndex)* <=, StochRSI hiện tại ({current}) *<=*  StochRSI cấu hình ({previous})'''
 VNINDEX_CONFIG_MACD_TO_BUY_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(VnIndex)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
+VNINDEX_CONFIG_HISTOGRAM_TO_BUY_SUFFICIENT_CONDITION = '''
+        # **ĐK đủ:**  HISTOGRAM *(VnIndex)* <=, HISTOGRAM hiện tại ({current}) *<=* HISTOGRAM cấu hình ({previous})'''
 VNINDEX_CONFIG_USE_MACD_OBL_TO_BUY = '''
         # **ĐK bắt buộc:**  MACD *(VnIndex)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
+VNINDEX_CONFIG_USE_HISTOGRAM_OBL_TO_BUY = '''
+        # **ĐK bắt buộc:**  HISTOGRAM *(VnIndex)* <=, HISTOGRAM hiện tại ({current}) *<=* HISTOGRAM cấu hình ({previous})'''
 
 VNINDEX_CONFIG_RSI_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(VnIndex)* đảo chiều tăng, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
@@ -85,6 +89,9 @@ VNINDEX_CONFIG_STOCH_RSI_TO_BUY_NECESSARY_CONDITION = '''
 VNINDEX_CONFIG_MACD_TO_BUY_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(VnIndex)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
 
+VNINDEX_CONFIG_HISTOGRAM_TO_BUY_NECESSARY_CONDITION = '''
+        # **ĐK cần:**  HISTOGRAM *(VnIndex)* <=, HISTOGRAM hiện tại ({current}) *<=* HISTOGRAM cấu hình ({previous})'''
+
 VNINDEX_CONFIG_RSI_REVERSED_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(VnIndex)* đảo chiều tăng, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
 
@@ -129,6 +136,8 @@ STOCK_CONFIG_USE_STOCH_RSI_OBL_TO_BUY = '''
 
 STOCK_CONFIG_USE_MACD_OBL_TO_BUY = '''
         # **ĐK bắt buộc:**  MACD *(Stock)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
+STOCK_CONFIG_USE_HISTOGRAM_OBL_TO_BUY = '''
+        # **ĐK bắt buộc:**  HISTOGRAM *(Stock)* <=, HISTOGRAM hiện tại ({current}) *<=* HISTOGRAM cấu hình ({previous})'''
 STOCK_CONFIG_USE_BUY_UP_OBL_TO_BUY = '''
         # **ĐK bắt buộc:** Mua chủ động *(Stock)* >=, Hiện tại ({current}) *>=* Cấu hình ({previous})'''
 STOCK_CONFIG_USE_BUY_FOREIGN_OBL_TO_BUY = '''
@@ -144,6 +153,9 @@ STOCK_CONFIG_STOCH_RSI_TO_BUY_SUFFICIENT_CONDITION = '''
 
 STOCK_CONFIG_MACD_TO_BUY_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(Stock)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
+
+STOCK_CONFIG_HISTOGRAM_TO_BUY_SUFFICIENT_CONDITION = '''
+        # **ĐK đủ:**  HISTOGRAM *(Stock)* <=, HISTOGRAM hiện tại ({current}) *<=* HISTOGRAM cấu hình ({previous})'''
 
 STOCK_CONFIG_RSI_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(Stock)* đảo chiều tăng, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
@@ -182,6 +194,9 @@ STOCK_CONFIG_STOCH_RSI_TO_BUY_NECESSARY_CONDITION = '''
 
 STOCK_CONFIG_MACD_TO_BUY_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(Stock)* <=, MACD hiện tại ({current}) *<=* MACD cấu hình ({previous})'''
+
+STOCK_CONFIG_HISTOGRAM_TO_BUY_NECESSARY_CONDITION = '''
+        # **ĐK cần:**  HISTOGRAM *(Stock)* <=, HISTOGRAM hiện tại ({current}) *<=* HISTOGRAM cấu hình ({previous})'''
 
 STOCK_CONFIG_RSI_REVERSED_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(Stock)* đảo chiều tăng, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
@@ -277,7 +292,8 @@ VNINDEX_CONFIG_STOCH_RSI_TO_SELL_SUFFICIENT_CONDITION = '''
 
 VNINDEX_CONFIG_MACD_TO_SELL_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(VnIndex)* >=, MACD hiện tại ({current}) *>=* MACD cấu hình ({previous}) '''
-
+VNINDEX_CONFIG_HISTOGRAM_TO_SELL_SUFFICIENT_CONDITION = '''
+        # **ĐK đủ:**  HISTOGRAM *(VnIndex)* >=, HISTOGRAM hiện tại ({current}) *>=* HISTOGRAM cấu hình ({previous}) '''
 VNINDEX_CONFIG_RSI_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(VnIndex)* đảo chiều giảm, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
 
@@ -321,6 +337,8 @@ VNINDEX_CONFIG_STOCH_RSI_TO_SELL_NECESSARY_CONDITION = '''
 
 VNINDEX_CONFIG_MACD_TO_SELL_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(VnIndex)* >=, MACD hiện tại ({current}) *>=* MACD cấu hình ({previous}) '''
+VNINDEX_CONFIG_HISTOGRAM_TO_SELL_NECESSARY_CONDITION = '''
+        # **ĐK cần:**  HISTOGRAM *(VnIndex)* >=, HISTOGRAM hiện tại ({current}) *>=* HISTOGRAM cấu hình ({previous}) '''
 
 VNINDEX_CONFIG_RSI_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(VnIndex)* giảm, RSI mới: {current}, RSI cũ: {previous}'''
@@ -364,6 +382,9 @@ STOCK_CONFIG_STOCH_RSI_TO_SELL_SUFFICIENT_CONDITION = '''
 STOCK_CONFIG_MACD_TO_SELL_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(Stock)* >=, MACD hiện tại ({current}) *>=* MACD cấu hình ({previous}) '''
 
+STOCK_CONFIG_HISTOGRAM_TO_SELL_SUFFICIENT_CONDITION = '''
+        # **ĐK đủ:**  HISTOGRAM *(Stock)* >=, HISTOGRAM hiện tại ({current}) *>=* HISTOGRAM cấu hình ({previous}) '''
+
 STOCK_CONFIG_RSI_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(Stock)* đảo chiều giảm, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
 
@@ -399,6 +420,8 @@ STOCK_CONFIG_STOCH_RSI_TO_SELL_NECESSARY_CONDITION = '''
 
 STOCK_CONFIG_MACD_TO_SELL_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(Stock)* >=, MACD hiện tại ({current}) *>=* MACD cấu hình ({previous}) '''
+STOCK_CONFIG_HISTOGRAM_TO_SELL_NECESSARY_CONDITION = '''
+        # **ĐK cần:**  HISTOGRAM *(Stock)* >=, HISTOGRAM hiện tại ({current}) *>=* HISTOGRAM cấu hình ({previous}) '''
 STOCK_CONFIG_RSI_REVERSED_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(Stock)* đảo chiều giảm, RSI D2: {old_previous}, RSI D1: {previous}, RSI D0: {current}'''
 

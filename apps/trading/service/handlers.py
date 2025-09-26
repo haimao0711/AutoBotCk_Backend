@@ -1531,14 +1531,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         send_telegram_message_batch(user, MessageTypeEnum.ACT, message_sell_matched)
 
             #Trả lại trạng thái
-                if status_sell == SignalTelegramEnum.TAKEPROFIT: 
-                    if is_take_profit_by_bolinger:
-                        print('Tiến hành đóng chốt lãi một phần theo chạm bolinger ....') 
-                        ConfigurationServices.update_use_bolinger_to_take_profit_a_part_false(user, stock_id)
-                    else:
-                        print('Tiến hành đóng chốt lãi một phần theo % lời ....') 
-                        ConfigurationServices.update_use_take_profit_first_part_false(user, stock_id)
-                    print('Kết thúc đóng chốt lãi một phần.......') 
+                if status_sell == SignalTelegramEnum.TAKEPROFIT and take_profit_type != 'Bán hết theo phần trăm lời': 
+                    print('Tiến hành đóng chốt lãi một phần cho 2 loại ....') 
+                    ConfigurationServices.update_use_bolinger_to_take_profit_a_part_false(user, stock_id)
+                    ConfigurationServices.update_use_take_profit_first_part_false(user, stock_id)
 
                 ConfigurationServices.update_is_trading_configuration(user, stock_id, False)                        
          

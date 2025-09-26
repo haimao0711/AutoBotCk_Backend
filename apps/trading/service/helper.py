@@ -260,7 +260,7 @@ sufficient_conditions = [
     'vnindex_config_min_vnindex_buy_sufficient_condition', 'vnindex_config_max_vnindex_buy_sufficient_condition',
     'vnindex_config_rsi_to_buy_sufficient_condition', 'vnindex_config_rsi_reversed_increase_sufficient_condition',
     'vnindex_config_stoch_rsi_to_buy_sufficient_condition', 'vnindex_config_stoch_rsi_reversed_increase_sufficient_condition',
-    'vnindex_config_macd_to_buy_sufficient_condition', 'vnindex_config_macd_reversed_increase_sufficient_condition',
+    'vnindex_config_macd_to_buy_sufficient_condition', 'vnindex_config_histogram_to_buy_sufficient_condition', 'vnindex_config_macd_reversed_increase_sufficient_condition',
     'vnindex_config_histogram_reversed_increase_sufficient_condition', 'vnindex_config_volume_to_buy_sufficient_condition',
     'vnindex_config_bolinger_to_buy_sufficient_condition',
 
@@ -271,7 +271,7 @@ sufficient_conditions = [
     'vnindex_config_min_vnindex_sell_sufficient_condition', 'vnindex_config_max_vnindex_sell_sufficient_condition',
     'vnindex_config_rsi_to_sell_sufficient_condition', 'vnindex_config_rsi_reversed_decrease_sufficient_condition',
     'vnindex_config_stoch_rsi_to_sell_sufficient_condition', 'vnindex_config_stoch_rsi_reversed_decrease_sufficient_condition',
-    'vnindex_config_macd_to_sell_sufficient_condition', 'vnindex_config_macd_reversed_decrease_sufficient_condition',
+    'vnindex_config_macd_to_sell_sufficient_condition', 'vnindex_config_histogram_to_sell_sufficient_condition', 'vnindex_config_macd_reversed_decrease_sufficient_condition',
     'vnindex_config_histogram_reversed_decrease_sufficient_condition', 'vnindex_config_volume_to_sell_sufficient_condition',
     'vnindex_config_bolinger_to_sell_sufficient_condition',
 
@@ -282,7 +282,7 @@ sufficient_conditions = [
     'stock_config_min_stock_buy_sufficient_condition', 'stock_config_max_stock_buy_sufficient_condition',
     'stock_config_rsi_to_buy_sufficient_condition', 'stock_config_rsi_reversed_increase_sufficient_condition',
     'stock_config_stoch_rsi_to_buy_sufficient_condition', 'stock_config_stoch_rsi_reversed_increase_sufficient_condition',
-    'stock_config_macd_to_buy_sufficient_condition', 'stock_config_macd_reversed_increase_sufficient_condition',
+    'stock_config_macd_to_buy_sufficient_condition', 'stock_config_histogram_to_buy_sufficient_condition', 'stock_config_macd_reversed_increase_sufficient_condition',
     'stock_config_histogram_reversed_increase_sufficient_condition', 'stock_config_volume_to_buy_sufficient_condition',
     'stock_config_bolinger_to_buy_sufficient_condition',
 
@@ -293,7 +293,7 @@ sufficient_conditions = [
     'stock_config_min_stock_sell_sufficient_condition', 'stock_config_max_stock_sell_sufficient_condition',
     'stock_config_rsi_to_sell_sufficient_condition', 'stock_config_rsi_reversed_decrease_sufficient_condition',
     'stock_config_stoch_rsi_to_sell_sufficient_condition', 'stock_config_stoch_rsi_reversed_decrease_sufficient_condition',
-    'stock_config_macd_to_sell_sufficient_condition', 'stock_config_macd_reversed_decrease_sufficient_condition',
+    'stock_config_macd_to_sell_sufficient_condition', 'stock_config_histogram_to_sell_sufficient_condition', 'stock_config_macd_reversed_decrease_sufficient_condition',
     'stock_config_histogram_reversed_decrease_sufficient_condition', 'stock_config_volume_to_sell_sufficient_condition',
     'stock_config_bolinger_to_sell_sufficient_condition'
 
@@ -306,7 +306,7 @@ necessary_condition = [
     'vnindex_config_min_vnindex_buy_necessary_condition', 'vnindex_config_max_vnindex_buy_necessary_condition',
     'vnindex_config_rsi_to_buy_necessary_condition', 'vnindex_config_rsi_reversed_increase_necessary_condition',
     'vnindex_config_stoch_rsi_to_buy_necessary_condition', 'vnindex_config_stoch_rsi_reversed_increase_necessary_condition',
-    'vnindex_config_macd_to_buy_necessary_condition', 'vnindex_config_macd_reversed_increase_necessary_condition',
+    'vnindex_config_macd_to_buy_necessary_condition', 'vnindex_config_histogram_to_buy_necessary_condition', 'vnindex_config_macd_reversed_increase_necessary_condition',
     'vnindex_config_histogram_reversed_increase_necessary_condition', 'vnindex_config_volume_to_buy_necessary_condition',
     'vnindex_config_bolinger_to_buy_necessary_condition',
 
@@ -317,7 +317,7 @@ necessary_condition = [
     'vnindex_config_min_vnindex_sell_necessary_condition', 'vnindex_config_max_vnindex_sell_necessary_condition',
     'vnindex_config_rsi_to_sell_necessary_condition', 'vnindex_config_rsi_reversed_decrease_necessary_condition',
     'vnindex_config_stoch_rsi_to_sell_necessary_condition', 'vnindex_config_stoch_rsi_reversed_decrease_necessary_condition',
-    'vnindex_config_macd_to_sell_necessary_condition', 'vnindex_config_macd_reversed_decrease_necessary_condition',
+    'vnindex_config_macd_to_sell_necessary_condition', 'vnindex_config_histogram_to_sell_necessary_condition', 'vnindex_config_macd_reversed_decrease_necessary_condition',
     'vnindex_config_histogram_reversed_decrease_necessary_condition', 'vnindex_config_volume_to_sell_necessary_condition',
     'vnindex_config_bolinger_to_sell_necessary_condition',
 
@@ -329,7 +329,7 @@ necessary_condition = [
     'stock_config_min_stock_buy_necessary_condition', 'stock_config_max_stock_buy_necessary_condition',
     'stock_config_rsi_to_buy_necessary_condition', 'stock_config_rsi_reversed_increase_necessary_condition',
     'stock_config_stoch_rsi_to_buy_necessary_condition', 'stock_config_stoch_rsi_reversed_increase_necessary_condition',
-    'stock_config_macd_to_buy_necessary_condition', 'stock_config_macd_reversed_increase_necessary_condition',
+    'stock_config_macd_to_buy_necessary_condition', 'stock_config_histogram_to_buy_necessary_condition', 'stock_config_macd_reversed_increase_necessary_condition',
     'stock_config_histogram_reversed_increase_necessary_condition', 'stock_config_volume_to_buy_necessary_condition',
     'stock_config_bolinger_to_buy_necessary_condition',
 
@@ -340,7 +340,7 @@ necessary_condition = [
     'stock_config_min_stock_sell_necessary_condition', 'stock_config_max_stock_sell_necessary_condition',
     'stock_config_rsi_to_sell_necessary_condition', 'stock_config_rsi_reversed_decrease_necessary_condition',
     'stock_config_stoch_rsi_to_sell_necessary_condition', 'stock_config_stoch_rsi_reversed_decrease_necessary_condition',
-    'stock_config_macd_to_sell_necessary_condition', 'stock_config_macd_reversed_decrease_necessary_condition',
+    'stock_config_macd_to_sell_necessary_condition', 'stock_config_histogram_to_sell_necessary_condition', 'stock_config_macd_reversed_decrease_necessary_condition',
     'stock_config_histogram_reversed_decrease_necessary_condition', 'stock_config_volume_to_sell_necessary_condition',
     'stock_config_bolinger_to_sell_necessary_condition'
 
@@ -363,11 +363,14 @@ keyword_to_function = {
     'stoch_rsi_reversed_increase': (is_valid_stoch_rsi_trend_reserved, 'increase'),
     'stoch_rsi_reversed_decrease': (is_valid_stoch_rsi_trend_reserved, 'decrease'),
     'macd_to_buy': (is_valid_macd_compare, '<'),
+    'histogram_to_buy': (is_valid_macd_compare, '<'),
     'macd_obl_to_buy': (is_valid_macd_compare, '<'),
+    'histogram_obl_to_buy': (is_valid_macd_compare, '<'),
     'buy_up_obl_to_buy': (is_valid_buy_up_compare, '>'),
     'buy_foreign_obl_to_buy': (is_valid_buy_foreign_compare, '>'),
     'volume_trade_obl_to_buy': (is_valid_volume_trade_compare, '>'),
     'macd_to_sell': (is_valid_macd_compare, '>'),
+    'histogram_to_sell': (is_valid_macd_compare, '>'),
     'macd_reversed_increase': (is_valid_macd_trend_reserved, 'increase'),
     'macd_reversed_decrease': (is_valid_macd_trend_reserved, 'decrease'),
     'histogram_reversed_increase': (is_valid_histogram_trend_reserved, 'increase'),

@@ -135,18 +135,21 @@ class Configuration(models.Model):
 
     # macd
     vnindex_config_use_macd_to_buy = models.BooleanField(default=True)
+    vnindex_config_use_histogram_to_buy = models.BooleanField(default=True)
     vnindex_config_use_macd_obl_to_buy = models.BooleanField(default=False)
+    vnindex_config_use_histogram_obl_to_buy = models.BooleanField(default=False)
     vnindex_config_use_macd_reversed_increase = models.BooleanField(
         default=True)
     vnindex_config_value_macd_to_buy = models.FloatField(default=0)
+    vnindex_config_value_histogram_to_buy = models.FloatField(default=0)
     vnindex_config_value_macd_obl_to_buy = models.FloatField(default=0)
+    vnindex_config_value_histogram_obl_to_buy = models.FloatField(default=0)
 
-    vnindex_config_macd_to_buy_necessary_condition = models.BooleanField(
-        default=False)
-    vnindex_config_macd_to_buy_sufficient_condition = models.BooleanField(
-        default=False)
-    vnindex_config_macd_to_buy_obligatory_condition = models.BooleanField(
-        default=False)
+    vnindex_config_macd_to_buy_necessary_condition = models.BooleanField(default=False)
+    nindex_config_histogram_to_buy_necessary_condition = models.BooleanField(default=False)
+    vnindex_config_macd_to_buy_sufficient_condition = models.BooleanField(default=False)
+    vnindex_config_histogram_to_buy_sufficient_condition = models.BooleanField(default=False)
+    vnindex_config_macd_to_buy_obligatory_condition = models.BooleanField(default=False)
     vnindex_config_macd_reversed_increase_necessary_condition = models.BooleanField(
         default=False)
     vnindex_config_macd_reversed_increase_sufficient_condition = models.BooleanField(
@@ -257,13 +260,18 @@ class Configuration(models.Model):
 
     # macd
     vnindex_config_use_macd_to_sell = models.BooleanField(default=True)
+    vnindex_config_use_histogram_to_sell = models.BooleanField(default=True)
     vnindex_config_use_macd_reversed_decrease = models.BooleanField(
         default=True)
     vnindex_config_value_macd_to_sell = models.FloatField(default=0)
-
+    vnindex_config_value_histogram_to_sell = models.FloatField(default=0)
     vnindex_config_macd_to_sell_necessary_condition = models.BooleanField(
         default=False)
+    vnindex_config_histogram_to_sell_necessary_condition = models.BooleanField(
+        default=False)
     vnindex_config_macd_to_sell_sufficient_condition = models.BooleanField(
+        default=False)
+    vnindex_config_histogram_to_sell_sufficient_condition = models.BooleanField(
         default=False)
     vnindex_config_macd_reversed_decrease_necessary_condition = models.BooleanField(
         default=False)
@@ -370,14 +378,22 @@ class Configuration(models.Model):
     # macd
 
     stock_config_use_macd_to_buy = models.BooleanField(default=True)
+    stock_config_use_histogram_to_buy = models.BooleanField(default=True)
     stock_config_use_macd_obl_to_buy = models.BooleanField(default=True)
+    stock_config_use_histogram_obl_to_buy = models.BooleanField(default=True)
     stock_config_use_macd_reversed_increase = models.BooleanField(default=True)
     stock_config_value_macd_to_buy = models.FloatField(default=0)
+    stock_config_value_histogram_to_buy = models.FloatField(default=0)
     stock_config_value_macd_obl_to_buy = models.FloatField(default=0)
+    stock_config_value_histogram_obl_to_buy = models.FloatField(default=0)
 
     stock_config_macd_to_buy_necessary_condition = models.BooleanField(
         default=False)
+    stock_config_histogram_to_buy_necessary_condition = models.BooleanField(
+        default=False)
     stock_config_macd_to_buy_sufficient_condition = models.BooleanField(
+        default=False)
+    stock_config_histogram_to_buy_sufficient_condition = models.BooleanField(
         default=False)
     stock_config_macd_reversed_increase_necessary_condition = models.BooleanField(
         default=False)
@@ -465,12 +481,17 @@ class Configuration(models.Model):
 
     # macd
     stock_config_use_macd_to_sell = models.BooleanField(default=True)
+    stock_config_use_histogram_to_sell = models.BooleanField(default=True)
     stock_config_use_macd_reversed_decrease = models.BooleanField(default=True)
     stock_config_value_macd_to_sell = models.FloatField(default=0)
-
+    stock_config_value_histogram_to_sell = models.FloatField(default=0)
     stock_config_macd_to_sell_necessary_condition = models.BooleanField(
         default=False)
+    stock_config_histogram_to_sell_necessary_condition = models.BooleanField(
+        default=False)
     stock_config_macd_to_sell_sufficient_condition = models.BooleanField(
+        default=False)
+    stock_config_histogram_to_sell_sufficient_condition = models.BooleanField(
         default=False)
     stock_config_macd_reversed_decrease_necessary_condition = models.BooleanField(
         default=False)
