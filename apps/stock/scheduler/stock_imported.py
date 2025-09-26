@@ -29,10 +29,10 @@ def start():
     triggers = {
         'trigger_w1': CronTrigger(day_of_week='mon', hour='9', minute='0', timezone='Asia/Ho_Chi_Minh'),
         'trigger_d1': CronTrigger(hour='9', minute='0', timezone='Asia/Ho_Chi_Minh'),
-        'trigger_h1': CronTrigger(minute='0', timezone='Asia/Ho_Chi_Minh'),
-        'trigger_m15': CronTrigger(minute='0,15,30,45', timezone='Asia/Ho_Chi_Minh'),
-        'trigger_m5': CronTrigger(minute='0,5,10,15,20,25,30,35,40,45,50,55', timezone='Asia/Ho_Chi_Minh'),
-        'trigger_m1': CronTrigger(minute='*', timezone='Asia/Ho_Chi_Minh'),
+        'trigger_h1': CronTrigger(hour='9-15', minute='0', timezone='Asia/Ho_Chi_Minh'),
+        'trigger_m15': CronTrigger(hour='9-15', minute='0,15,30,45', timezone='Asia/Ho_Chi_Minh'),
+        'trigger_m5': CronTrigger(hour='9-15', minute='0,5,10,15,20,25,30,35,40,45,50,55', timezone='Asia/Ho_Chi_Minh'),
+        'trigger_m1': CronTrigger(hour='9-15', minute='*', timezone='Asia/Ho_Chi_Minh'),
     }
 
     scheduler.add_job(lambda: safe_run(stock_imported.delete_old_records), trigger=triggers['trigger_h1'], id="stock_data_delete_h1", replace_existing=True)
