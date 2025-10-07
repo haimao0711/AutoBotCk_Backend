@@ -202,6 +202,13 @@ SELL_REQUEST_FAILED_SIGNAL = '''
     - Cổ phiếu: **{stock}**
     - **Lí do:** {message}
 '''
+TAKE_PROFIT_FAILED_SIGNAL = '''
+📉📉📉
+🔔 **Tín hiệu CHỐT LÃI không thành công** ⛔⛔⛔
+    - Tài khoản **{user_account}**
+    - Cổ phiếu: **{stock}**
+    - **Lí do:** {message}
+'''
 
 SELL_FAILED_UPDATE = '''
 📉📉📉

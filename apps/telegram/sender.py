@@ -6,7 +6,7 @@ from apps.authencation.user.models import User
 from apps.telegram.messages import (BUY_FAILED_SIGNAL, BUY_REQUEST_FAILED_SIGNAL, BUY_FAILED_UPDATE, BUY_ORDER_DETAIL, BUY_UPDATE_DETAIL, BUY_CANCEL_DETAIL, BUY_MATCHED_DETAIL,
                                     BUY_ORDER_OVERRAL, BUY_CANCEL_OVERRAL, BUY_UPDATE_OVERRAL, BUY_MATCHED_OVERRAL, BUY_SIGNAL, BUY_REQUEST_SIGNAL,
                                     DEFAULT_MESSAGE, LOGIN_FAILED, LOGIN_SUCCESS, SESSION_FAILED, NOTIFY_LOGIN, NOTIFY_RUNNING,
-                                    SELL_FAILED_SIGNAL, SELL_REQUEST_FAILED_SIGNAL, SELL_FAILED_UPDATE, SELL_ORDER_OVERRAL, SELL_UPDATE_OVERRAL, SELL_CANCEL_OVERRAL, SELL_MATCHED_OVERRAL,
+                                    SELL_FAILED_SIGNAL, SELL_REQUEST_FAILED_SIGNAL, TAKE_PROFIT_FAILED_SIGNAL, SELL_FAILED_UPDATE, SELL_ORDER_OVERRAL, SELL_UPDATE_OVERRAL, SELL_CANCEL_OVERRAL, SELL_MATCHED_OVERRAL,
                                     SELL_ORDER_DETAIL, SELL_UPDATE_DETAIL, SELL_CANCEL_DETAIL, SELL_MATCHED_DETAIL, SELL_SIGNAL, SELL_REQUEST_SIGNAL, STOPLOSS_SIGNAL, TAKEPROFIT_SIGNAL)
 '''
 BOT TELEGRAM USED TO TEST
@@ -89,6 +89,8 @@ def define_message(type: SignalTelegramEnum, **kwargs):
             return SELL_FAILED_SIGNAL.format(**kwargs["kwargs"])
         case SignalTelegramEnum.SELL_REQUEST_FAILED.value:
             return SELL_REQUEST_FAILED_SIGNAL.format(**kwargs["kwargs"])
+        case SignalTelegramEnum.TAKE_PROFIT_FAILED.value:
+            return TAKE_PROFIT_FAILED_SIGNAL.format(**kwargs["kwargs"])
         case SignalTelegramEnum.SELL_FAILED_UPDATE.value:
             return SELL_FAILED_UPDATE.format(**kwargs["kwargs"])
               

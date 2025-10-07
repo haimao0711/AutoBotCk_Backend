@@ -16,6 +16,7 @@ class SignalTelegramEnum(Enum):
     SELL_REQUEST_SUCCESS = 'Sell Request Success'
     SELL_FAILED = 'Sell Failed'
     SELL_REQUEST_FAILED = 'Sell Request Failed'
+    TAKE_PROFIT_FAILED = 'Take Profit Failed'
     SELL_FAILED_UPDATE = 'Sell Failed Update'
     STOPLOSS = 'Stoploss'
     TAKEPROFIT = 'Take Profit'

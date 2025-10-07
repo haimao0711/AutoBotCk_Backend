@@ -384,6 +384,7 @@ keyword_to_function = {
     'stoch_rsi_increase': (is_valid_stoch_rsi_trend, 'increase'),
     'stoch_rsi_decrease': (is_valid_stoch_rsi_trend, 'decrease'),
     'macd_increase': (is_valid_macd_trend, 'increase'),
+    'macd_obl_increase': (is_valid_macd_trend, 'increase'),
     'macd_decrease': (is_valid_macd_trend, 'decrease'),
     'histogram_increase': (is_valid_histogram_trend, 'increase'),
     'histogram_decrease': (is_valid_histogram_trend, 'decrease'),
@@ -881,6 +882,7 @@ def should_sell_stop_loss(
     print('check stop_loss_percent: ', stop_loss_percent)
 
 def should_sell_take_profit(
+    symbol: str,
     config: Configuration,
     percentage_loss: float,
 ):
@@ -899,7 +901,7 @@ def should_sell_take_profit(
     if use_take_profit_first_part:
         is_take_profit = use_take_profit_first_part
         percent_profit = percent_take_profit_sell_second
-        messages_take_profit = f'Mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {percent_take_profit_sell_first*100}%'
+        messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {percent_take_profit_sell_first*100}%'
     elif use_take_profit_trigger:
         if percentage_loss >= take_profit_percent:
             is_take_profit = use_take_profit_trigger
@@ -911,6 +913,7 @@ def should_sell_take_profit(
     return is_take_profit, percent_profit, messages_take_profit
 
 def should_take_profit_bolinger(
+    symbol: str,
     config: Configuration,
     price_current: float,
     upper_bolinger: float
@@ -918,7 +921,7 @@ def should_take_profit_bolinger(
     is_take_profit = False
     use_bolinger_a_part_to_take_profit = config.stock_config_use_bolinger_a_part_to_take_profit
     percent_profit = 0
-    messages_take_profit = f'Giá hiện tại: {price_current} >= bollinger trên: {upper_bolinger}'    
+    messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì giá hiện tại: {price_current} >= bollinger trên: {upper_bolinger}'    
     if use_bolinger_a_part_to_take_profit:
         is_take_profit = use_bolinger_a_part_to_take_profit
         percent_profit = config.stock_config_percent_bolinger_a_part_to_take_profit

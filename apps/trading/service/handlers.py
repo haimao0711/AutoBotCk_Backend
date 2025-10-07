@@ -914,6 +914,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Hết thời gian đặt lệnh bán tay', "S")
     time.sleep(10) 
     revert_status_request_trade(user, stock_id)
+
 def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, percent_buy_trade: float):
     try:        
         # Các giá trị mặc định
@@ -950,6 +951,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         # Get stock balance 
         res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
         stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
+        ceil_price = res_stock_balance.get('stock_balance', {}).get('ceil_price', 0) if res_stock_balance else 0
         symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
         cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
         cash_available = cash_balance['cash_available']
@@ -1282,15 +1284,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         if not is_block_sell_stock and symbol in symbols_existing:
             print(f'bắt đầu hàm thực hiện sell {symbol}')
         # Handle take profit
-            res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'S') 
-            stock_balance = res_stock_balance.get('stock_balance', {}).get('available_vol', 0) if res_stock_balance else 0 
-            ceil_price = res_stock_balance.get('stock_balance', {}).get('ceil_price', 0) if res_stock_balance else 0 
             volume_balance = (stock_balance // 100) * 100
             use_take_profit_first_part = trading_config.stock_config_use_take_profit_first_part
             use_bolinger_a_part_to_take_profit = trading_config.stock_config_use_bolinger_a_part_to_take_profit
             percentage_loss = res_stock_balance.get('stock_balance', {}).get('percentage_loss', 0) if res_stock_balance else 0            
             percent_take_profit_sell_first = trading_config.stock_config_percent_take_profit_sell_first*100
             percent_take_profit_sell_second = trading_config.stock_config_percent_take_profit_sell_second
+            #Tiến hành kiểm tra cách bán
             is_take_profit = False 
             percent_take_profit = percent_take_profit_sell_second  
             messages_take_profit = 'Không chốt lãi' 
@@ -1312,32 +1312,75 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             take_profit_type = ''
             if percentage_loss >= percent_take_profit_sell_first:  
                 # Chốt lãi khi giá hiện tại tăng so với giá vốn 
-                is_take_profit, percent_take_profit, messages_take_profit = should_sell_take_profit(trading_config, percentage_loss)
-                take_profit_type = 'Bán một phần theo phần trăm lời' if use_take_profit_first_part else  'Bán hết theo phần trăm lời',
+                is_take_profit, percent_take_profit, messages_take_profit = should_sell_take_profit(symbol, trading_config, percentage_loss)
+                take_profit_type = 'Bán một phần theo phần trăm lời' if use_take_profit_first_part else  'Bán hết theo phần trăm lời'
             elif price_current >= upper_bolinger:
                 # Chốt lãi khi giá hiện tại chạm bolllinger    
-                is_take_profit, percent_take_profit, messages_take_profit = should_take_profit_bolinger(trading_config, price_current, upper_bolinger )
-                take_profit_type = 'Bán một phần khi chạm bollinger trên',               
-
+                is_take_profit, percent_take_profit, messages_take_profit = should_take_profit_bolinger(symbol, trading_config, price_current, upper_bolinger )
+                take_profit_type = 'Bán một phần khi chạm bollinger trên'              
                 if is_take_profit:
                     is_take_profit_by_bolinger = True
             volume_take_profit = int(volume_balance*percent_take_profit)
-            volume_take_profit = ((volume_take_profit + 99) // 100) * 100
-            
-            is_sell_following, is_sell, sell_reason = should_sell(
-                trading_config=trading_config,
-                following_config=following_config,
-                data_following_df = stock_data_following,
-                data_trading_df = stock_data_trading,            
-                config_type = 'stock_config'
-            )
-            # print(f'Check sell_reason {symbol}: ', sell_reason)
+            volume_take_profit = ((volume_take_profit + 99) // 100) * 100     
+            is_trading_take_profit = False
+            is_sell, sell_reason = False, ''
             if is_take_profit:
-                status_sell = SignalTelegramEnum.TAKEPROFIT                                        
+                send_message_telegram(user, MessageTypeEnum.OVERALL, messages_take_profit)
+                send_message_telegram(user, MessageTypeEnum.ACT, messages_take_profit)
+                start_time = datetime.now()
+                end_time = start_time + timedelta(hours=5)
+                status_sell = SignalTelegramEnum.TAKE_PROFIT_FAILED
+                while datetime.now() < end_time:
+                    # Tải dữ liệu
+                    vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
+                        stock=stock, 
+                        vnindex_stock=vnindex_stock, 
+                        trading_chart_type=trading_chart_type_sell, 
+                        following_chart_type=following_chart_type_sell,
+                    )
+                    if stock_data_trading is None:
+                        print('Download data không thành công, bỏ qua!')
+                        message_download = f'Không tải được dữ liệu mã {symbol}, hủy bán chốt lời lượt chạy này!'
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
+                        send_message_telegram(user, MessageTypeEnum.ACT, message_download)
+                        break
+                    print('Download data thành công!')
+                    is_sell, sell_reason = should_sell_trading(
+                        trading_config=trading_config,
+                        data_trading_df=stock_data_trading,            
+                        config_type='stock_config'
+                    )
+                    if is_sell:
+                        is_trading_take_profit = True            
+                        break
+                    else:
+                        status_sell = SignalTelegramEnum.TAKE_PROFIT_FAILED
+                        messages_to_sell = render_message(
+                            sell_reason, trading_chart_value=trading_candle_sell, following_chart_type=following_candle_sell
+                        )
+                        take_profit_attrs = {
+                            "user_account": account,
+                            "stock": stock.name,
+                            "message": messages_to_sell,
+                        }
+                        send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **take_profit_attrs) 
+                    time.sleep(60)  
+            else:
+                is_sell_following, is_sell, sell_reason = should_sell(
+                    trading_config=trading_config,
+                    following_config=following_config,
+                    data_following_df = stock_data_following,
+                    data_trading_df = stock_data_trading,            
+                    config_type = 'stock_config'
+                )
+
+            if is_trading_take_profit:
+                status_sell = SignalTelegramEnum.TAKEPROFIT
             elif is_sell:
                 status_sell = SignalTelegramEnum.SELL_SUCCESS
             else:
                 status_sell = SignalTelegramEnum.SELL_FAILED
+            #Tiến hành các bước kế tiếp
             messages_to_sell = render_message(
                 sell_reason, trading_chart_value=trading_candle_sell, following_chart_type=following_candle_sell)
             price_to_start = (
@@ -1358,7 +1401,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 "volume": volume_take_profit if use_take_profit_first_part else int(volume_balance),
                 "price": price_to_start,                
                 "take_profit_type": take_profit_type,
-                "message": messages_take_profit
+                "message": messages_to_sell
             }           
                 
             is_send_order_sell = False   
@@ -1610,7 +1653,6 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
                 future.result()
             except Exception as e:
                 print(f"Error in thread: {e}")
-
 
     
 def trading(user: User, vps_account: Account, symbol: str) -> None:
