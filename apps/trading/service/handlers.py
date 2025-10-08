@@ -340,6 +340,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     status_buy = SignalTelegramEnum.BUY_REQUEST_FAILED
     last_buy_check_time = None  # Dùng để giới hạn việc kiểm tra mua mỗi 60 giây
     message_stop_buy = 'Hết thời gian của lệnh mua tay'
+    ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
     while datetime.now() < end_time:
         # Kiểm tra is_buy_hand mỗi 5 giây        
         configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
@@ -434,7 +435,6 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     is_send_order_buy = False   
     if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
         print(f'bắt đầu hàm đặt lệnh mua tay {symbol}')
-        ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
     #Hủy tất cả các lệnh nếu còn đặt
         cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Các lệnh mua cũ còn tồn', "B")
 
@@ -743,7 +743,6 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     is_send_order_sell = False   
     if status_sell == SignalTelegramEnum.SELL_REQUEST_SUCCESS:
         print(f'bắt đầu hàm đặt lệnh sell {symbol}')
-        ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
      #Hủy tất cả các lệnh nếu còn đặt
         cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lệnh bán cũ còn tồn', "S")
 
@@ -1153,8 +1152,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 print(f'kết thúc hàm đặt lệnh buy {symbol}')        
             
             # Update buy order
-            if is_send_order_buy:
-                ConfigurationServices.update_is_trading_configuration(user, stock_id, True)                 
+            if is_send_order_buy:               
                 limited_times = time_to_buy // sleeping_time_buy
                 limited_price_to_buy = start_price - add_price_buy + slippage_buy                
                 for i in range(int(limited_times) - 1):
@@ -1278,7 +1276,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     send_message_telegram(user, MessageTypeEnum.ACT, message_buy_matched_fail)
                     cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đảm bảo hết lệnh còn đặt khi kết thúc mỗi vòng mua', "B")
 
-                ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
+            ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
 
     #HANDLE SELL
         if not is_block_sell_stock and symbol in symbols_existing:
@@ -1325,6 +1323,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             is_trading_take_profit = False
             is_sell, sell_reason = False, ''
             if is_take_profit:
+                ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
                 send_message_telegram(user, MessageTypeEnum.OVERALL, messages_take_profit)
                 send_message_telegram(user, MessageTypeEnum.ACT, messages_take_profit)
                 start_time = datetime.now()
@@ -1409,7 +1408,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             if status_sell in [SignalTelegramEnum.SELL_SUCCESS, SignalTelegramEnum.TAKEPROFIT]:
                 print(f'bắt đầu hàm đặt lệnh sell {symbol}')                
                 # print(f'Check sell_reason {symbol}: ', sell_reason)
-            #Hủy tất cả các lệnh nếu còn đặt
+                #Hủy tất cả các lệnh nếu còn đặt
                 cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lệnh bán cũ còn tồn', "S")
 
                 timezone = pytz.timezone('Asia/Ho_Chi_Minh')
@@ -1430,10 +1429,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 time_now = datetime.now(timezone)
                 start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
                 slippage_sell = trading_config.stock_config_slippage_sell
-            # Dao động cộng trừ     
+               # Dao động cộng trừ     
                 add_price_sell = trading_config.stock_config_add_price_sell
 
-            # Get stock balance to set volume
+                # Get stock balance to set volume
                 volume = volume_take_profit if is_take_profit else int(volume_balance)
                 sell_order_overrall_attrs = {
                     'user_account': account,
