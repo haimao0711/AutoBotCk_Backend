@@ -1141,8 +1141,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         volume -= volume_buy
         
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
-                if is_send_order_buy:
-                    ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
+                if is_send_order_buy:                    
                     send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)              
                     send_telegram_message_batch(user, MessageTypeEnum.OVERALL, buy_messages)
                 # Send telegram hành động
@@ -1151,7 +1150,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 print(f'kết thúc hàm đặt lệnh buy {symbol}')        
             
             # Update buy order
-            if is_send_order_buy:               
+            if is_send_order_buy:  
+                ConfigurationServices.update_is_trading_configuration(user, stock_id, True)             
                 limited_times = time_to_buy // sleeping_time_buy
                 limited_price_to_buy = start_price - add_price_buy + slippage_buy                
                 for i in range(int(limited_times) - 1):
@@ -1577,7 +1577,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     ConfigurationServices.update_use_bolinger_to_take_profit_a_part_false(user, stock_id)
                     ConfigurationServices.update_use_take_profit_first_part_false(user, stock_id)
 
-                ConfigurationServices.update_is_trading_configuration(user, stock_id, False)                        
+            ConfigurationServices.update_is_trading_configuration(user, stock_id, False)                        
          
     except Exception as e:
         print(f"Error in {current_thread_name}: {str(e)}")
