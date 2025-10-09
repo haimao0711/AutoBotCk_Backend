@@ -1042,9 +1042,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)              
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_SUCCESS:
-                # print(f'bắt đầu hàm đặt lệnh buy {symbol}')                
-                # print(f'check buy_reason {symbol}', buy_reason)
-               #Hủy tất cả các lệnh nếu còn đặt
+                # print(f'bắt đầu hàm đặt lệnh buy {symbol}')
                 cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Các lệnh mua cũ còn tồn', "B")
                 last_row = stock_data_trading.iloc[-1]
                 open_last_row = last_row['open'] 
@@ -1144,6 +1142,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
                 if is_send_order_buy:
+                    ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
                     send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)              
                     send_telegram_message_batch(user, MessageTypeEnum.OVERALL, buy_messages)
                 # Send telegram hành động
