@@ -179,7 +179,7 @@ STOCK_CONFIG_STOCH_RSI_INCREASE_SUFFICIENT_CONDITION = '''
 
 STOCK_CONFIG_MACD_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(Stock)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
-STOCK_CONFIG_MACD_OBL_INCREASE = '''
+STOCK_CONFIG_USE_MACD_OBL_INCREASE = '''
         # **ĐK bắt buộc:**  MACD *(Stock)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
 STOCK_CONFIG_HISTOGRAM_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  Histogram *(Stock)* tăng, Histogram mới: {current}, Histogram cũ: {previous}'''
