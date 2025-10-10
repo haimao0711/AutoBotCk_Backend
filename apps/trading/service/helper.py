@@ -426,7 +426,7 @@ def should_do_obligatory(
         previous = round(getattr(config, key_obl_value, 0.0), number_decimal)
         if obl in ["vnindex_config_use_macd_obl_increase", "stock_config_use_macd_obl_increase" ]:
             previous = round(get_previous_value_from_key(
-                config_type, suff, config, d1, d0, '_sufficient_condition', side), number_decimal)
+                config_type, obl, config, d1, d0, '_sufficient_condition', side), number_decimal)
         current = round(get_current_value_from_key(config_type, obl, d0), number_decimal)
         # print(f'check current {obl}: ', current)
         # print(f'check previous {obl}: ', previous)
