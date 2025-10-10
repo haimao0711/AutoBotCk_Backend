@@ -424,6 +424,9 @@ def should_do_obligatory(
         # print(f'check obl {obl}: ', obl)
         last_previous = round(get_last_previous_value_from_key(obl, d2), number_decimal)
         previous = round(getattr(config, key_obl_value, 0.0), number_decimal)
+        if obl in ["vnindex_config_use_macd_obl_increase", "stock_config_use_macd_obl_increase" ]:
+            previous = round(get_previous_value_from_key(
+                config_type, suff, config, d1, d0, '_sufficient_condition', side), number_decimal)
         current = round(get_current_value_from_key(config_type, obl, d0), number_decimal)
         # print(f'check current {obl}: ', current)
         # print(f'check previous {obl}: ', previous)
@@ -451,7 +454,7 @@ def should_do_obligatory_trading(
 
     successed_reason = []
     for obl in obligatory_condition_valid_fields:
-        if obl in ["stock_config_use_buy_up_obl_to_buy", "stock_config_use_buy_foreign_obl_to_buy" ] :
+        if obl in ["stock_config_use_buy_up_obl_to_buy", "stock_config_use_buy_foreign_obl_to_buy" ]:
          continue  # ❌ bỏ qua và tiếp tục obl tiếp theo
         number_decimal = 4 if 'histogram' in obl else 2
         key_obl_value =  obl.replace("use", "value")
