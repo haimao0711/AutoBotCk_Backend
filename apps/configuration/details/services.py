@@ -279,7 +279,7 @@ class ConfigurationServices:
 
 
     @staticmethod
-    def update_use_take_profit_first_part_false(user, stock_id):
+    def update_use_take_profit_first_part_false(user, stock_id, use_take_profit_first_part):
         
         # Bước 1: Lấy config_type 'trading'
         config_type = ConfigurationTypeEnum.TRADING.value
@@ -297,12 +297,20 @@ class ConfigurationServices:
             return ErrorType.UPDATE_FAILED, {}
 
         # Bước 2: Tạo dữ liệu cập nhật chỉ cho trường stock_config_use_take_profit_first_part
-        update_config_type_data = {
-            'config_type': template.id,
-            'user': user.id,
-            'stock': stock_id,
-            'stock_config_use_take_profit_first_part': False  # Chỉ cập nhật trường này
-        }
+        if use_take_profit_first_part:
+            update_config_type_data = {
+                'config_type': template.id,
+                'user': user.id,
+                'stock': stock_id,
+                'stock_config_use_take_profit_first_part': False  # Chỉ cập nhật trường này
+            }
+        else:
+            update_config_type_data = {
+                'config_type': template.id,
+                'user': user.id,
+                'stock': stock_id,
+                'stock_config_use_take_profit_first_part_two': False  # Chỉ cập nhật trường này
+            }
 
         try:
             # Cập nhật qua serializer

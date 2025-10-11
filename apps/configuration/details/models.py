@@ -583,15 +583,20 @@ class Configuration(models.Model):
     # take profit
     stock_config_use_take_profit_first_part = models.BooleanField(
         default=True, null=True)
+    stock_config_use_take_profit_first_part_two = models.BooleanField(
+        default=True, null=True)
     stock_config_percent_take_profit_sell_first = models.FloatField(
         default=0.05, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)
-
+    stock_config_percent_take_profit_sell_first_two = models.FloatField(
+        default=0.05, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)
     stock_config_use_take_profit_trigger = models.BooleanField(
         default=True, null=True)
     stock_config_take_profit_percent = models.FloatField(
         default=0.05, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)
 
     stock_config_use_take_profit_second_part = models.BooleanField(
+        default=True, null=True)
+    stock_config_use_take_profit_second_part_two = models.BooleanField(
         default=True, null=True)
     stock_config_percent_take_profit_sell_second = models.FloatField(
         default=0.03, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)

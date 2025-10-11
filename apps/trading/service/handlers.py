@@ -1283,10 +1283,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         # Handle take profit
             volume_balance = (stock_balance // 100) * 100
             use_take_profit_first_part = trading_config.stock_config_use_take_profit_first_part
+            use_take_profit_first_part_two = trading_config.stock_config_use_take_profit_first_part_two
             use_bolinger_a_part_to_take_profit = trading_config.stock_config_use_bolinger_a_part_to_take_profit
             percentage_loss = res_stock_balance.get('stock_balance', {}).get('percentage_loss', 0) if res_stock_balance else 0            
             percent_take_profit_sell_first = trading_config.stock_config_percent_take_profit_sell_first*100
+            percent_take_profit_sell_first_two = trading_config.stock_config_percent_take_profit_sell_first_two*100
             percent_take_profit_sell_second = trading_config.stock_config_percent_take_profit_sell_second
+            percent_take_profit_sell_second_two = trading_config.stock_config_percent_take_profit_sell_second_two
             #Tiến hành kiểm tra cách bán
             is_take_profit = False 
             percent_take_profit = percent_take_profit_sell_second  
@@ -1310,7 +1313,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             if percentage_loss >= percent_take_profit_sell_first:  
                 # Chốt lãi khi giá hiện tại tăng so với giá vốn 
                 is_take_profit, percent_take_profit, messages_take_profit = should_sell_take_profit(symbol, trading_config, percentage_loss)
-                take_profit_type = 'Bán một phần theo phần trăm lời' if use_take_profit_first_part else  'Bán hết theo phần trăm lời'
+                take_profit_type = (
+                    'Bán lần 1 theo phần trăm lời'
+                    if use_take_profit_first_part
+                    else ('Bán lần 2 theo phần trăm lời' if use_take_profit_first_part_two else 'Bán hết theo phần trăm lời')
+                )
             elif price_current >= upper_bolinger:
                 # Chốt lãi khi giá hiện tại chạm bolllinger    
                 is_take_profit, percent_take_profit, messages_take_profit = should_take_profit_bolinger(symbol, trading_config, price_current, upper_bolinger )
@@ -1575,7 +1582,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 if status_sell == SignalTelegramEnum.TAKEPROFIT and take_profit_type != 'Bán hết theo phần trăm lời': 
                     print('Tiến hành đóng chốt lãi một phần cho 2 loại ....') 
                     ConfigurationServices.update_use_bolinger_to_take_profit_a_part_false(user, stock_id)
-                    ConfigurationServices.update_use_take_profit_first_part_false(user, stock_id)
+                    ConfigurationServices.update_use_take_profit_first_part_false(user, stock_id, use_take_profit_first_part )
 
             ConfigurationServices.update_is_trading_configuration(user, stock_id, False)                        
          
