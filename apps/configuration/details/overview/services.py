@@ -101,9 +101,9 @@ class ConfigurationOverviewServices:
                     'close': current_price,
                     'average_price': average_price,
                     'following_chart_buy': following_chart_buy,
-                    'following_chart_sell' = following_chart_sell,
-                    'trading_chart_buy' = trading_chart_buy,
-                    'trading_chart_sell' = trading_chart_sell,
+                    'following_chart_sell' : following_chart_sell,
+                    'trading_chart_buy' : trading_chart_buy,
+                    'trading_chart_sell' : trading_chart_sell,
                 }
             vps_account = AccountService.get_account_by_user(user)
             account_name = vps_account.name
@@ -150,9 +150,9 @@ class ConfigurationOverviewServices:
                     "chart_type": configuration.config_type.name,
                     "level": configuration.level,
                     'following_chart_buy': following_chart_buy,
-                    'following_chart_sell' = dfollowing_chart_sell,
-                    'trading_chart_buy' = trading_chart_buy,
-                    'trading_chart_sell' = trading_chart_sell,
+                    'following_chart_sell' : following_chart_sell,
+                    'trading_chart_buy' : trading_chart_buy,
+                    'trading_chart_sell' : trading_chart_sell,
                 }
 
             with ThreadPoolExecutor() as executor:
