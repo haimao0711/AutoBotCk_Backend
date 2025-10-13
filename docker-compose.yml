@@ -22,7 +22,7 @@ services:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: stockdb
-      POSTGRES_HOST: 14.225.253.51
+      POSTGRES_HOST: stock-predict-postgres 
     depends_on:
       - stock-predict-postgres   # Compose v3+ chỉ cần tên service
     ports:
@@ -41,7 +41,7 @@ services:
 volumes:
   postgres_data:
 
-version: '3.9'
+# version: '3.9'
 
 # services:
 #   stock-predict-api:
