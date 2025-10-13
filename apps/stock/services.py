@@ -149,8 +149,7 @@ class DownloadService:
         time_to_download, _ = DownloadService._convert_chart_type_to_data(
             chart_type=CandleEnum.W1,  
             download_status=download_status
-        )    
-        print('check time_to_download: ', time_to_download)
+        ) 
 
         params = {
             "resolution": '1D',  # Luôn lấy dữ liệu ngày
@@ -314,7 +313,6 @@ class DownloadService:
                 "to": int(current_timestamp),
             }
             
-            # print('check time_to_download not week: ', time_to_download)
             res = requests.get(API_VNDIRECT, params=params, headers=HEADERS)
 
             if res.status_code == 200:

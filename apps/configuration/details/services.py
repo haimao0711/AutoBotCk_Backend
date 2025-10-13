@@ -74,7 +74,7 @@ class ConfigurationServices:
                 user=user, stock_id=stock_id)
             if not data:
                 return {}
-            return_data = ConfigurationServices.convert_data_template(
+            return_data = ConfigurationServices.(
                 template_data=data.__dict__)
             chart_sell = None
             if data.candle_sell and data.candle_sell.candle_sell:
@@ -94,7 +94,7 @@ class ConfigurationServices:
             if not data:
                 return {}
             
-            return_data = ConfigurationServices.convert_data_template(
+            return_data = ConfigurationServices.(
                 template_data=data.__dict__)
             chart_sell = None
 
