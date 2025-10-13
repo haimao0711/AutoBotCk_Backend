@@ -51,37 +51,37 @@ class ConfigurationOverviewServices:
             configurations = Configuration.objects.filter(
                 user=user, config_type=overview.id
             ).select_related( 'stock', 'config_type' )
-            configurations_following = Configuration.objects.filter(
-                user=user, config_type=following.id
-            ).select_related( 'stock', 'following' )
-            configurations_trading = Configuration.objects.filter(
-                user=user, config_type=trading.id
-            ).select_related( 'stock', 'trading' )
+            # configurations_following = Configuration.objects.filter(
+            #     user=user, config_type=following.id
+            # ).select_related( 'stock', 'following' )
+            # configurations_trading = Configuration.objects.filter(
+            #     user=user, config_type=trading.id
+            # ).select_related( 'stock', 'trading' )
             stock_ids = [config.stock.id for config in configurations]
             # Lấy dữ liệu hàng loạt
             query_data_m1_all = StockService.get_last_stock_chart_items_by_time_bulk(
                 StockModel=StockM1, stock_ids=stock_ids
             )
             query_data_m1_map = {item['id']: item for item in query_data_m1_all}
-            config_following_map = {item['id']: item for item in configurations_following}
-            config_trading_map = {item['id']: item for item in configurations_trading}
+            # config_following_map = {item['id']: item for item in configurations_following}
+            # config_trading_map = {item['id']: item for item in configurations_trading}
             # Chuẩn bị stock_data
             stock_data = {}
             for config in configurations:
                 stock_id = config.stock.id
-                # # Thêm phản hồi chart
-                # data_following = ConfigurationServices.get_config_type_configuration(user=user, config_type='following', stock_id=stock_id)   
-                # data_trading = ConfigurationServices.get_config_type_configuration(user=user, config_type='trading', stock_id=stock_id) 
+                # Thêm phản hồi chart
+                data_following = ConfigurationServices.get_config_type_configuration(user=user, config_type='following', stock_id=stock_id)   
+                data_trading = ConfigurationServices.get_config_type_configuration(user=user, config_type='trading', stock_id=stock_id) 
                 # following_chart_buy = data_following['chart']
                 # following_chart_sell = data_following['chart_sell']
                 # trading_chart_buy = data_trading['chart']
                 # trading_chart_sell = data_trading['chart_sell']
-                # # Xong thêm phản hồi chart
+                # Xong thêm phản hồi chart
                 stock_name = config.stock.name
                 query_data_m1 = query_data_m1_map.get(stock_id)
                 #Thêm phản hồi chart
-                data_following = config_following_map.get(stock_id)
-                data_trading = config_trading_map.get(stock_id)
+                # data_following = config_following_map.get(stock_id)
+                # data_trading = config_trading_map.get(stock_id)
                 following_chart_buy = data_following['chart']
                 following_chart_sell = data_following['chart_sell']
                 trading_chart_buy = data_trading['chart']
