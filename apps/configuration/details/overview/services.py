@@ -101,7 +101,7 @@ class ConfigurationOverviewServices:
                     'close': current_price,
                     'average_price': average_price,
                     'following_chart_buy': following_chart_buy,
-                    'following_chart_sell' = dfollowing_chart_sell,
+                    'following_chart_sell' = following_chart_sell,
                     'trading_chart_buy' = trading_chart_buy,
                     'trading_chart_sell' = trading_chart_sell,
                 }
