@@ -69,23 +69,32 @@ class ConfigurationOverviewServices:
             stock_data = {}
             for config in configurations:
                 stock_id = config.stock.id
+                stock_name = config.stock.name
+                query_data_m1 = query_data_m1_map.get(stock_id)                
                 # Thêm phản hồi chart
-                data_following = ConfigurationServices.get_config_type_configuration(user=user, config_type='following', stock_id=stock_id)   
-                data_trading = ConfigurationServices.get_config_type_configuration(user=user, config_type='trading', stock_id=stock_id) 
+                data_trading = ConfigurationServices.get_trading_configuration(user=user, stock_id=stock_id)
+                if data_trading:
+                    trading_chart_buy = getattr(data_trading, 'chart', '') or ''
+                    
+                    if getattr(data_trading, 'candle_sell', None) and getattr(data_trading.candle_sell, 'candle_sell', None):
+                        trading_chart_sell = data_trading.candle_sell.candle_sell
+                    elif getattr(data_trading, 'candle', None) and getattr(data_trading.candle, 'candle', None):
+                        trading_chart_sell = data_trading.candle.candle
+                data_following = ConfigurationServices.get_trading_configuration(user=user, stock_id=stock_id)
+                if data_trading:
+                    following_chart_buy = getattr(data_following, 'chart', '') or ''
+                    
+                    if getattr(data_following, 'candle_sell', None) and getattr(data_following.candle_sell, 'candle_sell', None):
+                        following_chart_sell = data_following.candle_sell.candle_sell
+                    elif getattr(data_following, 'candle', None) and getattr(data_following.candle, 'candle', None):
+                        following_chart_sell = data_following.candle.candle
+
+                # data_following = ConfigurationServices.get_config_type_configuration(user=user, config_type='following', stock_id=stock_id)   
+                # data_trading = ConfigurationServices.get_config_type_configuration(user=user, config_type='trading', stock_id=stock_id) 
                 # following_chart_buy = data_following['chart']
                 # following_chart_sell = data_following['chart_sell']
                 # trading_chart_buy = data_trading['chart']
                 # trading_chart_sell = data_trading['chart_sell']
-                # Xong thêm phản hồi chart
-                stock_name = config.stock.name
-                query_data_m1 = query_data_m1_map.get(stock_id)
-                #Thêm phản hồi chart
-                # data_following = config_following_map.get(stock_id)
-                # data_trading = config_trading_map.get(stock_id)
-                following_chart_buy = data_following['chart']
-                following_chart_sell = data_following['chart_sell']
-                trading_chart_buy = data_trading['chart']
-                trading_chart_sell = data_trading['chart_sell']
                 # Xong thêm phản hồi chart
                 low_price = query_data_m1['low'] if query_data_m1 else 0
                 high_price = query_data_m1['high'] if query_data_m1 else 0
