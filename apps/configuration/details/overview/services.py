@@ -73,21 +73,19 @@ class ConfigurationOverviewServices:
                 query_data_m1 = query_data_m1_map.get(stock_id)                
                 # Thêm phản hồi chart
                 data_trading = ConfigurationServices.get_trading_configuration(user=user, stock_id=stock_id)
+                trading_chart_buy = ''
+                trading_chart_sell = ''
                 if data_trading:
-                    trading_chart_buy = getattr(data_trading, 'chart', '') or ''
-                    
-                    if getattr(data_trading, 'candle_sell', None) and getattr(data_trading.candle_sell, 'candle_sell', None):
+                    trading_chart_buy = data_trading.candle.candle                    
+                    if data_trading.candle_sell and data_trading.candle_sell.candle_sell:
                         trading_chart_sell = data_trading.candle_sell.candle_sell
-                    elif getattr(data_trading, 'candle', None) and getattr(data_trading.candle, 'candle', None):
-                        trading_chart_sell = data_trading.candle.candle
-                data_following = ConfigurationServices.get_trading_configuration(user=user, stock_id=stock_id)
-                if data_trading:
-                    following_chart_buy = getattr(data_following, 'chart', '') or ''
-                    
-                    if getattr(data_following, 'candle_sell', None) and getattr(data_following.candle_sell, 'candle_sell', None):
+                data_following = ConfigurationServices.get_following_configuration(user=user, stock_id=stock_id)
+                following_chart_buy = ''
+                following_chart_sell = ''
+                if data_following:
+                    following_chart_buy = data_following.candle.candle                    
+                    if data_following.candle_sell and data_following.candle_sell.candle_sell:
                         following_chart_sell = data_following.candle_sell.candle_sell
-                    elif getattr(data_following, 'candle', None) and getattr(data_following.candle, 'candle', None):
-                        following_chart_sell = data_following.candle.candle
 
                 # data_following = ConfigurationServices.get_config_type_configuration(user=user, config_type='following', stock_id=stock_id)   
                 # data_trading = ConfigurationServices.get_config_type_configuration(user=user, config_type='trading', stock_id=stock_id) 
