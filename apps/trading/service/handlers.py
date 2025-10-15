@@ -1290,6 +1290,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             percent_take_profit_sell_first_two = trading_config.stock_config_percent_take_profit_sell_first_two*100
             percent_take_profit_sell_second = trading_config.stock_config_percent_take_profit_sell_second
             percent_take_profit_sell_second_two = trading_config.stock_config_percent_take_profit_sell_second_two
+            use_take_profit_trigger = config.stock_config_use_take_profit_trigger
+            take_profit_percent = trading_config.stock_config_take_profit_percent
             #Tiến hành kiểm tra cách bán
             is_take_profit = False 
             percent_take_profit = percent_take_profit_sell_second  
@@ -1310,7 +1312,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             upper_bolinger = stock_data_following.iloc[-1]['upper_bolinger']
             is_take_profit_by_bolinger = False
             take_profit_type = ''
-            if percentage_loss >= percent_take_profit_sell_first:  
+            if  ( percentage_loss >= take_profit_percent and use_take_profit_trigger) 
+                 or (use_take_profit_first_part_tow and percentage_loss >= percent_take_profit_sell_first_two) 
+                 or (use_take_profit_first_part and percentage_loss >= percent_take_profit_sell_first
+                ):
                 # Chốt lãi khi giá hiện tại tăng so với giá vốn 
                 is_take_profit, percent_take_profit, messages_take_profit = should_sell_take_profit(symbol, trading_config, percentage_loss)
                 take_profit_type = (
