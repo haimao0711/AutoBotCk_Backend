@@ -913,12 +913,11 @@ def should_sell_take_profit(
         percent_profit = percent_take_profit_sell_second_two
         messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {percent_take_profit_sell_first_two*100}%'
     elif use_take_profit_trigger:
-        if percentage_loss >= take_profit_percent:
+        if percentage_loss >= take_profit_percent*100:
             is_take_profit = use_take_profit_trigger
             percent_profit = 1
         else:
             is_take_profit = False
-            # is_take_profit = use_take_profit_trigger  # nhớ xóa nó và mở dòng trên
             percent_profit = 1   
     return is_take_profit, percent_profit, messages_take_profit
 
