@@ -79,24 +79,7 @@ class ConfigurationOverviewServices:
             for config in configurations:
                 stock_id = config.stock.id
                 stock_name = config.stock.name
-                query_data_m1 = query_data_m1_map.get(stock_id)                
-                # Thêm phản hồi chart
-                # data_trading = ConfigurationServices.get_trading_configuration(user=user, stock_id=stock_id)
-                # trading_chart_buy = ''
-                # trading_chart_sell = ''
-                # if data_trading:
-                #     trading_chart_buy = data_trading.candle.candle                    
-                #     if data_trading.candle_sell and data_trading.candle_sell.candle_sell:
-                #         trading_chart_sell = data_trading.candle_sell.candle_sell
-                # data_following = ConfigurationServices.get_following_configuration(user=user, stock_id=stock_id)
-                # following_chart_buy = ''
-                # following_chart_sell = ''
-                # if data_following:
-                #     following_chart_buy = data_following.candle.candle                    
-                #     if data_following.candle_sell and data_following.candle_sell.candle_sell:
-                #         following_chart_sell = data_following.candle_sell.candle_sell
-
-
+                query_data_m1 = query_data_m1_map.get(stock_id)           
                 # Lấy trading chart từ map
                 trading_cfg = trading_config_map.get(stock_id)
                 trading_chart_buy = trading_cfg.candle.candle if trading_cfg and trading_cfg.candle else ''
