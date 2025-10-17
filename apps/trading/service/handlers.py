@@ -1313,7 +1313,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             is_take_profit_by_bolinger = False
             take_profit_type = ''
             if  ( (percentage_loss >= take_profit_percent and use_take_profit_trigger) 
-                 or (use_take_profit_first_part_tow and percentage_loss >= percent_take_profit_sell_first_two) 
+                 or (use_take_profit_first_part_two and percentage_loss >= percent_take_profit_sell_first_two) 
                  or (use_take_profit_first_part and percentage_loss >= percent_take_profit_sell_first)
                 ):
                 # Chốt lãi khi giá hiện tại tăng so với giá vốn 
