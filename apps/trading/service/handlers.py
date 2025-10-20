@@ -1659,7 +1659,7 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
         for config in prepared_configs:
             try:
                 futures.append(executor.submit(worker, config))
-                time.sleep(0.5)  # Thêm độ trễ giữa các luồng
+                time.sleep(0.2)  # Thêm độ trễ giữa các luồng
             except RuntimeError as e:
                 print(f"Cannot submit new task: {e}")
                 break  # Dừng nếu executor đã shutdown

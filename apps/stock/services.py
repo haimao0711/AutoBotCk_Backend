@@ -134,10 +134,14 @@ class DownloadService:
             return 0, DataParamsTimeEnums.D1.value
 
     @staticmethod
-    def download_data_weekly(stock, download_status):       
+    def download_data_weekly(stock, download_status):
+        from datetime import datetime
+        import pandas as pd
+        import requests
+        from requests.adapters import HTTPAdapter
+        from requests.packages.urllib3.util.retry import Retry
 
         API_VNDIRECT = "https://dchart-api.vndirect.com.vn/dchart/history"
-
         HEADERS = {
             'content-type': 'application/x-www-form-urlencoded',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -145,73 +149,81 @@ class DownloadService:
 
         current_timestamp = datetime.now().timestamp()
 
-        # Lấy khoảng thời gian cần tải (vẫn dùng hàm này từ DownloadService)
+        # Lấy khoảng thời gian cần tải
         time_to_download, _ = DownloadService._convert_chart_type_to_data(
-            chart_type=CandleEnum.W1,  
+            chart_type=CandleEnum.W1,
             download_status=download_status
-        ) 
+        )
 
         params = {
-            "resolution": '1D',  # Luôn lấy dữ liệu ngày
+            "resolution": '1D',  # dữ liệu ngày
             "symbol": stock.symbol,
             "from": int(current_timestamp - time_to_download),
             "to": int(current_timestamp),
         }
-        # print(f'check params hàm download_data_weekly {stock.symbol}: ', params)
-        res = requests.get(API_VNDIRECT, params=params, headers=HEADERS)
 
-        if res.status_code != 200:
-            print(f"Error khi status khác 200: Received HTTP {res.status_code}")
-            return pd.DataFrame()
+        # Thiết lập session với retry
+        session = requests.Session()
+        retry = Retry(
+            total=3,            # retry tối đa 3 lần
+            backoff_factor=1,   # mỗi lần retry tăng thời gian chờ
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET"]
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
 
         try:
-            json_data = res.json()
-            json_data.pop('s', None)
+            res = session.get(API_VNDIRECT, params=params, headers=HEADERS, timeout=10)
+            res.raise_for_status()
 
-            # Tạo DataFrame ban đầu
-            df = pd.DataFrame({
-                'time': pd.to_datetime(json_data['t'], unit='s'),
-                'open': json_data['o'],
-                'high': json_data['h'],
-                'low': json_data['l'],
-                'close': json_data['c'],
-                'volume': json_data['v'],
-            })
+            if not res.content:
+                print(f"[Warning] API trả dữ liệu rỗng cho symbol {stock.symbol}")
+                return pd.DataFrame()
 
-            # Đặt time làm index để resample
-            df.set_index('time', inplace=True)
+            try:
+                json_data = res.json()
+                json_data.pop('s', None)
 
-            # Resample tuần: open = first, high = max, low = min, close = last, volume = sum
-            weekly_df = df.resample('W').agg({
-                'open': 'first',
-                'high': 'max',
-                'low': 'min',
-                'close': 'last',
-                'volume': 'sum'
-            }).dropna()
+                # Tạo DataFrame ngày
+                df = pd.DataFrame({
+                    'time': pd.to_datetime(json_data['t'], unit='s'),
+                    'open': json_data['o'],
+                    'high': json_data['h'],
+                    'low': json_data['l'],
+                    'close': json_data['c'],
+                    'volume': json_data['v'],
+                })
 
-            # Reset index và chuyển time về timestamp giây
-            weekly_df = weekly_df.reset_index()
-            weekly_df['time'] = weekly_df['time'].astype('int64') // 10**9  # chuyển datetime về timestamp
+                df.set_index('time', inplace=True)
 
-            # Đổi tên cột giống format cũ
-            weekly_df.rename(columns={
-                'time': 'time',
-                'open': 'open',
-                'high': 'high',
-                'low': 'low',
-                'close': 'close',
-                'volume': 'volume'
-            }, inplace=True)
+                # Resample tuần
+                weekly_df = df.resample('W').agg({
+                    'open': 'first',
+                    'high': 'max',
+                    'low': 'min',
+                    'close': 'last',
+                    'volume': 'sum'
+                }).dropna()
 
-            # Thêm id stock
-            weekly_df['id'] = stock.id
+                weekly_df = weekly_df.reset_index()
+                weekly_df['time'] = weekly_df['time'].astype('int64') // 10**9
+                weekly_df['id'] = stock.id
 
-            return weekly_df
+                return weekly_df
 
-        except Exception as e:
-            print(f"Error xử lý dữ liệu tuần: {e}")
+            except Exception as e:
+                print(f"[Error] Xử lý dữ liệu tuần cho symbol {stock.symbol} thất bại: {e}")
+                return pd.DataFrame()
+
+        except requests.exceptions.Timeout:
+            print(f"[Timeout] Không kết nối được API cho symbol {stock.symbol}")
             return pd.DataFrame()
+        except requests.exceptions.RequestException as e:
+            print(f"[RequestException] Lỗi khi download dữ liệu tuần symbol {stock.symbol}: {e}")
+            return pd.DataFrame()
+
 
 
     @staticmethod
@@ -279,70 +291,88 @@ class DownloadService:
     def download_data_single(stock, chart_type, download_status):
         from datetime import datetime
         import json
-        import requests
-        import time
         import pandas as pd
+        import requests
+        from requests.adapters import HTTPAdapter
+        from requests.packages.urllib3.util.retry import Retry
+        import time
 
         API_VNDIRECT = "https://dchart-api.vndirect.com.vn/dchart/history"
-        API_VPS= "https://api.vietstock.vn/tvnew/history"
-        # HEADERS = {'content-type': 'application/x-www-form-urlencoded',
-        #            'User-Agent': 'Mozilla'}
         HEADERS = {
-         'content-type': 'application/x-www-form-urlencoded',
-         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'content-type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
 
         current_timestamp = datetime.now().timestamp()
-        # current_timestamp = 1724901077
-
         data_download = []
-        # print('check chart_type: ', chart_type)
-        # print('check download_status: ', download_status)
+
+        # Nếu chart_type là weekly, gọi hàm riêng
         if chart_type == CandleEnum.W1:
             res_week = DownloadService.download_data_weekly(stock, download_status)
-            # print('check res_week: ', res_week)
             return res_week
-        else:
-            time_to_download, resolution = DownloadService._convert_chart_type_to_data(
-                chart_type=chart_type, download_status=download_status)
 
-            params = {
-                "resolution": resolution,
-                "symbol": stock.symbol,
-                "from": int((current_timestamp - time_to_download)),
-                "to": int(current_timestamp),
-            }
-            
-            res = requests.get(API_VNDIRECT, params=params, headers=HEADERS)
+        # Chuyển chart_type sang resolution và khoảng thời gian
+        time_to_download, resolution = DownloadService._convert_chart_type_to_data(
+            chart_type=chart_type, download_status=download_status)
 
-            if res.status_code == 200:
+        params = {
+            "resolution": resolution,
+            "symbol": stock.symbol,
+            "from": int((current_timestamp - time_to_download)),
+            "to": int(current_timestamp),
+        }
+
+        # Thiết lập session với retry
+        session = requests.Session()
+        retry = Retry(
+            total=3,  # retry tối đa 3 lần
+            backoff_factor=1,  # mỗi lần retry tăng thời gian chờ
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET"]
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+
+        try:
+            res = session.get(API_VNDIRECT, params=params, headers=HEADERS, timeout=10)
+            res.raise_for_status()  # raise lỗi nếu HTTP != 200
+
+            if res.content:
                 try:
-                    data = res.content
-                    decoded_data = data.decode('utf-8')
-                    json_data = json.loads(decoded_data)
-                    json_data.pop('s')
+                    json_data = res.json()
+                    # Xoá key 's' nếu có
+                    json_data.pop('s', None)
 
-                    key_mapping = {'t': 'time', 'c': 'close',
-                                'o': 'open', 'l': 'low', 'h': 'high', 'v': 'volume'}
+                    key_mapping = {'t': 'time', 'c': 'close', 'o': 'open', 'l': 'low', 'h': 'high', 'v': 'volume'}
+                    renamed_data = [
+                        {key_mapping.get(k, k): v[i] for k, v in json_data.items()}
+                        for i in range(len(json_data['t']))
+                    ]
 
-                    renamed_data = [{key_mapping.get(key, key): value[i] for key, value in json_data.items(
-                    )} for i in range(len(json_data['t']))]
-
+                    # Thêm stock.id
                     for item in renamed_data:
                         item['id'] = stock.id
 
-                    data_download = data_download + renamed_data
+                    data_download += renamed_data
 
-                except ValueError as e:
-                    print(f"Error download data khi status là 200: {e}")
+                except (ValueError, KeyError) as e:
+                    print(f"[Error] Download data symbol {stock.symbol}, parse JSON failed: {e}")
                     return pd.DataFrame()
 
             else:
-                print(f"Error khi status khác 200: Received HTTP {res.status_code}")
-                return pd.DataFrame
-            # print('check res download data: ', pd.DataFrame(data_download))
-            return pd.DataFrame(data_download)
-    
+                print(f"[Warning] API trả dữ liệu rỗng cho symbol {stock.symbol}")
+                return pd.DataFrame()
+
+        except requests.exceptions.Timeout:
+            print(f"[Timeout] Không kết nối được API cho symbol {stock.symbol}")
+            return pd.DataFrame()
+        except requests.exceptions.RequestException as e:
+            print(f"[RequestException] Lỗi khi download data symbol {stock.symbol}: {e}")
+            return pd.DataFrame()
+
+        return pd.DataFrame(data_download)
+
     @staticmethod
     def get_stock_info(stock_code, asp_net_session): 
 

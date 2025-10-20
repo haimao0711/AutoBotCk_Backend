@@ -29,22 +29,37 @@ def download_data(stock: Stock, vnindex_stock: Stock, trading_chart_type: Candle
 
     return vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following
 
-def download_sales_volume(symbol: str,):
-    board_id='MAIN'
+def download_sales_volume(symbol: str):
+    import requests
+    from requests.adapters import HTTPAdapter
+    from requests.packages.urllib3.util.retry import Retry
+
     url = f"https://bgapidatafeed.vps.com.vn/getliststockdata/{symbol}"
     HEADERS = {
         'content-type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
-    try:
-        response = requests.get(url, headers=HEADERS)
-        response.raise_for_status()
-        data_sales_volume = response.json()
-        # print('check data_sales_volume: ', data_sales_volume)
 
-        # Kiểm tra nếu là list và có phần tử đầu tiên
+    # Thiết lập session với retry
+    session = requests.Session()
+    retry = Retry(
+        total=3,            # thử tối đa 3 lần
+        backoff_factor=1,   # tăng thời gian chờ giữa các retry
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"]
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+
+    try:
+        response = session.get(url, headers=HEADERS, timeout=10)
+        response.raise_for_status()  # raise lỗi nếu HTTP != 200
+
+        data_sales_volume = response.json()
+
         if isinstance(data_sales_volume, list) and len(data_sales_volume) > 0:
-            stock_data = data_sales_volume[0]  # Lấy phần tử đầu tiên trong danh sách
+            stock_data = data_sales_volume[0]
 
             data = {
                 'buyForeignQtty': stock_data.get('fBVol'),
@@ -54,9 +69,13 @@ def download_sales_volume(symbol: str,):
             }
             return data
         else:
-            print("Dữ liệu không hợp lệ hoặc rỗng")
+            print(f"[Warning] Dữ liệu sales volume rỗng hoặc không hợp lệ cho symbol {symbol}")
             return None
 
-    except requests.exceptions.RequestException as e:
-        print(f"Lỗi khi tải dữ liệu từ API: {e}")
+    except requests.exceptions.Timeout:
+        print(f"[Timeout] Không kết nối được API sales volume cho symbol {symbol}")
         return None
+    except requests.exceptions.RequestException as e:
+        print(f"[RequestException] Lỗi khi tải sales volume symbol {symbol}: {e}")
+        return None
+
