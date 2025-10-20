@@ -964,9 +964,14 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 following_chart_type=following_chart_type
             )
             sales_data = download_sales_volume(symbol=symbol)
-            if sales_data is None or stock_data_following is None:
-                print('Download data không thành công, bỏ qua!')
-                message_download = f'Download data symbol {symbol } to buy not successful. Next!'
+            if sales_data is None:
+                print('Download sales data không thành công, bỏ qua!')
+                message_download = f'Download sales_data symbol {symbol } to buy not successful. Next!'
+                send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
+                return
+            elif stock_data_following is None:
+                print('Download following data không thành công, bỏ qua!')
+                message_download = f'Download following data symbol {symbol } to buy not successful. Next!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
                 return
             def safe_int(val):
