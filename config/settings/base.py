@@ -161,11 +161,6 @@ DATABASES = {
         'CONN_MAX_AGE': 60,
         'OPTIONS': {
             'connect_timeout': 10
-        },
-        'POOL_OPTIONS': {
-            'POOL_SIZE': 10,
-            'MAX_OVERFLOW': 10,
-            'RECYCLE': 24*60*60
         }
     }
 }

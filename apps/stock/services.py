@@ -284,7 +284,7 @@ class DownloadService:
         import pandas as pd
 
         API_VNDIRECT = "https://dchart-api.vndirect.com.vn/dchart/history"
-
+        API_VIETSTOCK = "https://api.vietstock.vn/tvnew/history"
         # HEADERS = {'content-type': 'application/x-www-form-urlencoded',
         #            'User-Agent': 'Mozilla'}
         HEADERS = {
@@ -313,7 +313,7 @@ class DownloadService:
                 "to": int(current_timestamp),
             }
             
-            res = requests.get(API_VNDIRECT, params=params, headers=HEADERS)
+            res = requests.get(API_VIETSTOCK, params=params, headers=HEADERS)
 
             if res.status_code == 200:
                 try:
