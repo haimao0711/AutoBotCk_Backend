@@ -313,7 +313,7 @@ class DownloadService:
                 "to": int(current_timestamp),
             }
             
-            res = requests.get(API_VIETSTOCK, params=params, headers=HEADERS)
+            res = requests.get(API_VNDIRECT, params=params, headers=HEADERS)
 
             if res.status_code == 200:
                 try:
