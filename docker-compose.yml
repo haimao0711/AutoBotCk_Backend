@@ -15,6 +15,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - backend_net
 
   stock-predict-api:
     build: .
@@ -22,44 +24,28 @@ services:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: stockdb
-      POSTGRES_HOST: stock-predict-postgres 
+      POSTGRES_HOST: stock-predict-postgres
     depends_on:
-      - stock-predict-postgres   # Compose v3+ chỉ cần tên service
+      - stock-predict-postgres
     ports:
       - "8000:8000"
     command: >
       bash -c "/usr/local/bin/wait-for-postgres.sh stock-predict-postgres &&
                gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1"
-    
+    networks:
+      - backend_net
+
   memcached:
     image: memcached:alpine
     restart: always
     ports:
       - "11211:11211"
-
+    networks:
+      - backend_net
 
 volumes:
   postgres_data:
 
-# version: '3.9'
-
-# services:
-#   stock-predict-api:
-#     build: .
-#     environment:
-#       POSTGRES_USER: myuser
-#       POSTGRES_PASSWORD: mypassword
-#       POSTGRES_DB: stockdb
-#       POSTGRES_HOST: 14.225.253.51   # IP server PostgreSQL
-#       POSTGRES_PORT: 5432
-#     ports:
-#       - "8000:8000"
-#     command: >
-#       bash -c "gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1"
-
-#   memcached:
-#     image: memcached:alpine
-#     restart: always
-#     ports:
-#       - "11211:11211"
-
+networks:
+  backend_net:
+    driver: bridge
