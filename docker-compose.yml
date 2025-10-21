@@ -48,4 +48,5 @@ volumes:
 
 networks:
   backend_net:
-    driver: bridge
+    external: true
+    name: autobotck_backend
