@@ -58,7 +58,7 @@ def start_scheduler_for_user(user):
 
     scheduler.add_job(
         lambda: safe_run(trading.user_trading, user, "user_trading"),
-        trigger=CronTrigger(day_of_week='mon-fri', hour='9-23', minute='*/1', timezone='Asia/Ho_Chi_Minh'),
+        trigger=CronTrigger(day_of_week='mon-fri', hour='9-14', minute='*/1', timezone='Asia/Ho_Chi_Minh'),
         id=f"trade_{user.username}",
         replace_existing=True,
         max_instances=20
