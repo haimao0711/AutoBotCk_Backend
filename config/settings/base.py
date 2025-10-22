@@ -160,8 +160,7 @@ DATABASES = {
         'PORT': os.getenv('POSTGRES_PORT', '6432'),
         'CONN_MAX_AGE': 0,  # PgBouncer quản lý connection pooling
         'OPTIONS': {
-            'connect_timeout': 10,
-            'options': '-c default_transaction_isolation=read_committed'
+            'connect_timeout': 10
         }
     }
 }
