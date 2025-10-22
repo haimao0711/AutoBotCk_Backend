@@ -22,6 +22,17 @@ services:
   pgbouncer:
     image: pgbouncer/pgbouncer:latest
     restart: always
+    environment:
+      DATABASES_HOST: stock-predict-postgres
+      DATABASES_PORT: 5432
+      DATABASES_USER: myuser
+      DATABASES_PASSWORD: mypassword
+      DATABASES_DBNAME: stockdb
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 20
+      SERVER_RESET_QUERY: DISCARD ALL
+      IGNORE_STARTUP_PARAMETERS: extra_float_digits
     volumes:
       - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
       - ./userlist.txt:/etc/pgbouncer/userlist.txt:ro
