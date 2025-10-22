@@ -33,9 +33,6 @@ services:
       DEFAULT_POOL_SIZE: 20
       SERVER_RESET_QUERY: DISCARD ALL
       IGNORE_STARTUP_PARAMETERS: extra_float_digits
-    volumes:
-      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
-      - ./userlist.txt:/etc/pgbouncer/userlist.txt:ro
     ports:
       - "6432:6432"
     depends_on:
