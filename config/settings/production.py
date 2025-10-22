@@ -12,13 +12,13 @@ ALLOWED_HOSTS = [
     "0.0.0.0",
 ]
 
-# Database: đồng bộ với POSTGRES_* env
+# Database: đồng bộ với POSTGRES_* env (qua PgBouncer)
 DATABASES['default'].update({
     'NAME': os.getenv('POSTGRES_DB', 'stockdb'),
     'USER': os.getenv('POSTGRES_USER', 'myuser'),
     'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'mypassword'),
-    'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
-    'PORT': int(os.getenv('POSTGRES_PORT', 5432)),
+    'HOST': os.getenv('POSTGRES_HOST', 'pgbouncer'),
+    'PORT': int(os.getenv('POSTGRES_PORT', 6432)),
 })
 
 # Cache (production dùng locmem nếu chưa có memcached/redis)

@@ -6,6 +6,7 @@ services:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: stockdb
+      POSTGRES_INITDB_ARGS: "--auth-host=md5"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -18,20 +19,35 @@ services:
     networks:
       - backend_net
 
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    restart: always
+    volumes:
+      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    ports:
+      - "6432:6432"
+    depends_on:
+      stock-predict-postgres:
+        condition: service_healthy
+    networks:
+      - backend_net
+
   stock-predict-api:
     build: .
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: stockdb
-      POSTGRES_HOST: stock-predict-postgres
+      POSTGRES_HOST: pgbouncer
+      POSTGRES_PORT: 6432
     depends_on:
-      - stock-predict-postgres
+      - pgbouncer
     ports:
       - "8000:8000"
     command: >
-      bash -c "/usr/local/bin/wait-for-postgres.sh stock-predict-postgres &&
-               gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1"
+      bash -c "/usr/local/bin/wait-for-postgres.sh pgbouncer &&
+               gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     networks:
       - backend_net
 
@@ -48,5 +64,4 @@ volumes:
 
 networks:
   backend_net:
-    external: true
-    name: autobotck_backend
+    driver: bridge

@@ -965,13 +965,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             )
             sales_data = download_sales_volume(symbol=symbol)
             if sales_data is None:
-                print('Download data following không thành công, bỏ qua!')
-                message_download = f'Download following data symbol {symbol } to buy not successful. Next!'
+                print('Download sales_data không thành công, bỏ qua!')
+                message_download = f'Download sales_data symbol {symbol } to buy not successful. Next!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
                 return
             elif stock_data_following is None:
-                print('Download sales_data không thành công, bỏ qua!')
-                message_download = f'Download sales_data symbol {symbol } to buy not successful. Next!'
+                print('Download following_data không thành công, bỏ qua!')
+                message_download = f'Download following symbol {symbol } to buy not successful. Next!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
                 return               
             def safe_int(val):

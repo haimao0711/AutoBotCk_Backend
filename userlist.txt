@@ -1,0 +1,1 @@
+"myuser" "md5$(echo -n 'mypasswordmyuser' | md5sum | cut -d' ' -f1)"

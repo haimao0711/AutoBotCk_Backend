@@ -156,16 +156,12 @@ DATABASES = {
         'NAME': os.getenv('POSTGRES_DB', 'stockdb'),
         'USER': os.getenv('POSTGRES_USER', 'myuser'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'mypassword'),
-        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
-        'PORT': os.getenv('POSTGRES_PORT', '5432'),
-        'CONN_MAX_AGE': 60,
+        'HOST': os.getenv('POSTGRES_HOST', 'pgbouncer'),
+        'PORT': os.getenv('POSTGRES_PORT', '6432'),
+        'CONN_MAX_AGE': 0,  # PgBouncer quản lý connection pooling
         'OPTIONS': {
-            'connect_timeout': 10
-        },
-        'POOL_OPTIONS': {
-            'POOL_SIZE': 10,
-            'MAX_OVERFLOW': 10,
-            'RECYCLE': 24*60*60
+            'connect_timeout': 10,
+            'options': '-c default_transaction_isolation=read_committed'
         }
     }
 }
