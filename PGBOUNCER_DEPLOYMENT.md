@@ -44,11 +44,22 @@ SECRET_KEY=your-secret-key-here
 ## Kiểm tra PgBouncer hoạt động:
 
 ```bash
-# Kết nối đến PgBouncer admin
-docker-compose exec pgbouncer psql -h localhost -p 6432 -U myuser -d pgbouncer
+# Xem stats chi tiết
+chmod +x monitor_db.sh
+./monitor_db.sh
 
-# Xem stats
-docker-compose exec pgbouncer psql -h localhost -p 6432 -U myuser -d pgbouncer -c "SHOW STATS;"
+# Xem stats nhanh
+chmod +x quick_stats.sh
+./quick_stats.sh
+
+# Xem PgBouncer stats trực tiếp
+docker-compose exec pgbouncer psql -h localhost -p 6432 -U postgres -d pgbouncer -c "SHOW STATS;"
+
+# Xem database connections
+docker-compose exec stock-predict-postgres psql -U myuser -d stockdb -c "SELECT COUNT(*) FROM pg_stat_activity WHERE datname = 'stockdb';"
+
+# Xem scheduler threads
+docker-compose exec stock-predict-api python -c "import threading; print(f'Active Threads: {threading.active_count()}')"
 ```
 
 ## Rollback nếu cần:

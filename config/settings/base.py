@@ -185,20 +185,38 @@ LOGGING = {
             'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s',
             'datefmt': '%Y-%m-%d %H:%M:%S',
         },
+        'db_monitor': {
+            'format': '%(asctime)s [DB_MONITOR] %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
     },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+        'db_monitor': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'db_monitor',
+        },
     },
     'root': {
         'handlers': ['console'],
-        'level': 'INFO',   # bạn có thể đổi thành DEBUG nếu muốn nhiều log hơn
+        'level': 'INFO',
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps.trading.monitor': {
+            'handlers': ['db_monitor'],
             'level': 'INFO',
             'propagate': False,
         },
