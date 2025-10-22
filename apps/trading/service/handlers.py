@@ -964,11 +964,16 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 following_chart_type=following_chart_type
             )
             sales_data = download_sales_volume(symbol=symbol)
-            if sales_data is None or stock_data_following is None:
-                print('Download data không thành công, bỏ qua!')
-                message_download = f'Download data symbol {symbol } to buy not successful. Next!'
+            if sales_data is None:
+                print('Download data following không thành công, bỏ qua!')
+                message_download = f'Download following data symbol {symbol } to buy not successful. Next!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
                 return
+            elif stock_data_following is None:
+                print('Download sales_data không thành công, bỏ qua!')
+                message_download = f'Download sales_data symbol {symbol } to buy not successful. Next!'
+                send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
+                return               
             def safe_int(val):
                 try:
                     return int(val) if val is not None else 0
@@ -1138,7 +1143,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                                 **buy_order_details_attrs })                            
                         else:
                             print(f"Error: lệnh mua lần thứ {i+1} hàm handle_buy_service  của {symbol} có phản hồi là rỗng") 
-                        volume -= volume_buy
+                        volume -= volume_buy  
         
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
                 if is_send_order_buy:                    
