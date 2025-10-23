@@ -8,6 +8,7 @@ class StockConfig(AppConfig):
     name = 'apps.stock'
     
     def ready(self) -> None:
-        logger.info('Stock Download Job')
-        from .scheduler import stock_imported as download_stock_job
-        download_stock_job.start()
+        logger.info('Stock Download Job - Disabled for Celery migration')
+        # Temporarily disabled for Celery migration
+        # from .scheduler import stock_imported as download_stock_job
+        # download_stock_job.start()
