@@ -14,6 +14,16 @@ def create_user_schedules(user):
     """
     try:
         # 1. User Trading Task - mỗi phút từ 9h-14h
+        # Xóa duplicate schedules trước
+        CrontabSchedule.objects.filter(
+            minute='*',
+            hour='9-23',
+            day_of_week='1-5',
+            day_of_month='*',
+            month_of_year='*',
+            timezone='Asia/Ho_Chi_Minh'
+        ).delete()
+        
         schedule_trading, created = CrontabSchedule.objects.get_or_create(
             minute='*',
             hour='9-23',
@@ -35,6 +45,16 @@ def create_user_schedules(user):
         )
         
         # 2. Cancel Trading Morning - 11:29
+        # Xóa duplicate schedules trước
+        CrontabSchedule.objects.filter(
+            minute='29',
+            hour='11',
+            day_of_week='1-5',
+            day_of_month='*',
+            month_of_year='*',
+            timezone='Asia/Ho_Chi_Minh'
+        ).delete()
+        
         schedule_cancel_morning, created = CrontabSchedule.objects.get_or_create(
             minute='29',
             hour='11',
