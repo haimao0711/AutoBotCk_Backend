@@ -53,7 +53,6 @@ def download_sales_volume(symbol: str, max_retries: int = 3, timeout_per_request
         # Kiểm tra tổng thời gian đã chạy
         elapsed_time = time.time() - start_time
         if elapsed_time >= max_total_time:
-            print(f"⏰ Timeout tổng cộng {max_total_time}s cho {symbol}")
             return None
             
         try:
@@ -61,10 +60,8 @@ def download_sales_volume(symbol: str, max_retries: int = 3, timeout_per_request
             current_timeout = min(timeout_per_request, remaining_time)
             
             if current_timeout <= 0:
-                print(f"⏰ Không đủ thời gian cho attempt {attempt + 1} của {symbol}")
                 return None
                 
-            print(f"Attempt {attempt + 1}/{max_retries} - Downloading sales data for {symbol} (timeout: {current_timeout}s)")
             response = requests.get(url, headers=HEADERS, timeout=current_timeout)
             response.raise_for_status()
             data_sales_volume = response.json()
@@ -79,19 +76,16 @@ def download_sales_volume(symbol: str, max_retries: int = 3, timeout_per_request
                     'ceil_price': stock_data.get('c'),
                     'floor_price': stock_data.get('f')
                 }
-                print(f"✅ Successfully downloaded sales data for {symbol} in {time.time() - start_time:.2f}s")
                 return data
             else:
-                print(f"⚠️ Invalid data format for {symbol} (attempt {attempt + 1})")
                 if attempt < max_retries - 1:
-                    time.sleep(1)  # Giảm delay xuống 1s
+                    time.sleep(1)
                     continue
                 return None
 
         except requests.exceptions.RequestException as e:
-            print(f"❌ Error downloading sales data for {symbol} (attempt {attempt + 1}): {e}")
             if attempt < max_retries - 1:
-                time.sleep(1)  # Giảm delay xuống 1s
+                time.sleep(1)
                 continue
             return None
     

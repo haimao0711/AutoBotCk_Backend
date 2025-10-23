@@ -18,6 +18,7 @@ import pytz
 import concurrent.futures
 import requests
 import pandas as pd
+import time
 
 
 class DownloadService:
@@ -172,7 +173,6 @@ class DownloadService:
             # Kiểm tra tổng thời gian đã chạy
             elapsed_time = time.time() - start_time
             if elapsed_time >= max_total_time:
-                print(f"⏰ Timeout tổng cộng {max_total_time}s cho download_data_weekly {stock.symbol}")
                 return pd.DataFrame()
                 
             try:
@@ -180,10 +180,8 @@ class DownloadService:
                 current_timeout = min(timeout_per_request, remaining_time)
                 
                 if current_timeout <= 0:
-                    print(f"⏰ Không đủ thời gian cho attempt {attempt + 1} của weekly {stock.symbol}")
                     return pd.DataFrame()
                     
-                print(f"Attempt {attempt + 1}/{max_retries} - Downloading weekly {stock.symbol} (timeout: {current_timeout}s)")
                 res = requests.get(API_VNDIRECT, params=params, headers=HEADERS, timeout=current_timeout)
 
                 if res.status_code == 200:
@@ -230,25 +228,21 @@ class DownloadService:
                         # Thêm id stock
                         weekly_df['id'] = stock.id
 
-                        print(f"✅ Successfully downloaded weekly {stock.symbol} in {time.time() - start_time:.2f}s")
                         return weekly_df
 
                     except Exception as e:
-                        print(f"❌ Error processing weekly data for {stock.symbol} (attempt {attempt + 1}): {e}")
                         if attempt < max_retries - 1:
                             time.sleep(1)
                             continue
                         return pd.DataFrame()
 
                 else:
-                    print(f"❌ HTTP {res.status_code} for weekly {stock.symbol} (attempt {attempt + 1})")
                     if attempt < max_retries - 1:
                         time.sleep(1)
                         continue
                     return pd.DataFrame()
 
             except requests.exceptions.RequestException as e:
-                print(f"❌ Request error for weekly {stock.symbol} (attempt {attempt + 1}): {e}")
                 if attempt < max_retries - 1:
                     time.sleep(1)
                     continue
@@ -367,7 +361,6 @@ class DownloadService:
                 # Kiểm tra tổng thời gian đã chạy
                 elapsed_time = time.time() - start_time
                 if elapsed_time >= max_total_time:
-                    print(f"⏰ Timeout tổng cộng {max_total_time}s cho download_data_single {stock.symbol}")
                     return pd.DataFrame()
                     
                 try:
@@ -375,10 +368,8 @@ class DownloadService:
                     current_timeout = min(timeout_per_request, remaining_time)
                     
                     if current_timeout <= 0:
-                        print(f"⏰ Không đủ thời gian cho attempt {attempt + 1} của {stock.symbol}")
                         return pd.DataFrame()
                         
-                    print(f"Attempt {attempt + 1}/{max_retries} - Downloading {stock.symbol} {chart_type} (timeout: {current_timeout}s)")
                     res = requests.get(API_VNDIRECT, params=params, headers=HEADERS, timeout=current_timeout)
 
                     if res.status_code == 200:
@@ -397,25 +388,21 @@ class DownloadService:
                             for item in renamed_data:
                                 item['id'] = stock.id
 
-                            print(f"✅ Successfully downloaded {stock.symbol} {chart_type} in {time.time() - start_time:.2f}s")
                             return pd.DataFrame(renamed_data)
 
                         except ValueError as e:
-                            print(f"❌ Error parsing data for {stock.symbol} (attempt {attempt + 1}): {e}")
                             if attempt < max_retries - 1:
                                 time.sleep(1)
                                 continue
                             return pd.DataFrame()
 
                     else:
-                        print(f"❌ HTTP {res.status_code} for {stock.symbol} (attempt {attempt + 1})")
                         if attempt < max_retries - 1:
                             time.sleep(1)
                             continue
                         return pd.DataFrame()
 
                 except requests.exceptions.RequestException as e:
-                    print(f"❌ Request error for {stock.symbol} (attempt {attempt + 1}): {e}")
                     if attempt < max_retries - 1:
                         time.sleep(1)
                         continue

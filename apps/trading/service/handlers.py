@@ -36,7 +36,6 @@ from apps.account.detail.services import AccountService
 from apps import api
 import pandas as pd
 import time
-import pytz
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
