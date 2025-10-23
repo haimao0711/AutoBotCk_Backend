@@ -55,7 +55,7 @@ services:
       - "8000:8000"
     command: >
       bash -c "sleep 10 &&
-               gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1"
+               gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 120"
     networks:
       - backend_net
 
