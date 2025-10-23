@@ -942,7 +942,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         asp_net_session = ''
         percent_first_buy = trading_config.stock_config_percent_first_buy
 
-        print('Cổ phiếu đang kiểm tra:', {symbol})
+        print('Bắt đầu process_trading:', {symbol})
         is_block_buy_stock = overview_config.is_block_buy
         is_block_sell_stock = overview_config.is_block_sell
         stock_id = trading_config.stock_id
@@ -994,7 +994,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             is_use_vnindex_following = following_config.is_use_vnindex_config
             is_use_vnindex_trading = trading_config.is_use_vnindex_config
 
-            print(f'bắt đầu hàm should buy {symbol}')
+            # print(f'bắt đầu hàm should buy {symbol}')
             is_buy_following, is_buy, buy_reason = should_buy(
                         trading_config = trading_config,
                         following_config = following_config,
@@ -1015,8 +1015,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 if not is_buy_vnindex:
                     is_buy = is_buy_vnindex  
 
-            print(f'check is_buy {symbol}', is_buy)
-            print(f'check buy_reason {symbol}', buy_reason)     
+            # print(f'check is_buy {symbol}', is_buy)
+            # print(f'check buy_reason {symbol}', buy_reason)     
 
             number_order = trading_config.stock_config_number_pid_buy_once_time
 
@@ -1093,14 +1093,12 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 # Xử lý mua nhạy cảm 
                 if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
                     sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
-                    # print('check phần trăm mua nhạy cảm:  ', sensitive_percentage )
                     volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
                     buy_order_attrs_send = {
                         'stock': symbol,
                         'price': round(float(high_last_row - add_price_buy), 2) if round(float(high_last_row - add_price_buy), 2) > floor_price else round(floor_price, 2),
                         'volume': int(volume_buy_sensitive)
                     }
-                    # print('check price to set buy: ', buy_order_attrs_send['price'])
                     res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
                     if res_buy:
                         is_send_order_buy = True
@@ -1151,7 +1149,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 # Send telegram hành động
                     send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs)              
                     send_telegram_message_batch(user, MessageTypeEnum.ACT, buy_messages)
-                print(f'kết thúc hàm đặt lệnh buy {symbol}')        
+                # print(f'kết thúc hàm đặt lệnh buy {symbol}')        
             
             # Update buy order
             if is_send_order_buy:  
@@ -1288,8 +1286,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
     #HANDLE SELL
         if not is_block_sell_stock and symbol in symbols_existing:
-            print(f'bắt đầu hàm thực hiện sell {symbol}')
-        # Handle take profit
+            # print(f'bắt đầu hàm thực hiện sell {symbol}')
+            # Handle take profit
             volume_balance = (stock_balance // 100) * 100
             use_take_profit_first_part = trading_config.stock_config_use_take_profit_first_part
             use_take_profit_first_part_two = trading_config.stock_config_use_take_profit_first_part_two
@@ -1305,7 +1303,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             is_take_profit = False 
             percent_take_profit = percent_take_profit_sell_second  
             messages_take_profit = 'Không chốt lãi' 
-        # Tải dữ liệu
+            # Tải dữ liệu
             vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
                 stock=stock, 
                 vnindex_stock=vnindex_stock, 
@@ -1392,8 +1390,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     data_trading_df = stock_data_trading,            
                     config_type = 'stock_config'
                 )
-                print(f'check is_sell {symbol}', is_sell) 
-                print(f'check sell_reason {symbol}', sell_reason)
+                # print(f'check is_sell {symbol}', is_sell) 
+                # print(f'check sell_reason {symbol}', sell_reason)
 
             if is_trading_take_profit:
                 status_sell = SignalTelegramEnum.TAKEPROFIT
@@ -1601,7 +1599,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     ConfigurationServices.update_use_take_profit_first_part_false(user, stock_id, use_take_profit_first_part )
 
             ConfigurationServices.update_is_trading_configuration(user, stock_id, False)                        
-         
+
+        print('Kết thúc process_trading:', {symbol})
     except Exception as e:
         print(f"Error in {current_thread_name}: {str(e)}")
 
