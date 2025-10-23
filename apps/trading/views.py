@@ -30,6 +30,48 @@ from common.errors.messages import ErrorMessages
 from apps import api
 import threading
 
+# Test endpoints không cần authentication
+class TestAPIView(APIView):
+    permission_classes = []  # Không cần authentication
+    
+    def get(self, request):
+        return Response({
+            "message": "Test API hoạt động!",
+            "status": "success",
+            "timestamp": datetime.now().isoformat()
+        }, status=status.HTTP_200_OK)
+
+class TestSchedulerStatusView(APIView):
+    permission_classes = []  # Không cần authentication
+    
+    def get(self, request):
+        try:
+            from apps.trading.scheduler.celery_scheduler import get_user_schedule_status
+            
+            # Test với user đầu tiên
+            from apps.authencation.user.models import User
+            user = User.objects.first()
+            
+            if user:
+                status_info = get_user_schedule_status(user)
+                return Response({
+                    "message": "Scheduler status test",
+                    "user": user.username,
+                    "status": status_info,
+                    "timestamp": datetime.now().isoformat()
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "message": "Không có user nào",
+                    "status": "no_users"
+                }, status=status.HTTP_200_OK)
+                
+        except Exception as e:
+            return Response({
+                "message": f"Lỗi: {str(e)}",
+                "status": "error"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # Lưu các thread giao dịch đang hoạt động
 active_trading_threads = {}
 
