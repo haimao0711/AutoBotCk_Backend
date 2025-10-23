@@ -965,13 +965,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             )
             sales_data = download_sales_volume(symbol=symbol)
             if sales_data is None:
-                print('Download sales_data không thành công, bỏ qua!')
-                message_download = f'Download sales_data symbol {symbol } to buy not successful. Next!'
+                print(f'❌ Download sales_data cho {symbol} không thành công sau 3 lần thử!')
+                message_download = f'⚠️ Download sales_data to buy symbol {symbol} failed after 3 attempts. Skipping!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
                 return
             elif stock_data_following is None:
-                print('Download following_data không thành công, bỏ qua!')
-                message_download = f'Download following symbol {symbol } to buy not successful. Next!'
+                print(f'❌ Download following_data cho {symbol} không thành công!')
+                message_download = f'⚠️ Download following to buy symbol {symbol} failed. Skipping!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
                 return               
             def safe_int(val):
@@ -1179,11 +1179,16 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         following_chart_type=following_chart_type
                     )
                     sales_data = download_sales_volume(symbol=symbol)
-                    if sales_data is None or stock_data_following is None:
-                        print('Download data không thành công, bỏ qua!')
-                        message_download = f'Download data symbol {symbol } to buy not successful. Next!'
+                    if sales_data is None:
+                        print(f'❌ Download sales_data sửa lệnh cho {symbol} không thành công sau 3 lần thử!')
+                        message_download = f'⚠️ Download sales_data to update buy order symbol {symbol} failed after 3 attempts. Skipping!'
                         send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
                         return
+                    elif stock_data_following is None:
+                        print(f'❌ Download following_data cho {symbol} không thành công!')
+                        message_download = f'⚠️ Download following to update buy order symbol {symbol} failed. Skipping!'
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
+                        return  
                     def safe_int(val):
                         try:
                             return int(val) if val is not None else 0

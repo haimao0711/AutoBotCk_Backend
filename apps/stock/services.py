@@ -134,8 +134,16 @@ class DownloadService:
             return 0, DataParamsTimeEnums.D1.value
 
     @staticmethod
-    def download_data_weekly(stock, download_status):       
-
+    def download_data_weekly(stock, download_status, max_retries: int = 3, timeout_per_request: int = 3):       
+        """
+        Download data weekly với retry mechanism và timeout tổng cộng không quá 10s
+        
+        Args:
+            stock: Stock object
+            download_status: Trạng thái download
+            max_retries: Số lần thử lại (default: 3)
+            timeout_per_request: Timeout cho mỗi request (default: 3s)
+        """
         API_VNDIRECT = "https://dchart-api.vndirect.com.vn/dchart/history"
 
         HEADERS = {
@@ -144,6 +152,8 @@ class DownloadService:
         }
 
         current_timestamp = datetime.now().timestamp()
+        start_time = time.time()
+        max_total_time = 10  # Tổng thời gian tối đa 10s
 
         # Lấy khoảng thời gian cần tải (vẫn dùng hàm này từ DownloadService)
         time_to_download, _ = DownloadService._convert_chart_type_to_data(
@@ -157,61 +167,95 @@ class DownloadService:
             "from": int(current_timestamp - time_to_download),
             "to": int(current_timestamp),
         }
-        # print(f'check params hàm download_data_weekly {stock.symbol}: ', params)
-        res = requests.get(API_VNDIRECT, params=params, headers=HEADERS)
+        
+        for attempt in range(max_retries):
+            # Kiểm tra tổng thời gian đã chạy
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= max_total_time:
+                print(f"⏰ Timeout tổng cộng {max_total_time}s cho download_data_weekly {stock.symbol}")
+                return pd.DataFrame()
+                
+            try:
+                remaining_time = max_total_time - elapsed_time
+                current_timeout = min(timeout_per_request, remaining_time)
+                
+                if current_timeout <= 0:
+                    print(f"⏰ Không đủ thời gian cho attempt {attempt + 1} của weekly {stock.symbol}")
+                    return pd.DataFrame()
+                    
+                print(f"Attempt {attempt + 1}/{max_retries} - Downloading weekly {stock.symbol} (timeout: {current_timeout}s)")
+                res = requests.get(API_VNDIRECT, params=params, headers=HEADERS, timeout=current_timeout)
 
-        if res.status_code != 200:
-            print(f"Error khi status khác 200: Received HTTP {res.status_code}")
-            return pd.DataFrame()
+                if res.status_code == 200:
+                    try:
+                        json_data = res.json()
+                        json_data.pop('s', None)
 
-        try:
-            json_data = res.json()
-            json_data.pop('s', None)
+                        # Tạo DataFrame ban đầu
+                        df = pd.DataFrame({
+                            'time': pd.to_datetime(json_data['t'], unit='s'),
+                            'open': json_data['o'],
+                            'high': json_data['h'],
+                            'low': json_data['l'],
+                            'close': json_data['c'],
+                            'volume': json_data['v'],
+                        })
 
-            # Tạo DataFrame ban đầu
-            df = pd.DataFrame({
-                'time': pd.to_datetime(json_data['t'], unit='s'),
-                'open': json_data['o'],
-                'high': json_data['h'],
-                'low': json_data['l'],
-                'close': json_data['c'],
-                'volume': json_data['v'],
-            })
+                        # Đặt time làm index để resample
+                        df.set_index('time', inplace=True)
 
-            # Đặt time làm index để resample
-            df.set_index('time', inplace=True)
+                        # Resample tuần: open = first, high = max, low = min, close = last, volume = sum
+                        weekly_df = df.resample('W').agg({
+                            'open': 'first',
+                            'high': 'max',
+                            'low': 'min',
+                            'close': 'last',
+                            'volume': 'sum'
+                        }).dropna()
 
-            # Resample tuần: open = first, high = max, low = min, close = last, volume = sum
-            weekly_df = df.resample('W').agg({
-                'open': 'first',
-                'high': 'max',
-                'low': 'min',
-                'close': 'last',
-                'volume': 'sum'
-            }).dropna()
+                        # Reset index và chuyển time về timestamp giây
+                        weekly_df = weekly_df.reset_index()
+                        weekly_df['time'] = weekly_df['time'].astype('int64') // 10**9  # chuyển datetime về timestamp
 
-            # Reset index và chuyển time về timestamp giây
-            weekly_df = weekly_df.reset_index()
-            weekly_df['time'] = weekly_df['time'].astype('int64') // 10**9  # chuyển datetime về timestamp
+                        # Đổi tên cột giống format cũ
+                        weekly_df.rename(columns={
+                            'time': 'time',
+                            'open': 'open',
+                            'high': 'high',
+                            'low': 'low',
+                            'close': 'close',
+                            'volume': 'volume'
+                        }, inplace=True)
 
-            # Đổi tên cột giống format cũ
-            weekly_df.rename(columns={
-                'time': 'time',
-                'open': 'open',
-                'high': 'high',
-                'low': 'low',
-                'close': 'close',
-                'volume': 'volume'
-            }, inplace=True)
+                        # Thêm id stock
+                        weekly_df['id'] = stock.id
 
-            # Thêm id stock
-            weekly_df['id'] = stock.id
+                        print(f"✅ Successfully downloaded weekly {stock.symbol} in {time.time() - start_time:.2f}s")
+                        return weekly_df
 
-            return weekly_df
+                    except Exception as e:
+                        print(f"❌ Error processing weekly data for {stock.symbol} (attempt {attempt + 1}): {e}")
+                        if attempt < max_retries - 1:
+                            time.sleep(1)
+                            continue
+                        return pd.DataFrame()
 
-        except Exception as e:
-            print(f"Error xử lý dữ liệu tuần: {e}")
-            return pd.DataFrame()
+                else:
+                    print(f"❌ HTTP {res.status_code} for weekly {stock.symbol} (attempt {attempt + 1})")
+                    if attempt < max_retries - 1:
+                        time.sleep(1)
+                        continue
+                    return pd.DataFrame()
+
+            except requests.exceptions.RequestException as e:
+                print(f"❌ Request error for weekly {stock.symbol} (attempt {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(1)
+                    continue
+                return pd.DataFrame()
+        
+        print(f"❌ Failed to download weekly {stock.symbol} after {max_retries} attempts in {time.time() - start_time:.2f}s")
+        return pd.DataFrame()
 
 
     @staticmethod
@@ -276,7 +320,17 @@ class DownloadService:
         return data_download
 
     @staticmethod
-    def download_data_single(stock, chart_type, download_status):
+    def download_data_single(stock, chart_type, download_status, max_retries: int = 3, timeout_per_request: int = 3):
+        """
+        Download data single với retry mechanism và timeout tổng cộng không quá 10s
+        
+        Args:
+            stock: Stock object
+            chart_type: Loại chart (M1, M5, M15, H1, D1, W1)
+            download_status: Trạng thái download
+            max_retries: Số lần thử lại (default: 3)
+            timeout_per_request: Timeout cho mỗi request (default: 3s)
+        """
         from datetime import datetime
         import json
         import requests
@@ -284,23 +338,19 @@ class DownloadService:
         import pandas as pd
 
         API_VNDIRECT = "https://dchart-api.vndirect.com.vn/dchart/history"
-
-        # HEADERS = {'content-type': 'application/x-www-form-urlencoded',
-        #            'User-Agent': 'Mozilla'}
         HEADERS = {
          'content-type': 'application/x-www-form-urlencoded',
          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
 
         current_timestamp = datetime.now().timestamp()
-        # current_timestamp = 1724901077
+        start_time = time.time()
+        max_total_time = 10  # Tổng thời gian tối đa 10s
 
-        data_download = []
         # print('check chart_type: ', chart_type)
         # print('check download_status: ', download_status)
         if chart_type == CandleEnum.W1:
-            res_week = DownloadService.download_data_weekly(stock, download_status)
-            # print('check res_week: ', res_week)
+            res_week = DownloadService.download_data_weekly(stock, download_status, max_retries, timeout_per_request)
             return res_week
         else:
             time_to_download, resolution = DownloadService._convert_chart_type_to_data(
@@ -313,35 +363,66 @@ class DownloadService:
                 "to": int(current_timestamp),
             }
             
-            res = requests.get(API_VNDIRECT, params=params, headers=HEADERS)
-
-            if res.status_code == 200:
-                try:
-                    data = res.content
-                    decoded_data = data.decode('utf-8')
-                    json_data = json.loads(decoded_data)
-                    json_data.pop('s')
-
-                    key_mapping = {'t': 'time', 'c': 'close',
-                                'o': 'open', 'l': 'low', 'h': 'high', 'v': 'volume'}
-
-                    renamed_data = [{key_mapping.get(key, key): value[i] for key, value in json_data.items(
-                    )} for i in range(len(json_data['t']))]
-
-                    for item in renamed_data:
-                        item['id'] = stock.id
-
-                    data_download = data_download + renamed_data
-
-                except ValueError as e:
-                    print(f"Error download data khi status là 200: {e}")
+            for attempt in range(max_retries):
+                # Kiểm tra tổng thời gian đã chạy
+                elapsed_time = time.time() - start_time
+                if elapsed_time >= max_total_time:
+                    print(f"⏰ Timeout tổng cộng {max_total_time}s cho download_data_single {stock.symbol}")
                     return pd.DataFrame()
+                    
+                try:
+                    remaining_time = max_total_time - elapsed_time
+                    current_timeout = min(timeout_per_request, remaining_time)
+                    
+                    if current_timeout <= 0:
+                        print(f"⏰ Không đủ thời gian cho attempt {attempt + 1} của {stock.symbol}")
+                        return pd.DataFrame()
+                        
+                    print(f"Attempt {attempt + 1}/{max_retries} - Downloading {stock.symbol} {chart_type} (timeout: {current_timeout}s)")
+                    res = requests.get(API_VNDIRECT, params=params, headers=HEADERS, timeout=current_timeout)
 
-            else:
-                print(f"Error khi status khác 200: Received HTTP {res.status_code}")
-                return pd.DataFrame
-            # print('check res download data: ', pd.DataFrame(data_download))
-            return pd.DataFrame(data_download)
+                    if res.status_code == 200:
+                        try:
+                            data = res.content
+                            decoded_data = data.decode('utf-8')
+                            json_data = json.loads(decoded_data)
+                            json_data.pop('s')
+
+                            key_mapping = {'t': 'time', 'c': 'close',
+                                        'o': 'open', 'l': 'low', 'h': 'high', 'v': 'volume'}
+
+                            renamed_data = [{key_mapping.get(key, key): value[i] for key, value in json_data.items(
+                            )} for i in range(len(json_data['t']))]
+
+                            for item in renamed_data:
+                                item['id'] = stock.id
+
+                            print(f"✅ Successfully downloaded {stock.symbol} {chart_type} in {time.time() - start_time:.2f}s")
+                            return pd.DataFrame(renamed_data)
+
+                        except ValueError as e:
+                            print(f"❌ Error parsing data for {stock.symbol} (attempt {attempt + 1}): {e}")
+                            if attempt < max_retries - 1:
+                                time.sleep(1)
+                                continue
+                            return pd.DataFrame()
+
+                    else:
+                        print(f"❌ HTTP {res.status_code} for {stock.symbol} (attempt {attempt + 1})")
+                        if attempt < max_retries - 1:
+                            time.sleep(1)
+                            continue
+                        return pd.DataFrame()
+
+                except requests.exceptions.RequestException as e:
+                    print(f"❌ Request error for {stock.symbol} (attempt {attempt + 1}): {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(1)
+                        continue
+                    return pd.DataFrame()
+            
+            print(f"❌ Failed to download {stock.symbol} {chart_type} after {max_retries} attempts in {time.time() - start_time:.2f}s")
+            return pd.DataFrame()
     
     @staticmethod
     def get_stock_info(stock_code, asp_net_session): 
