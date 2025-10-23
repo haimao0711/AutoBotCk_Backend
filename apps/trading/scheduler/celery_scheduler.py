@@ -13,6 +13,7 @@ def create_user_schedules(user):
     Tạo schedules cho một user cụ thể
     """
     try:
+        logger.info(f"Creating schedules for user: {user.username} (ID: {user.id})")
         # 1. User Trading Task - mỗi phút từ 9h-14h
         # Xóa duplicate schedules trước
         CrontabSchedule.objects.filter(
@@ -122,6 +123,8 @@ def create_user_schedules(user):
         
     except Exception as e:
         logger.error(f"❌ Lỗi tạo schedules cho user {user.username}: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return False
 
 def remove_user_schedules(user):
