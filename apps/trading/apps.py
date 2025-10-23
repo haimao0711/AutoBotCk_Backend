@@ -1,10 +1,5 @@
 from django.apps import AppConfig
 import logging
-import os
-import threading
-import sys
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 
 logger = logging.getLogger(__name__)
 
@@ -13,35 +8,22 @@ class TradingConfig(AppConfig):
     name = 'apps.trading'
 
     def ready(self) -> None:
-        logger.info('🚀 Bắt đầu khởi động hệ thống Scheduler và kiểm tra DB...')
+        logger.info('🚀 Bắt đầu khởi động hệ thống Celery và kiểm tra DB...')
 
-        def bootstrap_schedulers():
+        def bootstrap_celery_schedules():
             try:
-                from .scheduler.trading import (
-                    ensure_db_connection,
-                    restart_schedulers,
-                    check_scheduler_health,
-                )
                 from django.db import connection
-
+                from .scheduler.celery_scheduler import restart_all_user_schedules
+                
+                # Đảm bảo database kết nối
                 connection.ensure_connection()
-
-                # Restart scheduler các user có flag True
-                restart_schedulers()
-
-                # health_checker = BackgroundScheduler(timezone='Asia/Ho_Chi_Minh')
-                # health_checker.add_job(
-                #     check_scheduler_health,
-                #     trigger=CronTrigger(minute='*/3', hour='9-22'),
-                #     id="check_all_schedulers",
-                #     replace_existing=True
-                # )
-                # health_checker.start()
-
-                threading.Thread(target=ensure_db_connection, daemon=True).start()
-
-                logger.info("✅ Scheduler đã được khởi động!")
+                
+                # Restart schedules cho các user có flag True
+                restart_all_user_schedules()
+                
+                logger.info("✅ Celery schedules đã được khởi động!")
+                
             except Exception as e:
-                logger.exception(f"❌ Lỗi khởi động Scheduler hoặc DB: {e}")
+                logger.exception(f"❌ Lỗi khởi động Celery schedules hoặc DB: {e}")
 
-        bootstrap_schedulers()
+        bootstrap_celery_schedules()

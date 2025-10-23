@@ -59,16 +59,70 @@ services:
     networks:
       - backend_net
 
-  memcached:
-    image: memcached:alpine
+  redis:
+    image: redis:7-alpine
     restart: always
     ports:
-      - "11211:11211"
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend_net
+
+  celery-worker:
+    build: .
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: stockdb
+      POSTGRES_HOST: pgbouncer
+      POSTGRES_PORT: 6432
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+      - pgbouncer
+    command: celery -A config worker -l info -Q trading,trading_high_priority,default
+    volumes:
+      - .:/app
+    networks:
+      - backend_net
+    deploy:
+      replicas: 2
+
+  celery-beat:
+    build: .
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: stockdb
+      POSTGRES_HOST: pgbouncer
+      POSTGRES_PORT: 6432
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+      - pgbouncer
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+    networks:
+      - backend_net
+
+  celery-flower:
+    build: .
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+    command: celery -A config flower --port=5555
+    ports:
+      - "5555:5555"
     networks:
       - backend_net
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   backend_net:

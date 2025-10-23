@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
+    "django_celery_beat",
+    "django_celery_results",
     "apps.authencation",
     "apps.stock",
     "apps.account",
@@ -220,6 +222,16 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'celery': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps.trading.tasks': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 
@@ -288,3 +300,37 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Celery Configuration
+CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+
+# Celery Beat (cho periodic tasks)
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Celery Settings
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TIMEZONE = 'Asia/Ho_Chi_Minh'
+CELERY_ENABLE_UTC = True
+
+# Task Settings
+CELERY_TASK_DEFAULT_QUEUE = 'default'
+CELERY_TASK_ROUTES = {
+    'apps.trading.tasks.*': {'queue': 'trading'},
+    'apps.trading.tasks.user_trading_task': {'queue': 'trading_high_priority'},
+}
+
+# Worker Settings
+CELERY_WORKER_CONCURRENCY = 10  # Giảm từ 100 threads xuống 10 processes
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 50  # Restart worker sau 50 tasks
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+
+# Retry Settings
+CELERY_TASK_DEFAULT_RETRY_DELAY = 60
+CELERY_TASK_MAX_RETRIES = 3
+
+# Monitoring
+CELERY_SEND_TASK_EVENTS = True
+CELERY_TASK_SEND_SENT_EVENT = True

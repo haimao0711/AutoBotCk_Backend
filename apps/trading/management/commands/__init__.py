@@ -1,1 +1,1 @@
-# Management commands package
+# Trading management commands

@@ -18,6 +18,8 @@ from apps.account.detail.services import AccountService
 from apps.account.detail.enums import AccountLoginStatusEnum
 from apps.configuration.details.overview.services import ConfigurationOverviewServices
 from apps.trading.service.handlers import trading, trading_request, cancel_all_orders, cancel_buy_order, cancel_sell_order
+from apps.trading.tasks import user_trading_task, trading_request_task
+from apps.trading.scheduler.celery_scheduler import create_user_schedules, remove_user_schedules, get_user_schedule_status
 from apps.trading.helper import is_within_range_time
 from apps.trading.service.utils import is_within_time_range
 from datetime import datetime, time
@@ -35,9 +37,10 @@ class TradingViews(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, requests):
-        timezone = pytz.timezone('Asia/Ho_Chi_Minh')
-        TradingViews.user_trading()
+        # Dispatch Celery task thay vì chạy trực tiếp
+        user_trading_task.delay(requests.user.id)
         return Response({
+            "message": "Trading task đã được dispatch",
             "data": []
         }, status=status.HTTP_200_OK)    
 
@@ -88,60 +91,14 @@ class TradingViews(APIView):
 
     @staticmethod
     def request_trading(user, stock_id: str, symbol: str, request_buy: bool, request_sell: bool, volume_sell: str):
-        try:   
-            timezone = pytz.timezone('Asia/Ho_Chi_Minh')
-            now = datetime.now(timezone).time()
-
-            morning_start = time(9, 15)
-            morning_end = time(11, 30)
-            afternoon_start = time(13, 0)
-            afternoon_end = time(14, 28)
-            vps_account = AccountService.get_account_by_user(user)
-            if not vps_account:
-                raise ValueError(ErrorMessages.ACCOUNT_DOES_NOT_EXIST)
-            account_name = vps_account.name
-            account_num = vps_account.account_num
-            session_id = vps_account.vps_session_id
-
-           
-            if is_within_range_time(now, morning_start, morning_end) or is_within_range_time(now, afternoon_start, afternoon_end):
-            # if user.username == 'tranhaimao':
-                url = api.TRADING_URL
-                res_validate_session = validate_session(account_name, account_num, url, session_id, '')
-                if not res_validate_session:
-                    message = 'Session chưa hợp lệ. Bot không thực hiện trading được!'
-                    send_message_telegram(user, MessageTypeEnum.OVERALL, message)  
-                    return False
-                
-                if session_id != 'stop_trading' and res_validate_session:
-                    print('Request trading BẮT ĐẦU thực hiện !')
-
-                    # Kiểm tra xem có thread nào đang chạy cho cổ phiếu này không
-                    key = f"{user.id}_{stock_id}"
-                    if key in active_trading_threads:
-                        print(f"Đang có giao dịch cho cổ phiếu {stock_id} của user {user.id}!")
-                        return False  # Đang có tiến trình khác, không xử lý giao dịch mới
-
-                    # Tạo stop_event để dừng giao dịch khi cần
-                    stop_event = threading.Event()
-                    thread = threading.Thread(
-                        target=trading_request,
-                        args=(user, vps_account, stock_id, symbol, request_buy, request_sell, volume_sell),
-                        daemon=True
-                    )
-                    thread.start()
-
-                    # Lưu trữ thread và stop_event vào active_trading_threads
-                    active_trading_threads[key] = {'thread': thread, 'stop_event': stop_event}
-
-                    return True  # Trả về True nếu giao dịch được bắt đầu
-
-                return False
-            else:
-                message = 'Chưa đến thời gian giao dịch của sàn. Vui lòng thử lại sau'
-                send_message_telegram(user, MessageTypeEnum.OVERALL, message)  
+        # Dispatch Celery task thay vì chạy trực tiếp
+        result = trading_request_task.delay(
+            user.id, stock_id, symbol, request_buy, request_sell, volume_sell
+        )
+        try:
+            return result.get(timeout=30)  # Wait for result with timeout
         except Exception as e:
-            print(f"Unexpected error: {e}")
+            print(f"Error in trading_request_task: {e}")
             return False
 
     @staticmethod
@@ -200,14 +157,11 @@ class TradingViewsIsTrading(APIView):
             session_id = vps_account.vps_session_id
             limit_number_stocks = vps_account.limit_number_stocks
             status_scheduler = user.scheduler_status
-            # print('check status_scheduler: ', status_scheduler)
             url = api.TRADING_URL
 
             is_valid_session, financial_data = validate_session(account_name, account_num, url, session_id, '')
-
-            # print('check is_valid_session: ', is_valid_session)
-            # print('check financial_data: ', financial_data)
             is_trading = is_valid_session and status_scheduler
+            
             if financial_data:
                 return Response({
                     "is_trading": is_trading,
@@ -217,7 +171,7 @@ class TradingViewsIsTrading(APIView):
                     "cash_balance": financial_data.get("cash_balance", 0),
                     "total_market_value": financial_data.get("total_market_value", 0),
                     "cash_available": financial_data.get("cash_available", 0),
-                    "limit_number_stocks": limit_number_stocks ,
+                    "limit_number_stocks": limit_number_stocks,
                 })
             else:
                 return Response({
@@ -228,9 +182,46 @@ class TradingViewsIsTrading(APIView):
                     "cash_balance": 0,
                     "total_market_value": 0,
                     "cash_available": 0,
-                    "limit_number_stocks":limit_number_stocks,
+                    "limit_number_stocks": limit_number_stocks,
                 })
         except Exception as e:
             print(f"Lỗi không mong muốn: {e}")
             return Response({"error": str(e)}, status=500)
+
+
+class StartSchedulerAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        success = create_user_schedules(user)
+        if success:
+            user.scheduler_status = True
+            user.save()
+            return Response({"message": f"Scheduler started for user {user.username}!"}, status=200)
+        else:
+            return Response({"error": "Failed to start scheduler"}, status=500)
+
+
+class StopSchedulerAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        success = remove_user_schedules(user)
+        if success:
+            user.scheduler_status = False
+            user.save()
+            return Response({"message": f"Scheduler stopped for user {user.username}!"}, status=200)
+        else:
+            return Response({"error": "Failed to stop scheduler"}, status=500)
+
+
+class SchedulerStatusAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        status = get_user_schedule_status(user)
+        return Response(status, status=200)
     

@@ -1,15 +1,21 @@
-APScheduler==3.10.4
+# APScheduler==3.10.4  # Replaced with Celery
 Django==4.2.4
 django-cors-headers==4.3.1
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.0
-psycopg2-binary==2.9.9
+psycopg[binary]>=3.2.0
 python-dotenv==1.0.0
 requests==2.31.0
 beautifulsoup4==4.12.2
-pandas==2.0.3
-numpy==1.26.2
+pandas>=2.1.0
+numpy>=1.24.0
 ta==0.10.2
 django-db-connection-pool==1.2.4
 gunicorn==21.2.0
 websocket-client
+
+# Celery and Redis
+celery==5.3.4
+redis==5.0.1
+django-celery-beat==2.5.0
+django-celery-results==2.5.1

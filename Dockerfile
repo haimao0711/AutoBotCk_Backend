@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Cài PostgreSQL client và các build tools
 RUN apt-get update && apt-get install -y \
@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     postgresql-client \
     curl \
+    redis-tools \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
