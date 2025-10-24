@@ -59,7 +59,7 @@ services:
     ports:
       - "8000:8000"
     command: >
-      bash -c "sleep 15 &&
+      bash -c "sleep 30 &&
                gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 120"
     networks:
       - backend_net
