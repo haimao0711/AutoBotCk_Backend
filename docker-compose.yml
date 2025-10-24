@@ -90,8 +90,10 @@ services:
       POSTGRES_PORT: 6432
       REDIS_URL: redis://redis:6379/0
     depends_on:
-      - redis
-      - pgbouncer
+      redis:
+        condition: service_started
+      pgbouncer:
+        condition: service_healthy
     command: celery -A config worker -l info -Q trading,trading_high_priority,default
     volumes:
       - .:/app
@@ -110,8 +112,10 @@ services:
       POSTGRES_PORT: 6432
       REDIS_URL: redis://redis:6379/0
     depends_on:
-      - redis
-      - pgbouncer
+      redis:
+        condition: service_started
+      pgbouncer:
+        condition: service_healthy
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - .:/app
