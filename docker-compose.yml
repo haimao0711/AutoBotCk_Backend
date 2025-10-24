@@ -22,9 +22,18 @@ services:
   pgbouncer:
     image: pgbouncer/pgbouncer:latest
     restart: always
-    volumes:
-      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
-      - ./userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    environment:
+      DATABASES_HOST: stock-predict-postgres
+      DATABASES_PORT: 5432
+      DATABASES_USER: myuser
+      DATABASES_PASSWORD: mypassword
+      DATABASES_DBNAME: stockdb
+      POOL_MODE: session
+      MAX_CLIENT_CONN: 2000
+      DEFAULT_POOL_SIZE: 1000
+      SERVER_RESET_QUERY: DISCARD ALL
+      IGNORE_STARTUP_PARAMETERS: extra_float_digits
+      AUTH_TYPE: any
     ports:
       - "6432:6432"
     depends_on:
@@ -42,12 +51,11 @@ services:
       POSTGRES_HOST: pgbouncer
       POSTGRES_PORT: 6432
     depends_on:
-      pgbouncer:
-        condition: service_started
+      - pgbouncer
     ports:
       - "8000:8000"
     command: >
-      bash -c "sleep 20 &&
+      bash -c "sleep 30 &&
                gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 120"
     networks:
       - backend_net
@@ -73,10 +81,8 @@ services:
       POSTGRES_PORT: 6432
       REDIS_URL: redis://redis:6379/0
     depends_on:
-      redis:
-        condition: service_started
-      pgbouncer:
-        condition: service_started
+      - redis
+      - pgbouncer
     command: celery -A config worker -l info -Q trading,trading_high_priority,default
     volumes:
       - .:/app
@@ -95,10 +101,8 @@ services:
       POSTGRES_PORT: 6432
       REDIS_URL: redis://redis:6379/0
     depends_on:
-      redis:
-        condition: service_started
-      pgbouncer:
-        condition: service_started
+      - redis
+      - pgbouncer
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - .:/app
