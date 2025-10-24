@@ -1,1 +1,1 @@
-"myuser" "md5$(echo -n 'mypasswordmyuser' | md5sum | cut -d' ' -f1)"
+"myuser" "md5a1b2c3d4e5f6789012345678901234"
