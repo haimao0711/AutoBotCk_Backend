@@ -331,6 +331,7 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_DEFAULT_RETRY_DELAY = 60
 CELERY_TASK_MAX_RETRIES = 3
 
-# Monitoring
-CELERY_SEND_TASK_EVENTS = True
-CELERY_TASK_SEND_SENT_EVENT = True
+# Celery Logging
+CELERY_WORKER_LOG_FORMAT = '[%(asctime)s: %(levelname)s/%(processName)s] %(message)s'
+CELERY_WORKER_TASK_LOG_FORMAT = '[%(asctime)s: %(levelname)s/%(processName)s] %(message)s'
+CELERY_TASK_LOG_FORMAT = '[%(asctime)s: %(levelname)s/%(processName)s] %(message)s'

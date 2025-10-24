@@ -942,7 +942,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         asp_net_session = ''
         percent_first_buy = trading_config.stock_config_percent_first_buy
 
-        print('Bắt đầu process_trading:', {symbol})
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f'Bắt đầu process_trading: {symbol}')
         is_block_buy_stock = overview_config.is_block_buy
         is_block_sell_stock = overview_config.is_block_sell
         stock_id = trading_config.stock_id
@@ -1600,7 +1602,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
             ConfigurationServices.update_is_trading_configuration(user, stock_id, False)                        
 
-        print('Kết thúc process_trading:', {symbol})
+        logger.info(f'Kết thúc process_trading: {symbol}')
     except Exception as e:
         print(f"Error in {current_thread_name}: {str(e)}")
 
