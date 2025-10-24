@@ -41,6 +41,11 @@ services:
     depends_on:
       stock-predict-postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 6432 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - backend_net
 
@@ -53,11 +58,12 @@ services:
       POSTGRES_HOST: pgbouncer
       POSTGRES_PORT: 6432
     depends_on:
-      - pgbouncer
+      pgbouncer:
+        condition: service_healthy
     ports:
       - "8000:8000"
     command: >
-      bash -c "sleep 10 &&
+      bash -c "sleep 15 &&
                gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 120"
     networks:
       - backend_net
