@@ -14,15 +14,10 @@ def create_user_schedules(user):
     """
     try:
         logger.info(f"Creating schedules for user: {user.username} (ID: {user.id})")
-        # 1. User Trading Task - mỗi phút từ 9h-14h
-        # Xóa duplicate schedules trước
-        CrontabSchedule.objects.filter(
-            minute='*',
-            hour='9-23',
-            day_of_week='1-5',
-            day_of_month='*',
-            month_of_year='*',
-            timezone='Asia/Ho_Chi_Minh'
+        # 1. User Trading Task - mỗi phút từ 9h-23h
+        # Xóa duplicate schedules của user hiện tại trước
+        PeriodicTask.objects.filter(
+            name=f'user_trading_{user.username}'
         ).delete()
         
         schedule_trading, created = CrontabSchedule.objects.get_or_create(
@@ -46,14 +41,9 @@ def create_user_schedules(user):
         )
         
         # 2. Cancel Trading Morning - 11:29
-        # Xóa duplicate schedules trước
-        CrontabSchedule.objects.filter(
-            minute='29',
-            hour='11',
-            day_of_week='1-5',
-            day_of_month='*',
-            month_of_year='*',
-            timezone='Asia/Ho_Chi_Minh'
+        # Xóa duplicate schedules của user hiện tại trước
+        PeriodicTask.objects.filter(
+            name=f'cancel_morning_{user.username}'
         ).delete()
         
         schedule_cancel_morning, created = CrontabSchedule.objects.get_or_create(
