@@ -60,14 +60,18 @@ def user_trading_task(self, user_id):
                 message = 'Mã phiên giao dịch chưa hợp lệ. Vui lòng nhập lại OTP!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message)  
                 
-            if session_id != 'stop_trading' and is_validate_session:
-                notify_running(user)
-                logger.info('Bot BẮT ĐẦU thực hiện trading!')
-                trading(user=user, vps_account=vps_account, symbol='All')
-                
+        if session_id != 'stop_trading' and is_validate_session:
+            notify_running(user)
+            logger.info('Bot BẮT ĐẦU thực hiện trading!')
+            trading(user=user, vps_account=vps_account, symbol='All')
+            
     except Exception as exc:
         logger.error(f'Error in user_trading_task: {exc}')
         raise self.retry(exc=exc)
+    finally:
+        # Đóng connection của task hiện tại
+        from django.db import connection
+        connection.close()
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def cancel_trading_task(self, user_id, job_type="morning"):

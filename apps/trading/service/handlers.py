@@ -1602,9 +1602,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
             ConfigurationServices.update_is_trading_configuration(user, stock_id, False)                        
 
-        print(f'Kết thúc process_trading: {symbol}')
+        logger.info(f'Kết thúc process_trading: {symbol}')
     except Exception as e:
         print(f"Error in {current_thread_name}: {str(e)}")
+    finally:
+        # Đóng connection của thread hiện tại
+        from django.db import connection
+        connection.close()
 
 
 def  trading_configurations(user: User, configurations: object, vps_account: Account, percent_buy_trade: float) -> None:
@@ -1650,13 +1654,18 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
 
     # Hàm worker cho mỗi cấu hình
     def worker(prepared):
-        process_trading(
-            prepared, 
-            user, 
-            vnindex_stock, 
-            vps_account, 
-            percent_buy_trade,
-        )
+        try:
+            process_trading(
+                prepared, 
+                user, 
+                vnindex_stock, 
+                vps_account, 
+                percent_buy_trade,
+            )
+        finally:
+            # Đóng connections của thread hiện tại
+            from django.db import connection
+            connection.close()
 
     # Sử dụng ThreadPoolExecutor với tối đa 100 worker (thread)
     with ThreadPoolExecutor(max_workers=100) as executor:
