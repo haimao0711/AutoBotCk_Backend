@@ -43,7 +43,10 @@ services:
       stock-predict-postgres:
         condition: service_healthy
     networks:
-      - backend_net
+      backend_net:
+        aliases:
+          - pgbouncer
+          - db-proxy
 
   stock-predict-api:
     build: .
