@@ -34,19 +34,19 @@ services:
       SERVER_RESET_QUERY: DISCARD ALL
       IGNORE_STARTUP_PARAMETERS: extra_float_digits
       AUTH_TYPE: any
-    volumes:
-      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
-      - ./userlist.txt:/etc/pgbouncer/userlist.txt:ro
     ports:
       - "6432:6432"
     depends_on:
       stock-predict-postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 -U myuser -d stockdb || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
-      backend_net:
-        aliases:
-          - pgbouncer
-          - db-proxy
+      - backend_net
 
   stock-predict-api:
     build: .
@@ -58,11 +58,11 @@ services:
       POSTGRES_PORT: 6432
     depends_on:
       pgbouncer:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "8000:8000"
     command: >
-      bash -c "sleep 30 &&
+      bash -c "sleep 20 &&
                gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 120"
     networks:
       - backend_net
@@ -91,7 +91,7 @@ services:
       redis:
         condition: service_started
       pgbouncer:
-        condition: service_started
+        condition: service_healthy
     command: celery -A config worker -l info -Q trading,trading_high_priority,default
     volumes:
       - .:/app
@@ -113,7 +113,7 @@ services:
       redis:
         condition: service_started
       pgbouncer:
-        condition: service_started
+        condition: service_healthy
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - .:/app
