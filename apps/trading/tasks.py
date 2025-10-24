@@ -28,7 +28,7 @@ def user_trading_task(self, user_id):
         now = datetime.now(timezone).time()
 
         morning_start = time(9, 15)
-        morning_end = time(11, 28)
+        morning_end = time(23, 28)
         afternoon_start = time(13, 0)
         afternoon_end = time(23, 28)
         
