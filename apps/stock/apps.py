@@ -8,7 +8,10 @@ class StockConfig(AppConfig):
     name = 'apps.stock'
     
     def ready(self) -> None:
-        logger.info('Stock Download Job - Disabled for Celery migration')
-        # Temporarily disabled for Celery migration
-        # from .scheduler import stock_imported as download_stock_job
-        # download_stock_job.start()
+        logger.info('Stock App - Celery Beat scheduler enabled')
+        logger.info('Stock download jobs are now managed by Celery Beat')
+        logger.info('Make sure to run: celery -A config beat -l info')
+        logger.info('And: celery -A config worker -l info')
+        
+        # APScheduler đã được thay thế bằng Celery Beat
+        # Các scheduled tasks được định nghĩa trong apps/stock/scheduler/celery_scheduler.py

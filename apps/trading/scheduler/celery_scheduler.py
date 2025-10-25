@@ -22,7 +22,7 @@ def create_user_schedules(user):
         
         schedule_trading, created = CrontabSchedule.objects.get_or_create(
             minute='*',
-            hour='9-23',
+            hour='9-14',
             day_of_week='1-5',  # Monday to Friday
             day_of_month='*',
             month_of_year='*',

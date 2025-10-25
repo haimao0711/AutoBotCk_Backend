@@ -28,9 +28,9 @@ def user_trading_task(self, user_id):
         now = datetime.now(timezone).time()
 
         morning_start = time(9, 15)
-        morning_end = time(23, 28)
+        morning_end = time(11, 28)
         afternoon_start = time(13, 0)
-        afternoon_end = time(23, 28)
+        afternoon_end = time(14, 28)
         
         vps_account = AccountService.get_account_by_user(user)
         if not vps_account:
@@ -40,7 +40,7 @@ def user_trading_task(self, user_id):
         account_num = vps_account.account_num
         session_id = vps_account.vps_session_id
         
-        logger.info(f'Đã chạy hàm user_trading của user {account_name} với tài khoản {account_num}')
+        logger.info(f'Đã chạy hàm user_trading của user {{user.username}} với tài khoản {account_num}')
 
         def notify_running(user):
             vietnam_tz = pytz.timezone('Asia/Ho_Chi_Minh')
@@ -51,7 +51,7 @@ def user_trading_task(self, user_id):
                 'username': user.username
             }
             send_message(user, MessageTypeEnum.OVERALL, SignalTelegramEnum.NOTIFY_RUNNING.value, **notify_running_data)
-
+        is_validate_session = False
         if is_within_range_time(now, morning_start, morning_end) or is_within_range_time(now, afternoon_start, afternoon_end):
             url = api.TRADING_URL
             is_validate_session, res_validate_session = validate_session(account_name, account_num, url, session_id, '')
@@ -62,7 +62,7 @@ def user_trading_task(self, user_id):
                 
         if session_id != 'stop_trading' and is_validate_session:
             notify_running(user)
-            logger.info('Bot BẮT ĐẦU thực hiện trading!')
+            logger.info(f'📢📢📢Job trading của user {user.username} BẮT ĐẦU lượt chạy mới!')
             trading(user=user, vps_account=vps_account, symbol='All')
             
     except Exception as exc:
@@ -133,7 +133,7 @@ def trading_request_task(self, user_id, stock_id, symbol, request_buy, request_s
         account_name = vps_account.name
         account_num = vps_account.account_num
         session_id = vps_account.vps_session_id
-
+        type_request_trading = 'Mua tay' if request_buy else 'Bán tay'
         if is_within_range_time(now, morning_start, morning_end) or is_within_range_time(now, afternoon_start, afternoon_end):
             url = api.TRADING_URL
             res_validate_session = validate_session(account_name, account_num, url, session_id, '')
@@ -144,7 +144,7 @@ def trading_request_task(self, user_id, stock_id, symbol, request_buy, request_s
                 return False
                 
             if session_id != 'stop_trading' and res_validate_session:
-                logger.info('Request trading BẮT ĐẦU thực hiện!')
+                logger.info(f'Yêu cầu {type_request_trading} mã {symbol} user {user.username} BẮT ĐẦU thực hiện!')
                 
                 # Chạy trading_request trong Celery task
                 result = trading_request(user, vps_account, stock_id, symbol, request_buy, request_sell, volume_sell)
