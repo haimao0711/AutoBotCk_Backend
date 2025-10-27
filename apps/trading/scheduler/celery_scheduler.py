@@ -20,14 +20,25 @@ def create_user_schedules(user):
             name=f'user_trading_{user.username}'
         ).delete()
         
-        schedule_trading, created = CrontabSchedule.objects.get_or_create(
+        # Tìm hoặc tạo schedule trading
+        schedule_trading = CrontabSchedule.objects.filter(
             minute='*',
             hour='9-14',
             day_of_week='1-5',  # Monday to Friday
             day_of_month='*',
             month_of_year='*',
             timezone='Asia/Ho_Chi_Minh'
-        )
+        ).first()
+        
+        if not schedule_trading:
+            schedule_trading = CrontabSchedule.objects.create(
+                minute='*',
+                hour='9-14',
+                day_of_week='1-5',
+                day_of_month='*',
+                month_of_year='*',
+                timezone='Asia/Ho_Chi_Minh'
+            )
         
         task_trading, created = PeriodicTask.objects.get_or_create(
             name=f'user_trading_{user.username}',
@@ -46,14 +57,25 @@ def create_user_schedules(user):
             name=f'cancel_morning_{user.username}'
         ).delete()
         
-        schedule_cancel_morning, created = CrontabSchedule.objects.get_or_create(
+        # Tìm hoặc tạo schedule cancel morning
+        schedule_cancel_morning = CrontabSchedule.objects.filter(
             minute='29',
             hour='11',
             day_of_week='1-5',
             day_of_month='*',
             month_of_year='*',
             timezone='Asia/Ho_Chi_Minh'
-        )
+        ).first()
+        
+        if not schedule_cancel_morning:
+            schedule_cancel_morning = CrontabSchedule.objects.create(
+                minute='29',
+                hour='11',
+                day_of_week='1-5',
+                day_of_month='*',
+                month_of_year='*',
+                timezone='Asia/Ho_Chi_Minh'
+            )
         
         task_cancel_morning, created = PeriodicTask.objects.get_or_create(
             name=f'cancel_morning_{user.username}',
@@ -67,14 +89,24 @@ def create_user_schedules(user):
         )
         
         # 3. Cancel Trading Afternoon - 14:29
-        schedule_cancel_afternoon, created = CrontabSchedule.objects.get_or_create(
+        schedule_cancel_afternoon = CrontabSchedule.objects.filter(
             minute='29',
             hour='14',
             day_of_week='1-5',
             day_of_month='*',
             month_of_year='*',
             timezone='Asia/Ho_Chi_Minh'
-        )
+        ).first()
+        
+        if not schedule_cancel_afternoon:
+            schedule_cancel_afternoon = CrontabSchedule.objects.create(
+                minute='29',
+                hour='14',
+                day_of_week='1-5',
+                day_of_month='*',
+                month_of_year='*',
+                timezone='Asia/Ho_Chi_Minh'
+            )
         
         task_cancel_afternoon, created = PeriodicTask.objects.get_or_create(
             name=f'cancel_afternoon_{user.username}',
@@ -88,14 +120,24 @@ def create_user_schedules(user):
         )
         
         # 4. Restart Request Trade - 14:30
-        schedule_restart, created = CrontabSchedule.objects.get_or_create(
+        schedule_restart = CrontabSchedule.objects.filter(
             minute='30',
             hour='14',
             day_of_week='1-5',
             day_of_month='*',
             month_of_year='*',
             timezone='Asia/Ho_Chi_Minh'
-        )
+        ).first()
+        
+        if not schedule_restart:
+            schedule_restart = CrontabSchedule.objects.create(
+                minute='30',
+                hour='14',
+                day_of_week='1-5',
+                day_of_month='*',
+                month_of_year='*',
+                timezone='Asia/Ho_Chi_Minh'
+            )
         
         task_restart, created = PeriodicTask.objects.get_or_create(
             name=f'restart_request_{user.username}',
