@@ -22,7 +22,7 @@ from common.signal.enums import SignalTelegramEnum
 from apps.telegram.enum.enums import MessageTypeEnum
 from common.api.smartone.handler import validate_session
 from apps.trading.service.handlers import cancel_all_orders
-from apps.trading.scheduler.trading import start_scheduler_for_user, stop_scheduler_for_user
+from apps.trading.scheduler.celery_scheduler import create_user_schedules, remove_user_schedules
 from common.errors.messages import ErrorMessages
 from apps import api
 
@@ -69,7 +69,9 @@ class AuthencationStockExchagesView(APIView):
         if is_trading:
             cancel_all_orders(user, account_name, account_num, '', url, session_id, '', 'All')
             result = update_vps_data(session_id, "Trading is stopped!", 2)
-            stop_scheduler_for_user(user)  # Dừng scheduler của user
+            remove_user_schedules(user)  # Dừng scheduler của user (xóa PeriodicTask trong DB)
+            user.scheduler_status = False
+            user.save()
         else:
             # Đăng nhập để lấy session mới
             session_login_1 = login_get_session_vps_step_1(account_name, pass_login)
@@ -88,7 +90,9 @@ class AuthencationStockExchagesView(APIView):
             # Kiểm tra tính hợp lệ của session
             if session_login_2 and validate_session(account_name, account_num, url, session_id, ''):
                 result = update_vps_data(session_id, "Session hợp lệ!", 1)
-                start_scheduler_for_user(user)  # Bật scheduler của user
+                create_user_schedules(user)  # Bật scheduler của user (tạo PeriodicTask trong DB)
+                user.scheduler_status = True
+                user.save()
             else:
                 return Response({"data": {"message": "Session chưa hợp lệ!", "status": 0}}, status=HTTP_400_BAD_REQUEST)
 

@@ -16,10 +16,9 @@ python manage.py migrate --noinput
 # Thu thập static files
 python manage.py collectstatic --noinput
 
-# Khởi động lại schedulers (nếu có)
-if python manage.py restart_schedulers 2>/dev/null; then
-    echo "✅ Schedulers restarted"
-fi
+# Schedulers được quản lý bởi Celery Beat
+# Không cần restart manual - Celery Beat tự động load schedules từ database
+echo "ℹ️  Schedulers are managed by Celery Beat"
 
 # Khởi động Gunicorn với settings chính xác
 exec gunicorn config.wsgi:application \

@@ -40,7 +40,7 @@ def user_trading_task(self, user_id):
         account_num = vps_account.account_num
         session_id = vps_account.vps_session_id
         
-        logger.info(f'Đã chạy hàm user_trading của user {{user.username}} với tài khoản {account_num}')
+        logger.info(f'Đã chạy hàm user_trading của user {user.username} với tài khoản {account_num}')
 
         def notify_running(user):
             vietnam_tz = pytz.timezone('Asia/Ho_Chi_Minh')
