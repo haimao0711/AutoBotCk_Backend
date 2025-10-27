@@ -194,3 +194,44 @@ class DownloadStockView(APIView):
         return Response({
             "data": True
         }, status=status.HTTP_200_OK)
+
+class SetupStockSchedulesView(APIView):
+    """
+    API endpoint để setup Stock schedules vào Celery Beat database
+    POST /api/stock/setup-schedules/
+    """
+    permission_classes = [StockPermission]
+    
+    def post(self, request):
+        try:
+            from apps.stock.scheduler.celery_scheduler import setup_stock_schedules
+            
+            logger.info('🔄 API request to setup stock schedules...')
+            result = setup_stock_schedules()
+            
+            if result:
+                return Response({
+                    'success': True,
+                    'message': '✅ Stock schedules setup completed successfully!',
+                    'schedules': [
+                        'delete_old_stock_records',
+                        'download_stock_data_w1',
+                        'download_stock_data_d1',
+                        'download_stock_data_h1',
+                        'download_stock_data_m15',
+                        'download_stock_data_m5',
+                        'download_stock_data_m1'
+                    ]
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'success': False,
+                    'message': '❌ Failed to setup stock schedules'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        except Exception as e:
+            logger.error(f'Error setting up stock schedules: {e}')
+            return Response({
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

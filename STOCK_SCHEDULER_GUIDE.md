@@ -25,17 +25,32 @@ APScheduler đã được thay thế hoàn toàn bằng **Celery Beat + Database
 
 ## 🚀 Cách sử dụng
 
-### Option 1: Tự động (Khuyến nghị)
-Khi restart Celery Beat, schedules sẽ tự động được tạo sau 5 giây:
-
+### Option 1: Qua API Endpoint (Khuyến nghị)
 ```bash
-docker-compose restart celery-beat
-docker-compose logs -f celery-beat
+POST /api/stock/setup-schedules
+
+# Ví dụ với curl:
+curl -X POST http://localhost:8000/api/stock/setup-schedules \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json"
+
+# Response:
+{
+  "success": true,
+  "message": "✅ Stock schedules setup completed successfully!",
+  "schedules": [
+    "delete_old_stock_records",
+    "download_stock_data_w1",
+    "download_stock_data_d1",
+    "download_stock_data_h1",
+    "download_stock_data_m15",
+    "download_stock_data_m5",
+    "download_stock_data_m1"
+  ]
+}
 ```
 
-### Option 2: Manual (Nếu cần)
-Chạy management command:
-
+### Option 2: Qua Management Command
 ```bash
 # Trong Docker
 docker-compose exec stock-predict-api python manage.py setup_stock_schedules
