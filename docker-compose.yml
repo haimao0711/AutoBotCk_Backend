@@ -65,11 +65,17 @@ services:
     restart: always
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
+    command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - backend_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   celery-worker:
     build: .
@@ -89,7 +95,7 @@ services:
     networks:
       - backend_net
     deploy:
-      replicas: 1
+      replicas: 2
 
   celery-beat:
     build: .
