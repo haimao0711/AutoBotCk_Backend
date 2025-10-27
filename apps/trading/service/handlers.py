@@ -1705,7 +1705,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         config["stock"].name
         for config in configurations_is_trading
     ]
-    print('List symbol_is_trading: ', list_symbol_is_trading )
+    logger.info(f'List symbol_is_trading của user {user.username}: {list_symbol_is_trading}  ')
     configurations_handle_trading = [
         config for config in user_configurations
         if (trading_config := config.get("trading_config")) and trading_config.is_trading is False
@@ -1724,7 +1724,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
     symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
     # print('List symbols_existing: ', symbols_existing )
     # print('Check number_stock_existing: ', number_stock_existing )
-    print('Check limit_number_stocks: ', limit_number_stocks )
+    # print('Check limit_number_stocks: ', limit_number_stocks )
     configurations_test_trading = [
         config for config in configurations_handle_trading
         if (stock := config.get("stock")) and stock.name in ['CII', 'HCM', 'DIG'] ]
@@ -1736,7 +1736,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         config["stock"].name
         for config in configurations_handle_trading
     ]
-    print('List list_symbols_process_trading: ', list_symbols_process_trading )
+    logger.info(f'List list_symbols_process_trading của user {user.username} : {list_symbols_process_trading} ')
     list_symbols_test_trading  = [
         config["stock"].name
         for config in configurations_test_trading

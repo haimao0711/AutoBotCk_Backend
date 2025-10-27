@@ -8,146 +8,164 @@ import logging
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
+def get_or_create_crontab(minute, hour, day_of_week, day_of_month, month_of_year, timezone):
+    """
+    Tìm hoặc tạo CrontabSchedule, xử lý duplicate nếu có
+    """
+    schedules = CrontabSchedule.objects.filter(
+        minute=minute,
+        hour=hour,
+        day_of_week=day_of_week,
+        day_of_month=day_of_month,
+        month_of_year=month_of_year,
+        timezone=timezone
+    )
+    
+    count = schedules.count()
+    
+    if count == 0:
+        # Không có schedule, tạo mới
+        return CrontabSchedule.objects.create(
+            minute=minute,
+            hour=hour,
+            day_of_week=day_of_week,
+            day_of_month=day_of_month,
+            month_of_year=month_of_year,
+            timezone=timezone
+        )
+    elif count == 1:
+        # Có 1 schedule, dùng luôn
+        return schedules.first()
+    else:
+        # Có duplicate, xóa hết và tạo mới
+        logger.warning(f"⚠️  Phát hiện {count} duplicate CrontabSchedule, đang dọn dẹp...")
+        schedules.delete()
+        return CrontabSchedule.objects.create(
+            minute=minute,
+            hour=hour,
+            day_of_week=day_of_week,
+            day_of_month=day_of_month,
+            month_of_year=month_of_year,
+            timezone=timezone
+        )
+
+def create_or_update_periodic_task(name, crontab, task, args, queue):
+    """
+    Tạo hoặc cập nhật PeriodicTask, xử lý duplicate nếu có
+    """
+    tasks = PeriodicTask.objects.filter(name=name)
+    count = tasks.count()
+    
+    if count == 0:
+        # Không có task, tạo mới
+        return PeriodicTask.objects.create(
+            name=name,
+            crontab=crontab,
+            task=task,
+            args=args,
+            enabled=True,
+            queue=queue
+        )
+    elif count == 1:
+        # Có 1 task, update
+        task_obj = tasks.first()
+        task_obj.crontab = crontab
+        task_obj.task = task
+        task_obj.args = args
+        task_obj.enabled = True
+        task_obj.queue = queue
+        task_obj.save()
+        return task_obj
+    else:
+        # Có duplicate, xóa hết và tạo mới
+        logger.warning(f"⚠️  Phát hiện {count} duplicate PeriodicTask '{name}', đang dọn dẹp...")
+        tasks.delete()
+        return PeriodicTask.objects.create(
+            name=name,
+            crontab=crontab,
+            task=task,
+            args=args,
+            enabled=True,
+            queue=queue
+        )
+
 def create_user_schedules(user):
     """
     Tạo schedules cho một user cụ thể
     """
     try:
         logger.info(f"Creating schedules for user: {user.username} (ID: {user.id})")
-        # 1. User Trading Task - mỗi phút từ 9h-23h
-        # Xóa duplicate schedules của user hiện tại trước
-        PeriodicTask.objects.filter(
-            name=f'user_trading_{user.username}'
-        ).delete()
         
-        # Tìm hoặc tạo schedule trading
-        schedule_trading = CrontabSchedule.objects.filter(
+        # 1. User Trading Task - mỗi phút từ 9h-14h
+        schedule_trading = get_or_create_crontab(
             minute='*',
             hour='9-14',
-            day_of_week='1-5',  # Monday to Friday
+            day_of_week='1-5',
             day_of_month='*',
             month_of_year='*',
             timezone='Asia/Ho_Chi_Minh'
-        ).first()
+        )
         
-        if not schedule_trading:
-            schedule_trading = CrontabSchedule.objects.create(
-                minute='*',
-                hour='9-14',
-                day_of_week='1-5',
-                day_of_month='*',
-                month_of_year='*',
-                timezone='Asia/Ho_Chi_Minh'
-            )
-        
-        task_trading, created = PeriodicTask.objects.get_or_create(
+        create_or_update_periodic_task(
             name=f'user_trading_{user.username}',
-            defaults={
-                'crontab': schedule_trading,
-                'task': 'apps.trading.tasks.user_trading_task',
-                'args': json.dumps([user.id]),
-                'enabled': True,
-                'queue': 'trading_high_priority'
-            }
+            crontab=schedule_trading,
+            task='apps.trading.tasks.user_trading_task',
+            args=json.dumps([user.id]),
+            queue='trading_high_priority'
         )
         
         # 2. Cancel Trading Morning - 11:29
-        # Xóa duplicate schedules của user hiện tại trước
-        PeriodicTask.objects.filter(
-            name=f'cancel_morning_{user.username}'
-        ).delete()
-        
-        # Tìm hoặc tạo schedule cancel morning
-        schedule_cancel_morning = CrontabSchedule.objects.filter(
+        schedule_cancel_morning = get_or_create_crontab(
             minute='29',
             hour='11',
             day_of_week='1-5',
             day_of_month='*',
             month_of_year='*',
             timezone='Asia/Ho_Chi_Minh'
-        ).first()
+        )
         
-        if not schedule_cancel_morning:
-            schedule_cancel_morning = CrontabSchedule.objects.create(
-                minute='29',
-                hour='11',
-                day_of_week='1-5',
-                day_of_month='*',
-                month_of_year='*',
-                timezone='Asia/Ho_Chi_Minh'
-            )
-        
-        task_cancel_morning, created = PeriodicTask.objects.get_or_create(
+        create_or_update_periodic_task(
             name=f'cancel_morning_{user.username}',
-            defaults={
-                'crontab': schedule_cancel_morning,
-                'task': 'apps.trading.tasks.cancel_trading_task',
-                'args': json.dumps([user.id, 'morning']),
-                'enabled': True,
-                'queue': 'trading'
-            }
+            crontab=schedule_cancel_morning,
+            task='apps.trading.tasks.cancel_trading_task',
+            args=json.dumps([user.id, 'morning']),
+            queue='trading'
         )
         
         # 3. Cancel Trading Afternoon - 14:29
-        schedule_cancel_afternoon = CrontabSchedule.objects.filter(
+        schedule_cancel_afternoon = get_or_create_crontab(
             minute='29',
             hour='14',
             day_of_week='1-5',
             day_of_month='*',
             month_of_year='*',
             timezone='Asia/Ho_Chi_Minh'
-        ).first()
+        )
         
-        if not schedule_cancel_afternoon:
-            schedule_cancel_afternoon = CrontabSchedule.objects.create(
-                minute='29',
-                hour='14',
-                day_of_week='1-5',
-                day_of_month='*',
-                month_of_year='*',
-                timezone='Asia/Ho_Chi_Minh'
-            )
-        
-        task_cancel_afternoon, created = PeriodicTask.objects.get_or_create(
+        create_or_update_periodic_task(
             name=f'cancel_afternoon_{user.username}',
-            defaults={
-                'crontab': schedule_cancel_afternoon,
-                'task': 'apps.trading.tasks.cancel_trading_task',
-                'args': json.dumps([user.id, 'afternoon']),
-                'enabled': True,
-                'queue': 'trading'
-            }
+            crontab=schedule_cancel_afternoon,
+            task='apps.trading.tasks.cancel_trading_task',
+            args=json.dumps([user.id, 'afternoon']),
+            queue='trading'
         )
         
         # 4. Restart Request Trade - 14:30
-        schedule_restart = CrontabSchedule.objects.filter(
+        schedule_restart = get_or_create_crontab(
             minute='30',
             hour='14',
             day_of_week='1-5',
             day_of_month='*',
             month_of_year='*',
             timezone='Asia/Ho_Chi_Minh'
-        ).first()
+        )
         
-        if not schedule_restart:
-            schedule_restart = CrontabSchedule.objects.create(
-                minute='30',
-                hour='14',
-                day_of_week='1-5',
-                day_of_month='*',
-                month_of_year='*',
-                timezone='Asia/Ho_Chi_Minh'
-            )
-        
-        task_restart, created = PeriodicTask.objects.get_or_create(
+        create_or_update_periodic_task(
             name=f'restart_request_{user.username}',
-            defaults={
-                'crontab': schedule_restart,
-                'task': 'apps.trading.tasks.restart_request_trade_task',
-                'args': json.dumps([user.id]),
-                'enabled': True,
-                'queue': 'trading'
-            }
+            crontab=schedule_restart,
+            task='apps.trading.tasks.restart_request_trade_task',
+            args=json.dumps([user.id]),
+            queue='trading'
         )
         
         logger.info(f"✅ Đã tạo schedules cho user {user.username}")

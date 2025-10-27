@@ -1,3 +1,17 @@
+"""
+⚠️ DEPRECATED: File này đã KHÔNG CÒN được sử dụng!
+
+APScheduler đã được thay thế bằng Celery Beat.
+Các scheduled tasks hiện tại được quản lý bởi:
+- Tasks: apps/stock/tasks.py
+- Scheduler config: apps/stock/scheduler/celery_scheduler.py
+- Celery Beat: config/celery.py
+
+Để chạy scheduler, sử dụng:
+    celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    celery -A config worker -l info
+"""
+
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -8,6 +22,9 @@ from django.db import close_old_connections  # ✅ thêm import
 logger = logging.getLogger(__name__)
 scheduler = None
 scheduler_started = False
+
+# ⚠️ WARNING: Hàm start() bên dưới KHÔNG còn được gọi
+# APScheduler đã bị thay thế bằng Celery Beat
 
 def safe_run(func):
     try:

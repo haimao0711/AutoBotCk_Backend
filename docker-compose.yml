@@ -89,7 +89,7 @@ services:
     networks:
       - backend_net
     deploy:
-      replicas: 2
+      replicas: 1
 
   celery-beat:
     build: .

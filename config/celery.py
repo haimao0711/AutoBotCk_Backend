@@ -15,27 +15,12 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
-# Setup schedulers for different apps
-def setup_all_schedulers():
-    """Setup all Celery Beat schedulers"""
-    try:
-        # Setup stock scheduler
-        from apps.stock.scheduler.celery_scheduler import setup_stock_celery_scheduler
-        setup_stock_celery_scheduler(app)
-    except ImportError as e:
-        print(f"Could not import stock scheduler: {e}")
-    
-    try:
-        # Setup trading scheduler if exists
-        from apps.trading.scheduler.celery_scheduler import setup_trading_celery_scheduler
-        setup_trading_celery_scheduler(app)
-    except ImportError as e:
-        print(f"Could not import trading scheduler: {e}")
-
-# Setup schedulers when Celery app is ready
-@app.on_after_configure.connect
-def setup_periodic_tasks(sender, **kwargs):
-    setup_all_schedulers()
+# Note: Both Stock and Trading schedulers use DatabaseScheduler (django_celery_beat)
+# Schedules are stored in database and created via:
+# - Stock: apps.stock.scheduler.celery_scheduler.setup_stock_schedules()
+# - Trading: apps.trading.scheduler.celery_scheduler.create_user_schedules(user)
+#
+# To initialize schedules, run Django management command or call setup functions manually
 
 @app.task(bind=True)
 def debug_task(self):
