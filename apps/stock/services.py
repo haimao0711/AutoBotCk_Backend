@@ -282,7 +282,12 @@ class DownloadService:
                 "to": int(current_timestamp),
             }
 
-            res = requests.get(API_VNDIRECT, params=params, headers=HEADERS)
+            try:
+                res = requests.get(API_VNDIRECT, params=params, headers=HEADERS, timeout=10)
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout, requests.exceptions.RequestException) as e:
+                print(f"Connection error when downloading {stock.symbol}: {e}")
+                continue
+
             if res.status_code == 200:
                 try:
                     data = res.content

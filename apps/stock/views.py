@@ -135,65 +135,82 @@ class StockImportedViews(APIView):
     
     @staticmethod
     def delete_old_records():
-        # Định nghĩa chính sách lưu trữ cho mỗi model (số ngày)
-        retention_policy = {
-            StockM1: 5,     # 5 ngày
-            StockM5: 7,     # 1 tuần
-            StockM15: 7,    # 1 tuần
-            StockH1: 14,    # 2 tuần
-            StockD1: 60,    # 2 tháng (tạm tính là 60 ngày)
-        }
+        try:
+            # Định nghĩa chính sách lưu trữ cho mỗi model (số ngày)
+            retention_policy = {
+                StockM1: 5,     # 5 ngày
+                StockM5: 7,     # 1 tuần
+                StockM15: 7,    # 1 tuần
+                StockH1: 14,    # 2 tuần
+                StockD1: 60,    # 2 tháng (tạm tính là 60 ngày)
+            }
 
-        batch_size = 1000  # Số lượng bản ghi xóa mỗi lần
-        logger.info("Bắt đầu xóa các bản ghi cũ...")
+            batch_size = 1000  # Số lượng bản ghi xóa mỗi lần
+            logger.info("Bắt đầu xóa các bản ghi cũ...")
 
-        for model, days in retention_policy.items():
-            cutoff_datetime = datetime.now() - timedelta(days=days)
-            cutoff_ts = int(cutoff_datetime.timestamp())
-            model_name = model.__name__
-            logger.info(f"Bắt đầu xóa các bản ghi cũ cho {model_name} (dữ liệu trước {cutoff_datetime})...")
-            
-            while True:
-                # Lấy danh sách ID của các bản ghi cũ (theo cutoff_ts, giới hạn batch_size)
-                old_record_ids = list(
-                    model.objects.filter(time__lt=cutoff_ts)
-                        .order_by('time')  # Xóa từ bản ghi cũ nhất
-                        .values_list('id', flat=True)[:batch_size]
-                )
+            for model, days in retention_policy.items():
+                cutoff_datetime = datetime.now() - timedelta(days=days)
+                cutoff_ts = int(cutoff_datetime.timestamp())
+                model_name = model.__name__
+                logger.info(f"Bắt đầu xóa các bản ghi cũ cho {model_name} (dữ liệu trước {cutoff_datetime})...")
+                
+                while True:
+                    # Lấy danh sách ID của các bản ghi cũ (theo cutoff_ts, giới hạn batch_size)
+                    old_record_ids = list(
+                        model.objects.filter(time__lt=cutoff_ts)
+                            .order_by('time')  # Xóa từ bản ghi cũ nhất
+                            .values_list('id', flat=True)[:batch_size]
+                    )
 
-                if not old_record_ids:
-                    logger.info(f"Không còn bản ghi cũ để xóa cho {model_name}.")
-                    break
+                    if not old_record_ids:
+                        logger.info(f"Không còn bản ghi cũ để xóa cho {model_name}.")
+                        break
 
-                try:
-                    with transaction.atomic():  # Xóa an toàn trong một transaction
-                        model.objects.filter(id__in=old_record_ids).delete()
-                    logger.info(f"[{datetime.now()}] Đã xóa {len(old_record_ids)} bản ghi trong {model_name}.")
-                except Exception as e:
-                    logger.warning(f"Lỗi khi xóa bản ghi trong {model_name}: {e}")
-                    break  # Thoát vòng lặp nếu có lỗi
+                    try:
+                        with transaction.atomic():  # Xóa an toàn trong một transaction
+                            model.objects.filter(id__in=old_record_ids).delete()
+                        logger.info(f"[{datetime.now()}] Đã xóa {len(old_record_ids)} bản ghi trong {model_name}.")
+                    except Exception as e:
+                        logger.warning(f"Lỗi khi xóa bản ghi trong {model_name}: {e}")
+                        break  # Thoát vòng lặp nếu có lỗi
 
-                time.sleep(1)  # Delay để tránh tải nặng database
+                    time.sleep(1)  # Delay để tránh tải nặng database
 
-        logger.info("Hoàn thành xóa các bản ghi cũ.")
+            logger.info("Hoàn thành xóa các bản ghi cũ.")
+        except Exception as e:
+            logger.error(f"Lỗi trong delete_old_records: {e}")
+        finally:
+            close_old_connections()
             
     def get(self, requests):
-        stocks = StockService.get_stocks_for_configuration()
-        stock_ids = [stock.id for stock in stocks]
-        _ = StockService.download_imported_new_data_to_database_chart(stock_ids)
-        return Response({'data': {'message': 'Start the endpoint for trigger download the data is successfully!'}}, status=status.HTTP_200_OK)
+        try:
+            stocks = StockService.get_stocks_for_configuration()
+            stock_ids = [stock.id for stock in stocks]
+            _ = StockService.download_imported_new_data_to_database_chart(stock_ids)
+            return Response({'data': {'message': 'Start the endpoint for trigger download the data is successfully!'}}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error in StockImportedViews.get: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        finally:
+            close_old_connections()
 
 class DownloadStockView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        stock = StockService.get_stock_by_symbol('VNINDEX')
-        data = DownloadService.download_data_single(stock, CandleEnum.D1, download_status=DownloadStatusEnum.NEW.value)
-        adding_idicator(data)
-        logger.info(data)
-        return Response({
-            "data": True
-        }, status=status.HTTP_200_OK)
+        try:
+            stock = StockService.get_stock_by_symbol('VNINDEX')
+            data = DownloadService.download_data_single(stock, CandleEnum.D1, download_status=DownloadStatusEnum.NEW.value)
+            adding_idicator(data)
+            logger.info(data)
+            return Response({
+                "data": True
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error in DownloadStockView.get: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        finally:
+            close_old_connections()
 
 class SetupStockSchedulesView(APIView):
     """
