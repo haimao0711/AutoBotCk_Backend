@@ -383,8 +383,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 data_trading_df=stock_data_trading,
                 config_type='stock_config'
             )
-            print(f'Check is_buy ham request buy {symbol}', is_buy)
-            print(f'Check buy_reason {symbol}', buy_reason)
+            logger.info(f'Check is_buy ham request buy {symbol}: {is_buy}')
+            logger.info(f'Check buy_reason {symbol}: {buy_reason}')
 
             if is_buy:
                 status_buy = SignalTelegramEnum.BUY_REQUEST_SUCCESS
@@ -415,7 +415,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         time.sleep(5)
 
     if status_buy == SignalTelegramEnum.BUY_REQUEST_FAILED:
-        print('Dừng vòng lặp do vượt thời gian hoặc Yêu cầu ngừng mua tay .')        
+        logger.info('Dừng vòng lặp do vượt thời gian hoặc Yêu cầu ngừng mua tay .')        
         revert_status_request_trade(user, stock_id)
         time_now = datetime.now(timezone)
         start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
@@ -446,11 +446,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         low_last_row = last_row['low']            
         high_last_row = last_row['high']
         step_price = trading_config.stock_config_slippage_volume_buy_per_pid
-        print(f'check step_price mua tay stock {symbol}: ', step_price)
         time_to_buy = trading_config.stock_config_time_to_buy
         time_to_buy = time_to_buy if time_to_buy > 30 else 30
         sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
-        print(f'check sleeping_time_buy mua tay stock {symbol}: ', sleeping_time_buy)
         sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
         start_price = round_up_to_unit(open_last_row, close_last_row, step_price)       
         price_current = stock_data_trading.iloc[-1]['close']
@@ -469,9 +467,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         volume_to_buy = overview_config.volume_to_buy        
     #Kiểm tra đk số cổ phiếu giới hạn, khối lượng mua còn lại, tiền mặt
         if number_stock_existing >= max_stock_existing and stock_balance == 0 :
-            print(f'Lệnh mua {symbol} rơi vào trường hợp vượt quá số cổ phiếu tối đa hiện đang là {number_stock_existing}')
+            logger.info(f'Lệnh mua {symbol} rơi vào trường hợp vượt quá số cổ phiếu tối đa hiện đang là {number_stock_existing}')
         elif not cash_balance:
-            print(f'không có respon khi lấy số dư tiền mặt {symbol}')
+            logger.info(f'không có respon khi lấy số dư tiền mặt {symbol}')
         else: 
             volume_by_balance =  int(volume_to_buy - stock_balance)
             volume = int(round(volume_to_buy * percent_first_buy / 100) * 100) if volume_by_balance > int(volume_to_buy*percent_first_buy) else volume_by_balance
@@ -499,14 +497,12 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     # Xử lý mua nhạy cảm 
             if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
                 sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
-                print('check phần trăm mua nhạy cảm:  ', sensitive_percentage )
                 volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
                 buy_order_attrs_send = {
                     'stock': symbol,
                     'price': round(float(high_last_row - add_price_buy), 2), # Giá mua tạm thời giảm so với yêu cầu thuật toán, cần sửa lại
                     'volume': int(volume_buy_sensitive)
                 }
-                print('check price to set buy: ', buy_order_attrs_send['price'])
                 res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
                 if res_buy:
                     is_send_order_buy = True
@@ -521,9 +517,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     volume -= int(res_buy['volume'])
                     number_order -= 1
                 else:
-                    print(f"Error: lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng")
+                    logger.info(f"Error: lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng")
             else:
-                print(f'Mã {symbol} đạt khối lượng tối đa') 
+                logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
         # Chia đều phần còn lại của volume to buy
             number_order = min(number_order, volume // 100)
             if volume >=100:
@@ -1017,8 +1013,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 if not is_buy_vnindex:
                     is_buy = is_buy_vnindex  
 
-            print(f'check is_buy {symbol}', is_buy)
-            print(f'check buy_reason {symbol}', buy_reason)     
+            logger.info(f'check is_buy {symbol}: {is_buy}')
+            logger.info(f'check buy_reason {symbol} {buy_reason}')     
 
             number_order = trading_config.stock_config_number_pid_buy_once_time
 

@@ -139,7 +139,7 @@ def delete_old_stock_records_task(self):
             
             while True:
                 # Lấy danh sách ID của các bản ghi cũ (theo cutoff_ts, giới hạn batch_size)
-                old_records = model.objects.filter(ts__lt=cutoff_ts).values_list('id', flat=True)[:batch_size]
+                old_records = model.objects.filter(time__lt=cutoff_ts).values_list('id', flat=True)[:batch_size]
                 
                 if not old_records:
                     break
