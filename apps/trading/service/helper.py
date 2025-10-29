@@ -143,7 +143,7 @@ def send_telegram_message_batch(user, message_type: MessageTypeEnum, batch_messa
         # Gửi toàn bộ nội dung trong một tin nhắn duy nhất
         if combined_message:
             try:
-                print('check combined_message send telegram: ', combined_message)
+                print(f'check combined_message send telegram: {combined_message}')
                 send_message_telegram(user=user, message_type=message_type, message=combined_message)
             except Exception as e:
                 print(f"[Error] Lỗi gửi telegram: {e}")
@@ -175,8 +175,8 @@ def is_valid_time_to_buy(config: Configuration):
     now = datetime.now(timezone).time()
     is_use_time_to_buy = config.stock_config_is_use_time_to_buy
     start_time, end_time = config.stock_config_time_start_buy, config.stock_config_time_end_buy
-    stock_name = config.stock.name
-    logger.info(f"is_valid_time_to_buy {stock_name} : {is_use_time_to_buy}, start_time: {start_time}, end_time: {end_time}, now: {now}")
+    # stock_name = config.stock.name
+    # logger.info(f"is_valid_time_to_buy {stock_name} : {is_use_time_to_buy}, start_time: {start_time}, end_time: {end_time}, now: {now}")
     if is_use_time_to_buy:
         return is_within_time_range(start_time, end_time, now)
     else:

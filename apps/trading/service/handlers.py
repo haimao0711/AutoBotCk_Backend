@@ -67,11 +67,11 @@ def cancel_all_orders(user: User, user_name: str, account: str, symbol: str, req
 
 
 def update_buy_order(user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str, step_price: float, limited_price: float, times_update: int):
-    print(f'Bắt đầu chạy hàm update lệnh mua {symbol} ' )    
+    logger.info(f'Bắt đầu chạy hàm update lệnh mua {symbol} ' )    
     tz = pytz.timezone("Asia/Ho_Chi_Minh")
     start_time_update = datetime.now(tz)
     start_time = time.time()  # Lấy thời gian bắt đầu
-    print(f'Nhắc lại giới hạn update lệnh mua {symbol}: ', limited_price )
+    logger.info(f'Nhắc lại giới hạn update lệnh mua {symbol}: {limited_price}' )
     max_retry = 5
     retry_count = 0
     res_not_matcheds = None
@@ -117,7 +117,7 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
                         'volume': order['volume'],
                         'status': order['status']
                     }
-                    print('check data update buy: ', buy_update_details_attrs)
+                    # logger.info(f'check data update buy: {buy_update_details_attrs}')
                     message_buy_update.append({
                             'status_signal': SignalTelegramEnum.BUY_UPDATE_DETAIL,
                             **buy_update_details_attrs
@@ -1111,7 +1111,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         volume -= int(res_buy['volume'])
                         number_order -= 1
                     else:
-                        print(f"Lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng") 
+                        logger.info(f"Lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng") 
                 # Chia đều phần còn lại của volume to buy
                 number_order = min(number_order, volume // 100)
                 if volume >=100:
@@ -1137,7 +1137,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                 buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
                                                 **buy_order_details_attrs })                            
                         else:
-                            print(f"Error: lệnh mua lần thứ {i+1} hàm handle_buy_service  của {symbol} có phản hồi là rỗng") 
+                            logger.info(f"Error: lệnh mua lần thứ {i+1} hàm handle_buy_service  của {symbol} có phản hồi là rỗng") 
                         volume -= volume_buy  
         
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
@@ -1147,7 +1147,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 # Send telegram hành động
                     send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs)              
                     send_telegram_message_batch(user, MessageTypeEnum.ACT, buy_messages)
-                # print(f'kết thúc hàm đặt lệnh buy {symbol}')        
+                # logger.info(f'kết thúc hàm đặt lệnh buy {symbol}')        
             
             # Update buy order
             if is_send_order_buy:  
@@ -1158,11 +1158,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     time.sleep(sleeping_time_buy)
                     res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                     number_stock_existing = res_stock.get('number_stock_existing', 0) if res_stock else 0
-                    print('bat dau sưa lenh mua lan thu ', i+1, 'cua stock ', symbol)
+                    logger.info(f'bắt đầu sửa lệnh mua lần thứ {i + 1} của mã {symbol}')
                     symbols_existing = res_stock.get('symbols_existing', []) if res_stock else []
                     limit_number_stocks = vps_account.limit_number_stocks
                     if number_stock_existing >= limit_number_stocks and symbol not in symbols_existing:
-                        print(f'Vượt quá giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}!')
+                        logger.info(f'Vượt quá giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}!')
                         cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt quá giới hạn cổ phiếu tối đa', "B")
                         break
 
@@ -1175,15 +1175,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     )
                     sales_data = download_sales_volume(symbol=symbol)
                     if sales_data is None:
-                        print(f'❌ Download sales_data sửa lệnh cho {symbol} không thành công sau 3 lần thử!')
+                        logger.info(f'❌ Download sales_data sửa lệnh cho {symbol} không thành công sau 3 lần thử!')
                         message_download = f'⚠️ Download sales_data to update buy order symbol {symbol} failed after 3 attempts. Skipping!'
                         send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
-                        return
+                        break
                     elif stock_data_following is None:
-                        print(f'❌ Download following_data cho {symbol} không thành công!')
+                        logger.info(f'❌ Download following_data cho {symbol} không thành công!')
                         message_download = f'⚠️ Download following to update buy order symbol {symbol} failed. Skipping!'
                         send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
-                        return  
+                        break  
                     def safe_int(val):
                         try:
                             return int(val) if val is not None else 0
@@ -1209,11 +1209,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     if is_use_vnindex_following:
                         is_buy_vnindex, reason_vnindex = should_buy_following(following_config, vnindex_data_following, 'vnindex_config')
                         message_vnindex = render_message(reason_vnindex, trading_candle, following_candle)
-                        print(f'check is_buy_vnindex_to_update {symbol}', is_buy_vnindex)
+                        logger.info(f'check is_buy_vnindex_to_update {symbol}', is_buy_vnindex)
                         if not is_buy_vnindex:
                             is_buy = False
 
-                    print(f'is_buy_update is_buy {symbol}', is_buy)
+                    logger.info(f'is_buy_update is_buy {symbol}: {is_buy}')
                     price_current = stock_data_trading.iloc[-1]['close']
                     if is_buy:
                         status_buy = SignalTelegramEnum.BUY_SUCCESS
@@ -1228,7 +1228,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             break
                     else:
                         status_buy = SignalTelegramEnum.BUY_FAILED_UPDATE
-                        print(f'Điều kiện sửa lệnh mua không thỏa mãn, hủy lệnh mua {symbol}!')
+                        logger.info(f'Điều kiện sửa lệnh mua không thỏa mãn, hủy lệnh mua {symbol}!')
                         message_reason = render_message(reason_buy, trading_candle, following_candle)
                         buy_attrs = {
                             "user_account": account,
@@ -1246,7 +1246,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 #Tổng kết các lệnh đã khớp theo symbol để send telegram   
                 res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
                 if res_matcheds:
-                    print(f'danh sách các lệnh mua {symbol} đã khớp: ', res_matcheds )
+                    logger.info(f'danh sách các lệnh mua {symbol} đã khớp: ', res_matcheds )
                     time_now = datetime.now(timezone)
                     start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
                     message_buy_matched = []
@@ -1284,7 +1284,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
     #HANDLE SELL
         if not is_block_sell_stock and symbol in symbols_existing:
-            # print(f'bắt đầu hàm thực hiện sell {symbol}')
+            logger.info(f'bắt đầu hàm thực hiện sell {symbol}')
             # Handle take profit
             volume_balance = (stock_balance // 100) * 100
             use_take_profit_first_part = trading_config.stock_config_use_take_profit_first_part
@@ -1309,7 +1309,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 following_chart_type=following_chart_type_sell,
             )
             if stock_data_trading is None:
-                print('Download data không thành công, bỏ qua!')
+                logger.info('Download data không thành công, bỏ qua!')
                 message_download_sell = f'Download data symbol {symbol } to sell không thành công. Bỏ qua lượt trade này!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_download_sell)                 
                 return

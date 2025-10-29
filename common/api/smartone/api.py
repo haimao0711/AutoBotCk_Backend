@@ -96,8 +96,8 @@ def update_order_smart_one(user_account: str, trade_account: str, url: str, symb
 
     try:
         response = requests.request("POST", url, headers=headers, data=payload)
-        print(f'Mã trạng thái phản hồi update {symbol} :', response.status_code)
-        print(f'Nội dung phản hồi update {symbol}:', response.text)
+        # print(f'Mã trạng thái phản hồi update {symbol} :', response.status_code)
+        # print(f'Nội dung phản hồi update {symbol}:', response.text)
         return response
     except requests.exceptions.RequestException as e:
         print('Đã xảy ra lỗi khi gửi yêu cầu:', e)
