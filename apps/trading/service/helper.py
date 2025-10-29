@@ -16,6 +16,8 @@ from apps.configuration.details.models import Configuration
 from apps.trading.message import messages as MESSAGES
 from common.signal.enums import SignalTelegramEnum
 from apps.telegram.enum.enums import MessageTypeEnum
+import logging
+logger = logging.getLogger(__name__)
 
 __all__ = [
     'round_to_nearest_hundred', 'append_messages_to_return', 'adding_idicator', 'send_telegram_message', 'render_type',
@@ -173,6 +175,8 @@ def is_valid_time_to_buy(config: Configuration):
     now = datetime.now(timezone).time()
     is_use_time_to_buy = config.stock_config_is_use_time_to_buy
     start_time, end_time = config.stock_config_time_start_buy, config.stock_config_time_end_buy
+    stock_name = config.stock.name
+    logger.info(f"is_valid_time_to_buy {stock_name} : {is_use_time_to_buy}, start_time: {start_time}, end_time: {end_time}, now: {now}")
     if is_use_time_to_buy:
         return is_within_time_range(start_time, end_time, now)
     else:
