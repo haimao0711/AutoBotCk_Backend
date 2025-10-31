@@ -860,8 +860,7 @@ def  should_sell_trading(
         obj_retured['trading'] = {
             'success': trading_reasons
         }
-    print ('check trading: ', trading)
-    print ('check obj_retured: ', obj_retured)
+
     return trading , obj_retured
 
     # else:

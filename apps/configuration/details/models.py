@@ -353,11 +353,14 @@ class Configuration(models.Model):
 
     stock_config_use_stoch_rsi_to_buy = models.BooleanField(default=True)
     stock_config_use_stoch_rsi_obl_to_buy = models.BooleanField(default=True)
+    stock_config_use_stoch_rsi_to_take_profit = models.BooleanField(default=True)
     stock_config_use_stoch_rsi_reversed_increase = models.BooleanField(
         default=True)
     stock_config_value_stoch_rsi_to_buy = models.FloatField(
         default=30, validators=[MinValueValidator(0), MaxValueValidator(100)])
     stock_config_value_stoch_rsi_obl_to_buy = models.FloatField(
+        default=80, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    stock_config_value_stoch_rsi_to_take_profit = models.FloatField(
         default=80, validators=[MinValueValidator(0), MaxValueValidator(100)])
     stock_config_stoch_rsi_to_buy_necessary_condition = models.BooleanField(
         default=False)

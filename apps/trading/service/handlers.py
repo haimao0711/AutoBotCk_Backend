@@ -739,7 +739,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             print(f"❌ Lỗi khi gửi tin nhắn: {e}") 
     is_send_order_sell = False   
     if status_sell == SignalTelegramEnum.SELL_REQUEST_SUCCESS:
-        print(f'bắt đầu hàm đặt lệnh sell {symbol}')
+        logger.info(f'bắt đầu đặt lệnh sell request {symbol}')
      #Hủy tất cả các lệnh nếu còn đặt
         cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lệnh bán cũ còn tồn', "S")
 
@@ -947,6 +947,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         # Get stock balance 
         res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
         stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
+        volume_balance_trade = res_stock_balance.get('stock_balance', {}).get('available_vol', 0) if res_stock_balance else 0
         ceil_price = res_stock_balance.get('stock_balance', {}).get('ceil_price', 0) if res_stock_balance else 0
         symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
         cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
@@ -1283,8 +1284,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
 
     #HANDLE SELL
-        if not is_block_sell_stock and symbol in symbols_existing:
-            logger.info(f'bắt đầu hàm thực hiện sell {symbol}')
+        if not is_block_sell_stock and symbol in symbols_existing and volume_balance_trade > 0:
+            logger.info(f'bắt đầu hàm kiểm tra thực hiện sell {symbol}')
             # Handle take profit
             volume_balance = (stock_balance // 100) * 100
             use_take_profit_first_part = trading_config.stock_config_use_take_profit_first_part
@@ -1389,7 +1390,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     config_type = 'stock_config'
                 )
                 # print(f'check is_sell {symbol}', is_sell) 
-                # print(f'check sell_reason {symbol}', sell_reason)
+                logger.info(f'check sell_reason {symbol}: {sell_reason}')
 
             if is_trading_take_profit:
                 status_sell = SignalTelegramEnum.TAKEPROFIT
@@ -1424,8 +1425,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             is_send_order_sell = False   
 
             if status_sell in [SignalTelegramEnum.SELL_SUCCESS, SignalTelegramEnum.TAKEPROFIT]:
-                print(f'bắt đầu hàm đặt lệnh sell {symbol}')                
-                # print(f'Check sell_reason {symbol}: ', sell_reason)
+                logger.info(f'bắt đầu đặt lệnh sell {symbol}')     
                 #Hủy tất cả các lệnh nếu còn đặt
                 cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lệnh bán cũ còn tồn', "S")
 
@@ -1436,12 +1436,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 low_last_row = last_row['low']
                 high_last_row = last_row['high']
                 step_price = trading_config.stock_config_slippage_volume_sell_per_pid
-                # print(f'check step_price stock {symbol}: ', step_price)
                 sleeping_time_sell= trading_config.stock_config_time_update_pid_sell
                 sleeping_time_sell = sleeping_time_sell if sleeping_time_sell > 5 else 5
                 time_to_sell = trading_config.stock_config_time_to_sell
-                time_to_sell = time_to_sell if time_to_sell >= 30 else 30    
-                # print(f'check time_to_buy stock {symbol}: ', time_to_sell)
+                time_to_sell = time_to_sell if time_to_sell >= 30 else 30   
                 start_price = round_up_to_unit(open_last_row, close_last_row, step_price)  
                 number_order = trading_config.stock_config_number_pid_sell_once_time
                 time_now = datetime.now(timezone)
@@ -1713,17 +1711,11 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
     # print('List symbol_not_trading: ', list_symbol_not_trading )
 
     # Get stock balance 
-    res_stock_balance = handle_stock_balance_service(account_name, account_num, '', request_url, session_id, '','' )
-    stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
+    res_stock_balance = handle_stock_balance_service(account_name, account_num, '', request_url, session_id, '','' )    
     number_stock_existing = res_stock_balance.get('number_stock_existing', 0) if res_stock_balance else 0
     percent_buy_trade = res_stock_balance.get('percent_buy_trade', 0) if res_stock_balance else 0
     symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
-    # print('List symbols_existing: ', symbols_existing )
-    # print('Check number_stock_existing: ', number_stock_existing )
-    # print('Check limit_number_stocks: ', limit_number_stocks )
-    configurations_test_trading = [
-        config for config in configurations_handle_trading
-        if (stock := config.get("stock")) and stock.name in ['CII', 'HCM', 'DIG'] ]
+   
     if number_stock_existing >= limit_number_stocks:
         configurations_handle_trading = [
             config for config in configurations_handle_trading
@@ -1733,10 +1725,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         for config in configurations_handle_trading
     ]
     logger.info(f'List list_symbols_process_trading của user {user.username} : {list_symbols_process_trading} ')
-    list_symbols_test_trading  = [
-        config["stock"].name
-        for config in configurations_test_trading
-    ]
+
     trading_configurations(user, configurations_handle_trading, vps_account, percent_buy_trade)
 
 
