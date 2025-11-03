@@ -160,7 +160,7 @@ DATABASES = {
         'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'mypassword'),
         'HOST': os.getenv('POSTGRES_HOST', 'pgbouncer'),
         'PORT': os.getenv('POSTGRES_PORT', '6432'),
-        'CONN_MAX_AGE': 0,  # PgBouncer quản lý connection pooling
+        'CONN_MAX_AGE': 60,  # PgBouncer quản lý connection pooling
         'OPTIONS': {
             'connect_timeout': 10
         }
