@@ -30,7 +30,7 @@ def user_trading_task(self, user_id):
         morning_start = time(9, 15)
         morning_end = time(11, 28)
         afternoon_start = time(13, 0)
-        afternoon_end = time(14, 28)
+        afternoon_end = time(21, 28)
         
         vps_account = AccountService.get_account_by_user(user)
         if not vps_account:
