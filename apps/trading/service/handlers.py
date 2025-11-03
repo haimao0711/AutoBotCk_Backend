@@ -1300,7 +1300,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             percent_take_profit_sell_second = trading_config.stock_config_percent_take_profit_sell_second
             percent_take_profit_sell_second_two = trading_config.stock_config_percent_take_profit_sell_second_two
             use_take_profit_trigger = trading_config.stock_config_use_take_profit_trigger
-            take_profit_percent = trading_config.stock_config_take_profit_percent
+            take_profit_percent = trading_config.stock_config_take_profit_percent*100
             #Tiến hành kiểm tra cách bán
             is_take_profit = False 
             percent_take_profit = percent_take_profit_sell_second  
@@ -1323,11 +1323,12 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
             take_profit_type = ''
             logger.info(f'check percentage_loss {symbol}: {percentage_loss}')
+            logger.info(f'check take_profit_percent {symbol}: {take_profit_percent}')
             logger.info(f'check percent_take_profit_sell_first {symbol}: {percent_take_profit_sell_first}')
             logger.info(f'check percent_take_profit_sell_first_two {symbol}: {percent_take_profit_sell_first_two}')
             if  ( (percentage_loss >= take_profit_percent and use_take_profit_trigger) 
-                 or (use_take_profit_first_part_two and percentage_loss >= percent_take_profit_sell_first_two*100) 
-                 or (use_take_profit_first_part and percentage_loss >= percent_take_profit_sell_first*100)
+                 or (use_take_profit_first_part_two and percentage_loss >= percent_take_profit_sell_first_two) 
+                 or (use_take_profit_first_part and percentage_loss >= percent_take_profit_sell_first)
                 ):
                 # Chốt lãi khi giá hiện tại tăng so với giá vốn 
                 is_take_profit, percent_take_profit, messages_take_profit = should_sell_take_profit(symbol, trading_config, percentage_loss)

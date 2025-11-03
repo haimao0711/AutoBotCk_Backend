@@ -896,8 +896,8 @@ def should_sell_take_profit(
     take_profit_percent = config.stock_config_take_profit_percent
     use_take_profit_first_part = config.stock_config_use_take_profit_first_part
     use_take_profit_first_part_two = config.stock_config_use_take_profit_first_part_two
-    percent_take_profit_sell_first = config.stock_config_percent_take_profit_sell_first
-    percent_take_profit_sell_first_two = config.stock_config_percent_take_profit_sell_first_two
+    percent_take_profit_sell_first = config.stock_config_percent_take_profit_sell_first*100
+    percent_take_profit_sell_first_two = config.stock_config_percent_take_profit_sell_first_two*100
     percent_take_profit_sell_second = config.stock_config_percent_take_profit_sell_second
     percent_take_profit_sell_second_two = config.stock_config_percent_take_profit_sell_second_two
     stop_loss_percent = config.stock_config_stop_loss_percent
@@ -910,11 +910,11 @@ def should_sell_take_profit(
     if use_take_profit_first_part:
         is_take_profit = use_take_profit_first_part
         percent_profit = percent_take_profit_sell_second
-        messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {percent_take_profit_sell_first*100}%'
+        messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {percent_take_profit_sell_first}%'
     elif use_take_profit_first_part_two:
         is_take_profit = use_take_profit_first_part_two
         percent_profit = percent_take_profit_sell_second_two
-        messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {percent_take_profit_sell_first_two*100}%'
+        messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {percent_take_profit_sell_first_two}%'
     elif use_take_profit_trigger:
         if percentage_loss >= take_profit_percent*100:
             is_take_profit = use_take_profit_trigger
