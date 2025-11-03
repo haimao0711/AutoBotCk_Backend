@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.db import connection
 from datetime import datetime
 import pytz
 
@@ -347,11 +348,11 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
         overview_config = configuration.get("overview_config", {})
         is_buy_hand = overview_config.is_buy_hand
-        print(f'check is_buy_hand overview_config {symbol} : ', is_buy_hand)
+        logger.info(f'check is_buy_hand overview_config {symbol}: {is_buy_hand}')
 
         if not is_buy_hand:
-            print(f'Dừng mua tay cổ phiếu {symbol} : ', is_buy_hand)
-            message_stop_buy = 'Yêu cầu ngừng mua tay'
+            logger.info(f'Dừng mua tay cổ phiếu {symbol}: {is_buy_hand}')
+            message_stop_buy = 'Đã yêu cầu ngừng mua tay'
             break  # Thoát khỏi vòng while và tiếp tục đoạn code phía sau
 
         # Kiểm tra điều kiện mua chỉ mỗi 60 giây một lần
@@ -436,9 +437,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     is_send_order_buy = False   
     if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
         print(f'bắt đầu hàm đặt lệnh mua tay {symbol}')
-    #Hủy tất cả các lệnh nếu còn đặt
+        #Hủy tất cả các lệnh nếu còn đặt
         cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Các lệnh mua cũ còn tồn', "B")
-
         timezone = pytz.timezone('Asia/Ho_Chi_Minh')
         last_row = stock_data_trading.iloc[-1]
         open_last_row = last_row['open'] 
@@ -457,15 +457,15 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         time_now = datetime.now(timezone)
         start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
         slippage_buy = trading_config.stock_config_slippage_buy
-    # Dao động cộng trừ    
+        # Dao động cộng trừ    
         add_price_buy = trading_config.stock_config_add_price_buy
-    # Get stock balance to set volume
+        # Get stock balance to set volume
         res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
         stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
         number_stock_existing = res_stock_balance.get('number_stock_existing', 0) if res_stock_balance else 0
         cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
         volume_to_buy = overview_config.volume_to_buy        
-    #Kiểm tra đk số cổ phiếu giới hạn, khối lượng mua còn lại, tiền mặt
+     #Kiểm tra đk số cổ phiếu giới hạn, khối lượng mua còn lại, tiền mặt
         if number_stock_existing >= max_stock_existing and stock_balance == 0 :
             logger.info(f'Lệnh mua {symbol} rơi vào trường hợp vượt quá số cổ phiếu tối đa hiện đang là {number_stock_existing}')
         elif not cash_balance:
@@ -494,7 +494,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_OVERRAL,
                             **buy_order_overrall_attrs })  
                     
-    # Xử lý mua nhạy cảm 
+      # Xử lý mua nhạy cảm 
             if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
                 sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
                 volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
@@ -549,7 +549,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     volume -= volume_buy
             else:
                 print(f'Mã {symbol} đạt khối lượng tối đa') 
-    # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
+      # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
         if is_send_order_buy:
             send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
             send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs)             
@@ -578,7 +578,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 revert_status_request_trade(user, stock_id)
                 break             
 
-    #Tổng kết các lệnh đã khớp theo symbol để send telegram
+     #Tổng kết các lệnh đã khớp theo symbol để send telegram
         try:
             time.sleep(2)  # đợi backend cập nhật
             res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
@@ -618,7 +618,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             send_message_telegram(user, MessageTypeEnum.OVERALL, message)
             send_message_telegram(user, MessageTypeEnum.ACT, message)
     #Hủy tất cả các lệnh nếu còn đặt
-        cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Hết thời gian mua', "B")
+        cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Hủy các lệnh mua còn sót lại', "B")
     time.sleep(5)
     revert_status_request_trade(user, stock_id)
 
@@ -1291,6 +1291,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             use_take_profit_first_part = trading_config.stock_config_use_take_profit_first_part
             use_take_profit_first_part_two = trading_config.stock_config_use_take_profit_first_part_two
             use_bolinger_a_part_to_take_profit = trading_config.stock_config_use_bolinger_a_part_to_take_profit
+            use_stoch_rsi_to_take_profit = trading_config.stock_config_use_stoch_rsi_to_take_profit
+            value_stoch_rsi_to_take_profit = trading_config.stock_config_value_stoch_rsi_to_take_profit
+            percent_stoch_rsi_to_take_profit = trading_config.stock_config_percent_stoch_rsi_to_take_profit
             percentage_loss = res_stock_balance.get('stock_balance', {}).get('percentage_loss', 0) if res_stock_balance else 0            
             percent_take_profit_sell_first = trading_config.stock_config_percent_take_profit_sell_first*100
             percent_take_profit_sell_first_two = trading_config.stock_config_percent_take_profit_sell_first_two*100
@@ -1316,11 +1319,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 return
             price_current = stock_data_trading.iloc[-1]['close']    
             upper_bolinger = stock_data_following.iloc[-1]['upper_bolinger']
-            is_take_profit_by_bolinger = False
+            latest_stoch_rsi_following  = stock_data_following.iloc[-1]['stoch_rsi']
+
             take_profit_type = ''
+            logger.info(f'check percentage_loss {symbol}: {percentage_loss}')
+            logger.info(f'check percent_take_profit_sell_first {symbol}: {percent_take_profit_sell_first}')
+            logger.info(f'check percent_take_profit_sell_first_two {symbol}: {percent_take_profit_sell_first_two}')
             if  ( (percentage_loss >= take_profit_percent and use_take_profit_trigger) 
-                 or (use_take_profit_first_part_two and percentage_loss >= percent_take_profit_sell_first_two) 
-                 or (use_take_profit_first_part and percentage_loss >= percent_take_profit_sell_first)
+                 or (use_take_profit_first_part_two and percentage_loss >= percent_take_profit_sell_first_two*100) 
+                 or (use_take_profit_first_part and percentage_loss >= percent_take_profit_sell_first*100)
                 ):
                 # Chốt lãi khi giá hiện tại tăng so với giá vốn 
                 is_take_profit, percent_take_profit, messages_take_profit = should_sell_take_profit(symbol, trading_config, percentage_loss)
@@ -1329,12 +1336,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     if use_take_profit_first_part
                     else ('Bán lần 2 theo phần trăm lời' if use_take_profit_first_part_two else 'Bán hết theo phần trăm lời')
                 )
-            elif price_current >= upper_bolinger:
+            elif use_stoch_rsi_to_take_profit and latest_stoch_rsi_following >= value_stoch_rsi_to_take_profit:
+                # Chốt lãi khi stoch_rsi hiện tại >= 
+                is_take_profit, percent_take_profit,  = True, percent_stoch_rsi_to_take_profit
+                messages_take_profit=f'Bán một phần khi stoch_rsi hiện tại({latest_stoch_rsi_following}) >= stoch rsi cấu hình({value_stoch_rsi_to_take_profit})'
+                take_profit_type = 'Bán một phần khi stoch_rsi >='
+            elif use_bolinger_a_part_to_take_profit and price_current >= upper_bolinger:
                 # Chốt lãi khi giá hiện tại chạm bolllinger    
                 is_take_profit, percent_take_profit, messages_take_profit = should_take_profit_bolinger(symbol, trading_config, price_current, upper_bolinger )
-                take_profit_type = 'Bán một phần khi chạm bollinger trên'              
-                if is_take_profit:
-                    is_take_profit_by_bolinger = True
+                take_profit_type = 'Bán một phần khi chạm bollinger trên'
             volume_take_profit = int(volume_balance*percent_take_profit)
             volume_take_profit = ((volume_take_profit + 99) // 100) * 100     
             is_trading_take_profit = False
@@ -1590,9 +1600,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
             #Trả lại trạng thái
                 if status_sell == SignalTelegramEnum.TAKEPROFIT and take_profit_type != 'Bán hết theo phần trăm lời': 
-                    print('Tiến hành đóng chốt lãi một phần cho 2 loại ....') 
-                    ConfigurationServices.update_use_bolinger_to_take_profit_a_part_false(user, stock_id)
-                    ConfigurationServices.update_use_take_profit_first_part_false(user, stock_id, use_take_profit_first_part )
+                    print('Tiến hành đóng chốt lãi một phần cho 3 loại ....') 
+                    ConfigurationServices.update_all_take_profit_flags_false(user, stock_id, use_take_profit_first_part)
 
             ConfigurationServices.update_is_trading_configuration(user, stock_id, False)                        
 
@@ -1601,7 +1610,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         print(f"Error in {current_thread_name}: {str(e)}")
     finally:
         # Đóng connection của thread hiện tại
-        from django.db import connection
         connection.close()
 
 
@@ -1658,7 +1666,6 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
             )
         finally:
             # Đóng connections của thread hiện tại
-            from django.db import connection
             connection.close()
 
     # Sử dụng ThreadPoolExecutor với tối đa 100 worker (thread)

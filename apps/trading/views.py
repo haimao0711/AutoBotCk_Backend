@@ -162,7 +162,7 @@ class TradingViews(APIView):
     @staticmethod
     def cancel_request_oder(user, symbol):
         try:   
-            print('Job cancel all order is running')
+            print('Job cancel_request_oder is running')
             vps_account = AccountService.get_account_by_user(user)
             if not vps_account:
                 raise ValueError(ErrorMessages.ACCOUNT_DOES_NOT_EXIST)
@@ -170,8 +170,8 @@ class TradingViews(APIView):
             account_num = vps_account.account_num
             session_id = vps_account.vps_session_id
             url = api.TRADING_URL 
-            cancel_buy_order(user, account_name, account_num, symbol, url, session_id, 'Lệnh mua tay còn đặt', "B")
-            cancel_sell_order(user, account_name, account_num, symbol, url, session_id, 'Lệnh bán tay còn đặt', "S")
+            cancel_buy_order(user, account_name, account_num, symbol, url, session_id, 'Yêu cầu ngừng mua tay', "B")
+            cancel_sell_order(user, account_name, account_num, symbol, url, session_id, 'Yêu cầu ngừng bán tay', "S")
                
         except Exception as e:
             print(f"Unexpected error: {e}")
