@@ -80,7 +80,7 @@ CELERY_TASK_ROUTES = {
 
 # Worker Settings
 CELERY_WORKER_CONCURRENCY = 10  # Giảm từ 100 threads xuống 10 processes
-CELERY_WORKER_MAX_TASKS_PER_CHILD = 50  # Restart worker sau 50 tasks
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 100  # Restart worker sau 50 tasks
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 
 # Retry Settings
