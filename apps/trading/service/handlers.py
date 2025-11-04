@@ -1318,7 +1318,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         if not is_block_sell_stock and symbol in symbols_existing and volume_balance_trade > 0:
             logger.info(f'bắt đầu hàm kiểm tra thực hiện sell {symbol}')
             # Handle take profit
-            volume_balance = (stock_balance // 100) * 100
+            volume_balance = (volume_balance_trade // 100) * 100
             use_take_profit_first_part = trading_config.stock_config_use_take_profit_first_part
             use_take_profit_first_part_two = trading_config.stock_config_use_take_profit_first_part_two
             use_bolinger_a_part_to_take_profit = trading_config.stock_config_use_bolinger_a_part_to_take_profit
