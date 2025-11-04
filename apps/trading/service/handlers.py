@@ -309,7 +309,6 @@ def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, req
 
 def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool):
     # Các giá trị mặc định
-    print('bat dau chay ham process_buy_request!! ')
     timezone = pytz.timezone('Asia/Ho_Chi_Minh')
     user_name = vps_account.name
     account = vps_account.account_num
@@ -329,7 +328,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     asp_net_session = ''
     max_stock_existing = limit_number_stocks
 
-    print('Cổ phiếu đang request buy:', {symbol})     
+    print('Đang process_buy_request cho cổ phiếu: {symbol}')     
    
     slippage_buy = trading_config.stock_config_slippage_buy
     add_price_buy = trading_config.stock_config_add_price_buy
@@ -342,6 +341,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     status_buy = SignalTelegramEnum.BUY_REQUEST_FAILED
     last_buy_check_time = None  # Dùng để giới hạn việc kiểm tra mua mỗi 60 giây
     message_stop_buy = 'Hết thời gian của lệnh mua tay'
+    price_to_start = None  # Khởi tạo giá trị mặc định để tránh lỗi khi sử dụng sau vòng lặp
     ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
     while datetime.now() < end_time:
         # Kiểm tra is_buy_hand mỗi 5 giây        
@@ -420,12 +420,28 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         revert_status_request_trade(user, stock_id)
         time_now = datetime.now(timezone)
         start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
+        # Nếu price_to_start chưa được khởi tạo, download data một lần nữa để lấy giá
+        if price_to_start is None:
+            try:
+                _, _, stock_data_trading_temp, _ = download_data(
+                    stock=stock,
+                    vnindex_stock=vnindex_stock,
+                    trading_chart_type=trading_chart_type,
+                    following_chart_type=following_chart_type
+                )
+                if stock_data_trading_temp is not None and len(stock_data_trading_temp) > 0:
+                    price_to_start = (stock_data_trading_temp.iloc[-1]['open'] + stock_data_trading_temp.iloc[-1]['close']) / 2
+                else:
+                    price_to_start = 0  # Giá trị mặc định nếu không lấy được
+            except Exception as e:
+                logger.error(f"Lỗi khi download data để lấy price_to_start: {e}")
+                price_to_start = 0  # Giá trị mặc định nếu có lỗi
         buy_attrs = {
             "user_account": account,
             "platform_trading": "Smart One",
             "stock": stock.name,
             "level": level,
-            "price": price_to_start,
+            "price": price_to_start if price_to_start is not None else 0,
             "message": message_stop_buy,
             "start_time_order": start_time_order,
         }
@@ -623,9 +639,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     revert_status_request_trade(user, stock_id)
 
 def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool, volume_sell: str):
-    # Các giá trị mặc định
-    print('bat dau chay ham process_sell_request!! ')
-    print('check volume_sell: ', volume_sell)
+    # Các giá trị mặc định    
     user_name = vps_account.name
     account = vps_account.account_num
     session = vps_account.vps_session_id
@@ -645,7 +659,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     symbol = stock.name        
     asp_net_session = ''
 
-    print('Cổ phiếu đang request sell:', {symbol})     
+    logger.info(f'Đang request sell: {symbol} với khối lượng: {volume_sell}')     
 
 
     slippage_sell = trading_config.stock_config_slippage_sell
@@ -659,15 +673,16 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     status_sell = SignalTelegramEnum.SELL_REQUEST_FAILED
     last_buy_check_time = None
     message_stop_sell = 'Hết thời gian của lệnh bán tay'
+    price_to_start = None  # Khởi tạo giá trị mặc định để tránh lỗi khi sử dụng sau vòng lặp
     while datetime.now() < end_time:
         # Kiểm tra is_sell_hand mỗi 5 giây
         configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
         overview_config = configuration.get("overview_config", {})
         is_sell_hand = overview_config.is_sell_hand
-        print(f'check is_buy_hand overview_config {symbol} : ', is_sell_hand)
+        logger.info(f'check is_sell_hand overview_config {symbol} : ', is_sell_hand)
 
         if not is_sell_hand:
-            print(f'Dừng mua tay cổ phiếu {symbol} : ', is_sell_hand)
+            logger.info(f'Dừng bán tay cổ phiếu {symbol} : {is_sell_hand}')
             message_stop_sell = 'Yêu cầu dừng bán tay'
             break  # Thoát khỏi vòng while và tiếp tục đoạn code phía sau
         
@@ -694,7 +709,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             print('Download data thành công!')
             price_to_start = (
                 stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
-            print('Check price_to_start: ', price_to_start)
+            
             is_sell, sell_reason = should_sell_trading(
                 trading_config=trading_config,
                 data_trading_df=stock_data_trading,            
@@ -723,14 +738,30 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         time.sleep(5) 
 
     if status_sell == SignalTelegramEnum.SELL_REQUEST_FAILED:
-        print('Dừng vòng lặp do vượt thời gian hoặc yêu cầu ngừng.')
+        logger.info('Dừng vòng lặp do vượt thời gian hoặc yêu cầu ngừng.')
         revert_status_request_trade(user, stock_id)
+        # Nếu price_to_start chưa được khởi tạo, download data một lần nữa để lấy giá
+        if price_to_start is None:
+            try:
+                vnindex_data_trading_temp, vnindex_data_following_temp, stock_data_trading_temp, stock_data_following_temp = download_data(
+                    stock=stock, 
+                    vnindex_stock=vnindex_stock, 
+                    trading_chart_type=trading_chart_type_sell, 
+                    following_chart_type=following_chart_type_sell,
+                )
+                if stock_data_trading_temp is not None and len(stock_data_trading_temp) > 0:
+                    price_to_start = (stock_data_trading_temp.iloc[-1]['open'] + stock_data_trading_temp.iloc[-1]['close']) / 2
+                else:
+                    price_to_start = 0  # Giá trị mặc định nếu không lấy được
+            except Exception as e:
+                logger.error(f"Lỗi khi download data để lấy price_to_start: {e}")
+                price_to_start = 0  # Giá trị mặc định nếu có lỗi
         sell_attrs = {
             "user_account": account,
             "platform_trading": "Smart One",
             "stock": stock.name,
             "volume": 0,
-            "price": price_to_start,
+            "price": price_to_start if price_to_start is not None else 0,
             "message": message_stop_sell,
         }
         try:
@@ -1787,7 +1818,7 @@ def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str
         )
 
     if prepared_configs:
-        print('check length prepared_configs: ', len(prepared_configs))
+        logger.info(f'check length prepared_configs: {len(prepared_configs)}')
         if request_buy:
             threading.Thread(target=run_process_buy).start()
             return True
@@ -1795,6 +1826,6 @@ def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str
             threading.Thread(target=run_process_sell()).start()
             return True
     else:
-        print("Không có dữ liệu trong prepared_configs, bỏ qua process_trade_request.")
+        logger.info("Không có dữ liệu trong prepared_configs, bỏ qua process_trade_request.")
         return False
 
