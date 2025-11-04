@@ -940,7 +940,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         asp_net_session = ''
         percent_first_buy = trading_config.stock_config_percent_first_buy
         
-        print(f'Bắt đầu process_trading: {symbol}')
+        logger.info(f'Bắt đầu process_trading: {symbol}')
         is_block_buy_stock = overview_config.is_block_buy
         is_block_sell_stock = overview_config.is_block_sell
         stock_id = trading_config.stock_id
@@ -1568,7 +1568,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     # Vòng for chạy hết mà không gặp break (tức là số vòng chạy đạt limited_times
                     cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Vượt quá thời gian tối đa đặt lệnh bán', "S")
                     pass
-            #Tổng kết các lệnh đã khớp theo symbol để send telegram           
+             #Tổng kết các lệnh đã khớp theo symbol để send telegram           
                 res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
                 if res_matcheds:
                     print(f'danh sách các lệnh bán {symbol} đã khớp: ', res_matcheds )
@@ -1599,7 +1599,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_sell_matched)
                         send_telegram_message_batch(user, MessageTypeEnum.ACT, message_sell_matched)
 
-            #Trả lại trạng thái
+             #Trả lại trạng thái
                 if status_sell == SignalTelegramEnum.TAKEPROFIT and take_profit_type != 'Bán hết theo phần trăm lời': 
                     print('Tiến hành đóng chốt lãi một phần cho 3 loại ....') 
                     ConfigurationServices.update_all_take_profit_flags_false(user, stock_id, use_take_profit_first_part)

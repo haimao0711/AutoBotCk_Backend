@@ -99,7 +99,7 @@ def create_user_schedules(user):
         # 1. User Trading Task - mỗi phút từ 9h-14h
         schedule_trading = get_or_create_crontab(
             minute='*',
-            hour='9-21',
+            hour='9-14',
             day_of_week='1-5',
             day_of_month='*',
             month_of_year='*',
