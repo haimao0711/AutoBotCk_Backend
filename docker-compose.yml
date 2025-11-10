@@ -7,6 +7,7 @@ services:
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: stockdb
       POSTGRES_INITDB_ARGS: "--auth-host=md5"
+      TZ: Asia/Ho_Chi_Minh
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:

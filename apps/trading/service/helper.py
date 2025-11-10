@@ -172,23 +172,37 @@ def render_type(chart_type: str, chart_value: str) -> str:
 
 def is_valid_time_to_buy(config: Configuration):
     timezone = pytz.timezone('Asia/Ho_Chi_Minh')
-    now = datetime.now(timezone).time()
+    now = datetime.now(timezone)
+    now_time = now.time()
+    now_day = now.isoweekday()
+    # Kiểm tra ngày trong tuần
+    days_buy_str = config.stock_config_days_buy or '' 
+    if str(now_day) not in days_buy_str:
+        return False  # hôm nay không nằm trong danh sách ngày mua
+
+    # Kiểm tra giờ mua
     is_use_time_to_buy = config.stock_config_is_use_time_to_buy
-    start_time, end_time = config.stock_config_time_start_buy, config.stock_config_time_end_buy
-    # stock_name = config.stock.name
-    # logger.info(f"is_valid_time_to_buy {stock_name} : {is_use_time_to_buy}, start_time: {start_time}, end_time: {end_time}, now: {now}")
-    if is_use_time_to_buy:
-        return is_within_time_range(start_time, end_time, now)
+    if config.stock_config_is_use_time_to_buy:        
+        start_time, end_time = config.stock_config_time_start_buy or "9:30", config.stock_config_time_end_buy or "14:30"
+        return is_within_time_range(start_time, end_time, now_time)
     else:
         return True
 
 def is_valid_time_to_sell(config: Configuration):
     timezone = pytz.timezone('Asia/Ho_Chi_Minh')
-    now = datetime.now(timezone).time()
+    now = datetime.now(timezone)
+    now_time = now.time()
+    now_day = now.isoweekday()
+    # Kiểm tra ngày trong tuần
+    days_sell_str = config.stock_config_days_sell or '' 
+    if str(now_day) not in days_sell_str:
+        return False  
+
+    # Kiểm tra giờ 
     is_use_time_to_sell = config.stock_config_is_use_time_to_sell
-    start_time, end_time = config.stock_config_time_start_sell, config.stock_config_time_end_sell
     if is_use_time_to_sell:
-        return is_within_time_range(start_time, end_time, now)
+        start_time, end_time = config.stock_config_time_start_sell or "9:30", config.stock_config_time_end_sell or "14:30"
+        return is_within_time_range(start_time, end_time, now_time)
     else:
         return True
 

@@ -328,7 +328,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     asp_net_session = ''
     max_stock_existing = limit_number_stocks
 
-    logger.info('Đang process_buy_request cho cổ phiếu: {symbol}')     
+    logger.info(f'Đang process_buy_request cho cổ phiếu: {symbol}')     
    
     slippage_buy = trading_config.stock_config_slippage_buy
     add_price_buy = trading_config.stock_config_add_price_buy
@@ -384,7 +384,6 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 data_trading_df=stock_data_trading,
                 config_type='stock_config'
             )
-            logger.info(f'Check is_buy ham request buy {symbol}: {is_buy}')
             logger.info(f'Check buy_reason {symbol}: {buy_reason}')
 
             if is_buy:
@@ -659,8 +658,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     symbol = stock.name        
     asp_net_session = ''
 
-    logger.info(f'Đang request sell: {symbol} với khối lượng: {volume_sell}')     
-
+    logger.info(f'Đang request sell: {symbol} với khối lượng: {volume_sell}')  
 
     slippage_sell = trading_config.stock_config_slippage_sell
     add_price_sell = trading_config.stock_config_add_price_sell
@@ -738,7 +736,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         time.sleep(5) 
 
     if status_sell == SignalTelegramEnum.SELL_REQUEST_FAILED:
-        logger.info('Dừng vòng lặp do vượt thời gian hoặc yêu cầu ngừng.')
+        logger.info('Dừng vòng lặp do vượt thời gian hoặc yêu cầu ngừng bán tay.')
         revert_status_request_trade(user, stock_id)
         # Nếu price_to_start chưa được khởi tạo, download data một lần nữa để lấy giá
         if price_to_start is None:
@@ -771,7 +769,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     is_send_order_sell = False   
     if status_sell == SignalTelegramEnum.SELL_REQUEST_SUCCESS:
         logger.info(f'bắt đầu đặt lệnh sell request {symbol}')
-     #Hủy tất cả các lệnh nếu còn đặt
+         #Hủy tất cả các lệnh nếu còn đặt
         cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lệnh bán cũ còn tồn', "S")
 
         timezone = pytz.timezone('Asia/Ho_Chi_Minh')
@@ -792,10 +790,10 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         number_order = trading_config.stock_config_number_pid_sell_once_time 
         start_time_order = datetime.now(timezone)
         slippage_sell = trading_config.stock_config_slippage_sell
-    # Dao động cộng trừ     
+     # Dao động cộng trừ     
         add_price_sell = trading_config.stock_config_add_price_sell
 
-    # Get stock balance to set volume
+     # Get stock balance to set volume
         res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
         stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
         stock_balance = res_stock_balance.get('stock_balance', {}).get('available_vol', 0) if res_stock_balance else 0
@@ -902,7 +900,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 break           
             time.sleep(sleeping_time_sell) 
 
-    #Tổng kết các lệnh đã khớp theo symbol để send telegram 
+        #Tổng kết các lệnh đã khớp theo symbol để send telegram 
         try:          
             res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
             if res_matcheds:

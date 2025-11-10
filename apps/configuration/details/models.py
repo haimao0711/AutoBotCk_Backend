@@ -1,3 +1,4 @@
+from tkinter import TRUE
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
@@ -639,6 +640,8 @@ class Configuration(models.Model):
         default='09:30', validators=[validate_time_format], null=True)
     stock_config_time_end_buy = models.TextField(
         default='15:30', validators=[validate_time_format], null=True)
+    stock_config_days_buy= models.CharField(
+        default='12345',max_length=7, blank=True, null=True)
 
     stock_config_is_use_time_to_sell = models.BooleanField(
         default=False, null=True)
@@ -646,6 +649,8 @@ class Configuration(models.Model):
         default='09:30', validators=[validate_time_format], null=True)
     stock_config_time_end_sell = models.TextField(
         default='15:30', validators=[validate_time_format], null=True)
+    stock_config_days_sell= models.CharField(
+        default='12345',max_length=7, blank=True, null=True)
 
     #mandatory
 

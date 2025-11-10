@@ -105,10 +105,8 @@ class ConfigurationOverviewRequestViews(APIView):
                 'stock_id': request.data.get('stock_id'),
                 'is_buy_hand': request.data.get('is_buy_hand'),
                 'is_sell_hand': request.data.get('is_sell_hand')
-            }
-            print('check data update request buy: ', data_update )
+            }       
             is_trading_request = TradingViews.request_trading(user, stock_id=stock_id, symbol=symbol, request_buy=True, request_sell=False, volume_sell='')
-            print('check is_trading_request ham request_buy: ', is_trading_request)
             if is_trading_request:
                 status_code, response_data = ConfigurationOverviewServices.update_a_overview_configuration(
                     user=user,
