@@ -64,6 +64,40 @@ def cancel_all_orders(user: User, user_name: str, account: str, symbol: str, req
         send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)  
     else:
         logger.info(f'Chua lay duoc danh sach chua khop to cancel all orrder')
+def cancel_all_buy_orders(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str):
+    logger.info(f'Bắt đầu chạy hàm cancel all buy orders ')
+    ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
+    res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', side)    
+    if res_not_matcheds:
+        logger.info(f'Da co danh sach chua khop to cancel all buy orders: {res_not_matcheds}')
+
+        for order in res_not_matcheds: 
+            res_cancel = handle_cancel_order_service(user_name, request_url, session, '', order['orderNo'], ref_id)
+            if res_cancel:
+                logger.info(f"Da huy lenh {order['side']} mã {order['symbol']}: {res_cancel}")
+            else:
+                logger.info(f'Chua huy duoc lenh {order['side']}  {symbol}')
+        message_cancel = '** Chặn mua, đã hủy tất cả các lệnh mua đang đặt hiện tại**'
+        send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
+        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)  
+def cancel_all_sell_orders(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str):
+    logger.info(f'Bắt đầu chạy hàm cancel all sell orders ')
+    ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
+    res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', side)    
+    if res_not_matcheds:
+        logger.info(f'Da co danh sach chua khop to cancel all sell orders: {res_not_matcheds}')
+
+        for order in res_not_matcheds: 
+            res_cancel = handle_cancel_order_service(user_name, request_url, session, '', order['orderNo'], ref_id)
+            if res_cancel:
+                logger.info(f"Da huy lenh {order['side']} mã {order['symbol']}: {res_cancel}")
+            else:
+                logger.info(f'Chua huy duoc lenh {order['side']} {symbol}')
+        message_cancel = '** Chặn bán, đã hủy tất cả các lệnh bán đang đặt hiện tại**'
+        send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
+        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel) 
+    else:
+        logger.info(f'Chua lay duoc danh sach chua khop to cancel all orrder')
 
 
 
@@ -150,7 +184,7 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
     return message_buy_update 
 
 def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, request_url: str, session: str, reason: str, side: str):
-    logger.info(f'Bắt đầu chạy hàm cancel lệnh mua all oders {symbol} ' )
+    logger.info(f'Bắt đầu chạy hàm cancel buy oders {symbol} ' )
     ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
     # start_time_cancel = datetime.now(timezone)
     tz = pytz.timezone("Asia/Ho_Chi_Minh")
@@ -1183,70 +1217,65 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             if is_send_order_buy:  
                 ConfigurationServices.update_is_trading_configuration(user, stock_id, True)             
                 limited_times = time_to_buy // sleeping_time_buy
-                limited_price_to_buy = start_price - add_price_buy + slippage_buy                
+                limited_price_to_buy = start_price - add_price_buy + slippage_buy  
+
+                interval_check = 10  # kiểm tra mỗi 10 giây
                 for i in range(int(limited_times) - 1):
-                    time.sleep(sleeping_time_buy)
-                    res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
-                    number_stock_existing = res_stock.get('number_stock_existing', 0) if res_stock else 0
-                    logger.info(f'bắt đầu sửa lệnh mua lần thứ {i + 1} của mã {symbol}')
-                    symbols_existing = res_stock.get('symbols_existing', []) if res_stock else []
-                    limit_number_stocks = vps_account.limit_number_stocks
-                    if number_stock_existing >= limit_number_stocks and symbol not in symbols_existing:
-                        logger.info(f'Vượt quá giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}!')
-                        cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt quá giới hạn cổ phiếu tối đa', "B")
-                        break
+                    elapsed = 0
+                    while elapsed < sleeping_time_buy:
+                        time.sleep(interval_check)
+                        elapsed += interval_check
+                        res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
+                        number_stock_existing = res_stock.get('number_stock_existing', 0) if res_stock else 0
+                        symbols_existing = res_stock.get('symbols_existing', []) if res_stock else []
+                        if number_stock_existing >= vps_account.limit_number_stocks and symbol not in symbols_existing:
+                            logger.info(f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh {symbol}')
+                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn cổ phiếu tối đa', "B")
+                            break
+                        # --- Tải dữ liệu và kiểm tra điều kiện mua ---
+                        vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
+                            stock=stock, 
+                            vnindex_stock=vnindex_stock, 
+                            trading_chart_type=trading_chart_type, 
+                            following_chart_type=following_chart_type
+                        )
+                        sales_data = download_sales_volume(symbol=symbol)
+                        if sales_data is None or stock_data_following is None:
+                            logger.info(f'❌ Không tải được dữ liệu cho {symbol}, bỏ qua vòng này.')
+                            continue
+                        
+                        def safe_int(val):
+                            try:
+                                return int(val) if val is not None else 0
+                            except (ValueError, TypeError):
+                                return 0   
+                        
+                        floor_price = sales_data.get('floor_price')
+                        buyForeignQtty = safe_int(sales_data.get('buyForeignQtty'))
+                        sellForeignQtty = safe_int(sales_data.get('sellForeignQtty'))
+                        total_foreign = buyForeignQtty + sellForeignQtty
+                        value_buy_foreign = round((buyForeignQtty / total_foreign) * 100, 2) if total_foreign > 0 else 0
 
-                    # Tải dữ liệu
-                    vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
-                        stock=stock, 
-                        vnindex_stock=vnindex_stock, 
-                        trading_chart_type=trading_chart_type, 
-                        following_chart_type=following_chart_type
-                    )
-                    sales_data = download_sales_volume(symbol=symbol)
-                    if sales_data is None:
-                        logger.info(f'❌ Download sales_data sửa lệnh cho {symbol} không thành công sau 3 lần thử!')
-                        message_download = f'⚠️ Download sales_data to update buy order symbol {symbol} failed after 3 attempts. Skipping!'
-                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
-                        break
-                    elif stock_data_following is None:
-                        logger.info(f'❌ Download following_data cho {symbol} không thành công!')
-                        message_download = f'⚠️ Download following to update buy order symbol {symbol} failed. Skipping!'
-                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
-                        break  
-                    def safe_int(val):
-                        try:
-                            return int(val) if val is not None else 0
-                        except (ValueError, TypeError):
-                            return 0   
-                    floor_price = sales_data.get('floor_price')
-                    buyForeignQtty = safe_int(sales_data.get('buyForeignQtty'))
-                    sellForeignQtty = safe_int(sales_data.get('sellForeignQtty'))
-                    total_foreign = buyForeignQtty + sellForeignQtty
-                    if total_foreign > 0:
-                        value_buy_foreign = round((buyForeignQtty / total_foreign) * 100, 2)
+                        stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign
+                        stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
+
+                        is_use_vnindex_following = following_config.is_use_vnindex_config
+                        is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config')                    
+                        if is_use_vnindex_following:
+                            is_buy_vnindex, _ = should_buy_following(following_config, vnindex_data_following, 'vnindex_config')
+                            if not is_buy_vnindex:
+                                is_buy = False
+
+                        logger.info(f'⏱ Kiểm tra {interval_check}s - is_buy {symbol}: {is_buy}')
+                        if not is_buy:
+                            logger.info(f'⚠️ Điều kiện mua không còn thỏa mãn, hủy lệnh {symbol} ngay!')
+                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Điều kiện mua không còn thỏa mãn', "B")
+                            break  # thoát vòng kiểm tra, không update nữa
+
                     else:
-                        value_buy_foreign = 0
-
-                    # Gán cho 3 dòng cuối
-                    stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign          
-                    stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
-
-                    is_use_vnindex_following = following_config.is_use_vnindex_config
-                    is_use_vnindex_trading = trading_config.is_use_vnindex_config
-                    is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config')                    
-                    message_vnindex = ''
-                    if is_use_vnindex_following:
-                        is_buy_vnindex, reason_vnindex = should_buy_following(following_config, vnindex_data_following, 'vnindex_config')
-                        message_vnindex = render_message(reason_vnindex, trading_candle, following_candle)
-                        logger.info(f'check is_buy_vnindex_to_update {symbol}: {is_buy_vnindex}')
-                        if not is_buy_vnindex:
-                            is_buy = False
-
-                    logger.info(f'is_buy_update is_buy {symbol}: {is_buy}')
-                    price_current = stock_data_trading.iloc[-1]['close']
-                    if is_buy:
-                        status_buy = SignalTelegramEnum.BUY_SUCCESS
+                        # --- Chỉ đến đây sau khi đã chờ đủ sleeping_time_buy ---
+                        logger.info(f'🔄 Bắt đầu sửa lệnh mua lần thứ {i + 1} của {symbol}')                      
+                        # --- Thực hiện update_buy_order ---
                         message_update = update_buy_order(
                             user_name, account, symbol, request_url, session, asp_net_session, "B",
                             step_price, limited_price_to_buy, i + 1
@@ -1256,23 +1285,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
                         else:
                             break
-                    else:
-                        status_buy = SignalTelegramEnum.BUY_FAILED_UPDATE
-                        logger.info(f'Điều kiện sửa lệnh mua không thỏa mãn, hủy lệnh mua {symbol}!')
-                        message_reason = render_message(reason_buy, trading_candle, following_candle)
-                        buy_attrs = {
-                            "user_account": account,
-                            "platform_trading": "Smart One",
-                            "stock": stock.name,
-                            "level": level,
-                            "price":round(price_to_start, 2),
-                            "message": message_reason,
-                            "message_vnindex": message_vnindex
-                        }
-                        send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
-                        send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs)
-                        cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Điều kiện mua không còn thỏa mãn ', "B")
-                        break                        
+
                 #Tổng kết các lệnh đã khớp theo symbol để send telegram   
                 res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
                 if res_matcheds:

@@ -25,7 +25,8 @@ from .enums import AccountStatusEnum, AccountLoginStatusEnum
 from apps.configuration.details.overview.services import ConfigurationOverviewServices
 from common.errors.messages import ErrorMessages
 from common.success.messages import SuccessMessage
-
+from apps.trading.service.handlers import cancel_all_buy_orders, cancel_all_sell_orders
+from apps import api
 import hashlib
 
 
@@ -429,11 +430,18 @@ class AccountTradingView(APIView):
             vps_account = AccountService.get_account_by_user(user)
             if not vps_account:
                 raise ValueError(ErrorMessages.ACCOUNT_DOES_NOT_EXIST)
+            account_name = vps_account.name
+            account_num = vps_account.account_num
+            session_id = vps_account.vps_session_id
+            url = api.TRADING_URL
             is_block_buy = body["is_block_buy"]
             is_block_sell = body["is_block_sell"]
             type_block = body["type"]
-            # print('check is_block_buy request: ', is_block_buy)
-            # print('check is_block_sell request: ', is_block_sell)
+            # Hủy lệnh mua hoặc bán khi block buy hoặc block sell
+            if is_block_buy:
+                cancel_all_buy_orders(user, account_name, account_num, 'all_order', api.TRADING_URL, session_id, '', "B")
+            if is_block_sell:
+                cancel_all_buy_orders(user, account_name, account_num, 'all_order', api.TRADING_URL, session_id, '', "S")
             vps_data_update = {
                 "is_block_buy": is_block_buy,
                 "is_block_sell": is_block_sell,

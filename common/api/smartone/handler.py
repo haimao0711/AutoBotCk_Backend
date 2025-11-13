@@ -109,7 +109,7 @@ def handle_orders_not_matched(user_account, trade_account, symbol, url, valid_se
     if response_type == ResponseAPISmartOneEnum.SUCCESS:
         not_matcheds = data_object['data']
         if side == 'All':
-        # Trả về toàn bộ danh sách nếu side là 'Cancel'
+        # Trả về toàn bộ danh sách nếu side là 'All'
             orders_detail = [
                 {
                  "orderNo": order["orderNo"],
@@ -121,6 +121,19 @@ def handle_orders_not_matched(user_account, trade_account, symbol, url, valid_se
                 }
                 for order in not_matcheds
             ]
+        elif symbol == 'all_oder':
+        # Lọc tất cả các lệnh theo side
+            orders_detail = [
+               {
+                  "orderNo": order["orderNo"],
+                  "side": order["side"],  
+                   "symbol": order["symbol"],
+                   "showPrice": order["showPrice"],
+                    "volume": order["volume"],
+                    "status": 'Chưa khớp'
+               }
+              for order in not_matcheds  if (order.get("side") == side)
+           ]
         else:
         # Lọc theo các điều kiện đã cho
             orders_detail = [
