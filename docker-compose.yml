@@ -80,6 +80,7 @@ services:
 
   celery-worker:
     build: .
+    restart: always
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
@@ -88,8 +89,10 @@ services:
       POSTGRES_PORT: 6432
       REDIS_URL: redis://redis:6379/0
     depends_on:
-      - redis
-      - pgbouncer
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_started
     command: celery -A config worker -l info -Q trading,trading_high_priority,default
     volumes:
       - .:/app
@@ -100,6 +103,7 @@ services:
 
   celery-beat:
     build: .
+    restart: always
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
@@ -108,8 +112,10 @@ services:
       POSTGRES_PORT: 6432
       REDIS_URL: redis://redis:6379/0
     depends_on:
-      - redis
-      - pgbouncer
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_started
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - .:/app

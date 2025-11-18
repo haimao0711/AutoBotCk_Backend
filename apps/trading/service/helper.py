@@ -177,9 +177,6 @@ def is_valid_time_to_buy(config: Configuration):
     now_day = now.isoweekday()
     # Kiểm tra ngày trong tuần
     days_buy_str = config.stock_config_days_buy or ''
-    logger.info(f'check now_day: {now_day}')
-    logger.info(f'check days_buy_str: {days_buy_str}')
-    logger.info(f'check str(now_day) not in days_buy_str: {str(now_day) not in days_buy_str}')
     if str(now_day) not in days_buy_str:
         return False  # hôm nay không nằm trong danh sách ngày mua
 
@@ -196,11 +193,8 @@ def is_valid_time_to_sell(config: Configuration):
     now = datetime.now(timezone)
     now_time = now.time()
     now_day = now.isoweekday()
-    logger.info(f'check now_day: {now_day}')
     # Kiểm tra ngày trong tuần
     days_sell_str = config.stock_config_days_sell or '' 
-    logger.info(f'check days_sell_str: {days_sell_str}')
-    logger.info(f'check str(now_day) not in days_sell_str: {str(now_day) not in days_sell_str}')
     if str(now_day) not in days_sell_str:
         return False  
 

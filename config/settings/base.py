@@ -315,6 +315,29 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TIMEZONE = 'Asia/Ho_Chi_Minh'
 CELERY_ENABLE_UTC = True
 
+# Redis Connection Settings - Handle connection errors gracefully
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_CONNECTION_RETRY = True
+CELERY_BROKER_CONNECTION_MAX_RETRIES = 10
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    'retry_policy': {
+        'timeout': 5.0,
+        'interval_start': 0,
+        'interval_step': 0.2,
+        'interval_max': 0.2,
+        'max_retries': 3,
+    },
+    'health_check_interval': 30,
+    'socket_keepalive': True,
+    'socket_keepalive_options': {},
+    'socket_connect_timeout': 5,
+    'socket_timeout': 5,
+    'visibility_timeout': 3600,
+    # Handle Redis state changes (master/replica) gracefully
+    'retry_on_timeout': True,
+    'max_connections': 10,
+}
+
 # Task Settings
 CELERY_TASK_DEFAULT_QUEUE = 'default'
 CELERY_TASK_ROUTES = {
