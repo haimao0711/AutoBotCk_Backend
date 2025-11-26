@@ -161,8 +161,11 @@ class Configuration(models.Model):
     vnindex_config_use_sma_obl_increase = models.BooleanField(default=False)
     vnindex_config_macd_increase_necessary_condition = models.BooleanField(
         default=False)
+    vnindex_config_sma_increase_necessary_condition = models.BooleanField(
+        default=False)
     vnindex_config_macd_increase_sufficient_condition = models.BooleanField(
         default=False)
+    vnindex_config_sma_increase_sufficient_condition = models.BooleanField(default=False)
 
     # histogram
     vnindex_config_use_histogram_reversed_increase = models.BooleanField(
@@ -282,9 +285,14 @@ class Configuration(models.Model):
         default=False)
 
     vnindex_config_use_macd_decrease = models.BooleanField(default=False)
+    vnindex_config_use_sma_decrease = models.BooleanField(default=False)
     vnindex_config_macd_decrease_necessary_condition = models.BooleanField(
         default=False)
+    vnindex_config_sma_decrease_necessary_condition = models.BooleanField(
+        default=False)
     vnindex_config_macd_decrease_sufficient_condition = models.BooleanField(
+        default=False)
+    vnindex_config_sma_decrease_sufficient_condition = models.BooleanField(
         default=False)
 
     # histogram
@@ -411,7 +419,10 @@ class Configuration(models.Model):
     stock_config_use_sma_obl_increase = models.BooleanField(default=False)
     stock_config_macd_increase_necessary_condition = models.BooleanField(
         default=False)
+    stock_config_sma_increase_necessary_condition = models.BooleanField(default=False)
     stock_config_macd_increase_sufficient_condition = models.BooleanField(
+        default=False)
+    stock_config_sma_increase_sufficient_condition = models.BooleanField(
         default=False)
 
     # histogram
@@ -505,9 +516,14 @@ class Configuration(models.Model):
         default=False)
 
     stock_config_use_macd_decrease = models.BooleanField(default=False)
+    stock_config_use_sma_decrease = models.BooleanField(default=False)
     stock_config_macd_decrease_necessary_condition = models.BooleanField(
         default=False)
+    stock_config_sma_decrease_necessary_condition = models.BooleanField(
+        default=False)
     stock_config_macd_decrease_sufficient_condition = models.BooleanField(
+        default=False)
+    stock_config_sma_decrease_sufficient_condition = models.BooleanField(
         default=False)
 
     # histogram

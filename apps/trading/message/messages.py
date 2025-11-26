@@ -325,6 +325,8 @@ VNINDEX_CONFIG_MACD_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
 
 VNINDEX_CONFIG_MACD_DECREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(VnIndex)* giảm, MACD mới: {current}, MACD cũ: {previous}'''
+VNINDEX_CONFIG_SMA_DECREASE_SUFFICIENT_CONDITION = '''
+        # **ĐK đủ:**  SMA *(VnIndex)* giảm, SMA mới: {current}, SMA cũ: {previous}'''
 
 VNINDEX_CONFIG_HISTOGRAM_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  Histogram *(VnIndex)* đảo chiều giảm, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
@@ -363,6 +365,8 @@ VNINDEX_CONFIG_STOCH_RSI_DECREASE_NECESSARY_CONDITION = '''
 VNINDEX_CONFIG_MACD_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(VnIndex)* giảm,  MACD mới: {current}, MACD cũ: {previous}'''
 
+VNINDEX_CONFIG_SMA_DECREASE_NECESSARY_CONDITION = '''
+        # **ĐK cần:**  SMA *(VnIndex)* giảm, SMA mới: {current}, SMA cũ: {previous}'''
 VNINDEX_CONFIG_HISTOGRAM_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  Histogram *(VnIndex)* giảm, Histogram mới: {current}, Histogram cũ: {previous}'''
 
@@ -421,6 +425,8 @@ STOCK_CONFIG_STOCH_RSI_DECREASE_SUFFICIENT_CONDITION = '''
 STOCK_CONFIG_MACD_DECREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(Stock)* giảm, MACD mới: {current}, MACD cũ: {previous}'''
 
+STOCK_CONFIG_SMA_DECREASE_SUFFICIENT_CONDITION = '''
+        # **ĐK đủ:**  SMA *(Stock)* giảm, SMA mới: {current}, SMA cũ: {previous}'''
 STOCK_CONFIG_HISTOGRAM_DECREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  Histogram *(Stock)* giảm, Histogram mới: {current}, Histogram cũ: {previous}'''
 
@@ -458,6 +464,8 @@ STOCK_CONFIG_STOCH_RSI_DECREASE_NECESSARY_CONDITION = '''
 STOCK_CONFIG_MACD_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(Stock)* giảm, MACD mới: {current}, MACD cũ: {previous}'''
 
+STOCK_CONFIG_SMA_DECREASE_NECESSARY_CONDITION = '''
+        # **ĐK cần:**  SMA *(Stock)* giảm, SMA mới: {current}, SMA cũ: {previous}'''
 STOCK_CONFIG_HISTOGRAM_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  Histogram *(Stock)* giảm, Histogram mới: {current}, Histogram cũ: {previous}'''
 
