@@ -67,10 +67,10 @@ def adding_idicator(df: pd.DataFrame):
     df["signal_line"] = macd.macd_signal()
     df['histogram'] = df['macd'] - df['signal_line']
 
-    df['SMA'] = df['close'].rolling(window=20).mean()
-    df['STD'] = df['close'].rolling(window=20).std()
-    df['upper_bolinger'] = df['SMA'] + (df['STD'] * 2)
-    df['lower_bolinger'] = df['SMA'] - (df['STD'] * 2)
+    df['sma'] = df['close'].rolling(window=20).mean()
+    df['std'] = df['close'].rolling(window=20).std()
+    df['upper_bolinger'] = df['sma'] + (df['std'] * 2)
+    df['lower_bolinger'] = df['sma'] - (df['std'] * 2)
 
 
 # def send_telegram_message(user, message_type: MessageTypeEnum , status_signal: SignalTelegramEnum | None, **kwargs):
@@ -445,9 +445,14 @@ def should_do_obligatory(
         if obl in ["vnindex_config_use_macd_obl_increase", "stock_config_use_macd_obl_increase" ]:
             previous = round(get_previous_value_from_key(
                 config_type, obl, config, d1, d0, '_sufficient_condition', side), number_decimal)
+        elif obl in ["vnindex_config_use_sma_obl_increase", "stock_config_use_sma_obl_increase" ]:            
+            previous = round(get_previous_value_from_key(
+                config_type, obl, config, d1, d0, '_sufficient_condition', side), number_decimal)
+            current = round(get_current_value_from_key(config_type, obl, d0), number_decimal) 
+            print(f'check current {obl}: ', current)
+            print(f'check previous {obl}: ', previous)      
         current = round(get_current_value_from_key(config_type, obl, d0), number_decimal)
-        # print(f'check current {obl}: ', current)
-        # print(f'check previous {obl}: ', previous)
+
         if not handle_condition(obl, last_previous, previous, current):
             return False, [(obl, last_previous, previous, current)]
         else:

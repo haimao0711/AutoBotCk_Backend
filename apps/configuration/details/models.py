@@ -157,6 +157,8 @@ class Configuration(models.Model):
 
     vnindex_config_use_macd_increase = models.BooleanField(default=False)
     vnindex_config_use_macd_obl_increase = models.BooleanField(default=False)
+    vnindex_config_use_sma_increase = models.BooleanField(default=False)
+    vnindex_config_use_sma_obl_increase = models.BooleanField(default=False)
     vnindex_config_macd_increase_necessary_condition = models.BooleanField(
         default=False)
     vnindex_config_macd_increase_sufficient_condition = models.BooleanField(
@@ -405,6 +407,8 @@ class Configuration(models.Model):
 
     stock_config_use_macd_increase = models.BooleanField(default=False)
     stock_config_use_macd_obl_increase = models.BooleanField(default=False)
+    stock_config_use_sma_increase = models.BooleanField(default=False)
+    stock_config_use_sma_obl_increase = models.BooleanField(default=False)
     stock_config_macd_increase_necessary_condition = models.BooleanField(
         default=False)
     stock_config_macd_increase_sufficient_condition = models.BooleanField(
