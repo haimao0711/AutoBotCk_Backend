@@ -61,7 +61,10 @@ VNINDEX_CONFIG_MACD_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(VnIndex)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
 VNINDEX_CONFIG_MACD_OBL_INCREASE= '''
         # **ĐK bắt buộc:**  MACD *(VnIndex)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
-
+VNINDEX_CONFIG_SMA_INCREASE_SUFFICIENT_CONDITION = '''
+        # **ĐK đủ:**  SMA *(VnIndex)* tăng, SMA mới: {current}, SMA cũ: {previous}'''
+VNINDEX_CONFIG_SMA_OBL_INCREASE= '''
+        # **ĐK bắt buộc:**  SMA *(VnIndex)* tăng, SMA mới: {current}, SMA cũ: {previous}'''
 VNINDEX_CONFIG_HISTOGRAM_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  Histogram *(VnIndex)* đảo chiều tăng, Histogram D2: {old_previous}, Histogram D1: {previous}, Histogram D0: {current}'''
 
@@ -114,6 +117,8 @@ VNINDEX_CONFIG_STOCH_RSI_INCREASE_NECESSARY_CONDITION = '''
 
 VNINDEX_CONFIG_MACD_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(VnIndex)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
+VNINDEX_CONFIG_SMA_INCREASE_NECESSARY_CONDITION = '''
+        # **ĐK cần:**  SMA *(VnIndex)* tăng, SMA mới: {current}, SMA cũ: {previous}'''
 
 VNINDEX_CONFIG_HISTOGRAM_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  Histogram *(VnIndex)* tăng, Histogram mới: {current}, Histogram cũ: {previous}'''
@@ -179,8 +184,12 @@ STOCK_CONFIG_STOCH_RSI_INCREASE_SUFFICIENT_CONDITION = '''
 
 STOCK_CONFIG_MACD_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(Stock)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
+STOCK_CONFIG_SMA_INCREASE_SUFFICIENT_CONDITION = '''
+        # **ĐK đủ:**  SMA *(Stock)* tăng, SMA mới: {current}, SMA cũ: {previous}'''
 STOCK_CONFIG_USE_MACD_OBL_INCREASE = '''
         # **ĐK bắt buộc:**  MACD *(Stock)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
+STOCK_CONFIG_USE_SMA_OBL_INCREASE = '''
+        # **ĐK bắt buộc:**  SMA *(Stock)* tăng, SMA mới: {current}, SMA cũ: {previous}'''
 STOCK_CONFIG_HISTOGRAM_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  Histogram *(Stock)* tăng, Histogram mới: {current}, Histogram cũ: {previous}'''
 
@@ -221,6 +230,8 @@ STOCK_CONFIG_STOCH_RSI_INCREASE_NECESSARY_CONDITION = '''
 
 STOCK_CONFIG_MACD_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(Stock)* tăng, MACD mới: {current}, MACD cũ: {previous}'''
+STOCK_CONFIG_SMA_INCREASE_NECESSARY_CONDITION = '''
+        # **ĐK cần:**  SMA *(Stock)* tăng, SMA mới: {current}, SMA cũ: {previous}'''
 
 STOCK_CONFIG_HISTOGRAM_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  Histogram *(Stock)* tăng, Histogram mới: {current}, Histogram cũ: {previous}'''

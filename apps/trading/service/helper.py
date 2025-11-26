@@ -242,6 +242,8 @@ def is_valid_vnindex_trend(previous_vnindex_attr: float, curr_vnindex_attr: floa
 def is_valid_macd_trend(previous_macd_attr: float, curr_macd_attr: float, operator_trend: str) -> bool:
     return is_valid_trend(previous_macd_attr, curr_macd_attr, operator_trend)
 
+def is_valid_sma_trend(previous_sma_attr: float, curr_sma_attr: float, operator_trend: str) -> bool:
+    return is_valid_trend(previous_sma_attr, curr_sma_attr, operator_trend)
 
 def is_valid_rsi_trend(previous_rsi_attr: float, curr_rsi_attr: float, operator_trend: str) -> bool:
     return is_valid_trend(previous_rsi_attr, curr_rsi_attr, operator_trend)
@@ -284,7 +286,8 @@ sufficient_conditions = [
 
     # new adding to buy
     'vnindex_config_rsi_increase_sufficient_condition', 'vnindex_config_stoch_rsi_increase_sufficient_condition',
-    'vnindex_config_macd_increase_sufficient_condition', 'vnindex_config_histogram_increase_sufficient_condition',
+    'vnindex_config_macd_increase_sufficient_condition', vnindex_config_sma_increase_sufficient_condition',
+    'vnindex_config_histogram_increase_sufficient_condition',
 
     'vnindex_config_min_vnindex_sell_sufficient_condition', 'vnindex_config_max_vnindex_sell_sufficient_condition',
     'vnindex_config_rsi_to_sell_sufficient_condition', 'vnindex_config_rsi_reversed_decrease_sufficient_condition',
@@ -306,7 +309,8 @@ sufficient_conditions = [
 
     # new adding to buy
     'stock_config_rsi_increase_sufficient_condition', 'stock_config_stoch_rsi_increase_sufficient_condition',
-    'stock_config_macd_increase_sufficient_condition', 'stock_config_histogram_increase_sufficient_condition',
+    'stock_config_macd_increase_sufficient_condition', 'stock_config_sma_increase_sufficient_condition',
+    'stock_config_histogram_increase_sufficient_condition',
 
     'stock_config_min_stock_sell_sufficient_condition', 'stock_config_max_stock_sell_sufficient_condition',
     'stock_config_rsi_to_sell_sufficient_condition', 'stock_config_rsi_reversed_decrease_sufficient_condition',
@@ -330,7 +334,8 @@ necessary_condition = [
 
     # new adding to buy
     'vnindex_config_rsi_increase_necessary_condition', 'vnindex_config_stoch_rsi_increase_necessary_condition',
-    'vnindex_config_macd_increase_necessary_condition', 'vnindex_config_histogram_increase_necessary_condition',
+    'vnindex_config_macd_increase_necessary_condition', 'vnindex_config_sma_increase_necessary_condition',
+    'vnindex_config_histogram_increase_necessary_condition',
 
     'vnindex_config_min_vnindex_sell_necessary_condition', 'vnindex_config_max_vnindex_sell_necessary_condition',
     'vnindex_config_rsi_to_sell_necessary_condition', 'vnindex_config_rsi_reversed_decrease_necessary_condition',
@@ -353,7 +358,8 @@ necessary_condition = [
 
     # new adding to buy
     'stock_config_rsi_increase_necessary_condition', 'stock_config_stoch_rsi_increase_necessary_condition',
-    'stock_config_macd_increase_necessary_condition', 'stock_config_histogram_increase_necessary_condition',
+    'stock_config_macd_increase_necessary_condition', 'stock_config_sma_increase_necessary_condition',
+    'stock_config_histogram_increase_necessary_condition',
 
     'stock_config_min_stock_sell_necessary_condition', 'stock_config_max_stock_sell_necessary_condition',
     'stock_config_rsi_to_sell_necessary_condition', 'stock_config_rsi_reversed_decrease_necessary_condition',
@@ -403,6 +409,8 @@ keyword_to_function = {
     'stoch_rsi_decrease': (is_valid_stoch_rsi_trend, 'decrease'),
     'macd_increase': (is_valid_macd_trend, 'increase'),
     'macd_obl_increase': (is_valid_macd_trend, 'increase'),
+    'sma_increase': (is_valid_sma_trend, 'increase'),
+    'sma_obl_increase': (is_valid_sma_trend, 'increase'),
     'macd_decrease': (is_valid_macd_trend, 'decrease'),
     'histogram_increase': (is_valid_histogram_trend, 'increase'),
     'histogram_decrease': (is_valid_histogram_trend, 'decrease'),
