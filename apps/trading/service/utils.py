@@ -164,6 +164,8 @@ def get_current_value_from_key(prefix: str, indicator_name: str, last_data: pd.S
         return last_data['rsi']
     elif 'macd' in indicator_name and prefix in indicator_name:
         return last_data['macd']
+    elif 'sma' in indicator_name and prefix in indicator_name:
+        return last_data['sma']
     elif 'bolinger' in indicator_name and prefix in indicator_name:
         return last_data['close']
     elif 'histogram' in indicator_name and prefix in indicator_name:
