@@ -608,9 +608,9 @@ def should_buy_chart(config: Configuration, data_df: pd.DataFrame, config_type: 
     sufficient, s_reasons = should_do_sufficient(config, data_df, 'buy', config_type)
     necessary, n_reasons = should_do_necessary(config, data_df, 'buy', config_type)
     obligatory, o_reasons = should_do_obligatory(config, data_df, 'buy', config_type)
-    # print('check sufficient: ', sufficient)
-    # print('check obligatory: ', obligatory)
-    # print('check o_reasons: ', o_reasons)
+    print('check sufficient: ', sufficient)
+    print('check obligatory: ', obligatory)
+    print('check o_reasons: ', o_reasons)
     if obligatory:
         if sufficient:
             return sufficient, {
