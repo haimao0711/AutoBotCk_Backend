@@ -132,6 +132,13 @@ def get_previous_value_from_key(prefix: str, indicator_name: str, config: Config
             return getattr(config, base_keyword, 0.0)
         elif '_increase' in indicator_name or '_decrease' in indicator_name:
             return penultimate_data['macd']
+    elif 'sma' in indicator_name and prefix in indicator_name:
+        if '_to' in indicator_name:
+            base_keyword = render_new_from_keyword(
+                indicator_name, 'value', importance_key)
+            return getattr(config, base_keyword, 0.0)
+        elif '_increase' in indicator_name or '_decrease' in indicator_name:
+            return penultimate_data['sma']
     elif 'bolinger' in indicator_name and prefix in indicator_name:
         if side == 'buy':
             return last_data['lower_bolinger']

@@ -26,6 +26,7 @@ class ConfigurationTemplateServices:
 
         try:
             config_template = Configuration.objects.get(user=user, config_type=template.id, stock=None)
+            
         except Configuration.DoesNotExist:
             # try:
             #     # Nếu không tìm thấy, lấy template của user_id = 3
