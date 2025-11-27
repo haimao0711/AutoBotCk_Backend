@@ -287,7 +287,7 @@ sufficient_conditions = [
 
     # new adding to buy
     'vnindex_config_rsi_increase_sufficient_condition', 'vnindex_config_stoch_rsi_increase_sufficient_condition',
-    'vnindex_config_macd_increase_sufficient_condition', vnindex_config_sma_increase_sufficient_condition',
+    'vnindex_config_macd_increase_sufficient_condition', 'vnindex_config_sma_increase_sufficient_condition',
     'vnindex_config_histogram_increase_sufficient_condition',
 
     'vnindex_config_min_vnindex_sell_sufficient_condition', 'vnindex_config_max_vnindex_sell_sufficient_condition',
