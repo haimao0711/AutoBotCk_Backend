@@ -418,7 +418,6 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 data_trading_df=stock_data_trading,
                 config_type='stock_config'
             )
-            logger.info(f'Check buy_reason {symbol}: {buy_reason}')
 
             if is_buy:
                 status_buy = SignalTelegramEnum.BUY_REQUEST_SUCCESS
@@ -1074,11 +1073,12 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 )
                 messages_to_buy_vnindex = render_message(
                 buy_reason_vnindex, trading_chart_value=trading_candle, following_chart_type=following_candle)
+                logger.info(f'check buy_reason_vnindex {symbol}: {buy_reason_vnindex}') 
                 if not is_buy_vnindex:
                     is_buy = is_buy_vnindex  
 
             logger.info(f'check is_buy {symbol}: {is_buy}')
-            logger.info(f'check buy_reason {symbol} {buy_reason}')     
+            logger.info(f'check buy_reason CP {symbol}: {buy_reason}')     
 
             number_order = trading_config.stock_config_number_pid_buy_once_time
 

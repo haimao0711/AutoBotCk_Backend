@@ -566,7 +566,7 @@ def should_do_necessary(
     # print('check list necessary_condition_valid_fields: ', necessary_condition_valid_fields)
 
     if len(necessary_condition_valid_fields) == 0:
-        return False, []
+        return True, []
     
     d0 = data_df.iloc[-1]
     d1 = data_df.iloc[-2]
@@ -608,9 +608,9 @@ def should_buy_chart(config: Configuration, data_df: pd.DataFrame, config_type: 
     sufficient, s_reasons = should_do_sufficient(config, data_df, 'buy', config_type)
     necessary, n_reasons = should_do_necessary(config, data_df, 'buy', config_type)
     obligatory, o_reasons = should_do_obligatory(config, data_df, 'buy', config_type)
-    print('check sufficient: ', sufficient)
-    print('check obligatory: ', obligatory)
-    print('check o_reasons: ', o_reasons)
+    # print('check sufficient: ', sufficient)
+    # print('check obligatory: ', obligatory)
+    # print('check o_reasons: ', o_reasons)
     if obligatory:
         if sufficient:
             return sufficient, {
