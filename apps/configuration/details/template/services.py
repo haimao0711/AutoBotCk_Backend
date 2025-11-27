@@ -16,7 +16,7 @@ class ConfigurationTemplateServices:
         template = ConfigurationTypeServices.get_template()
         try:
             config_template = Configuration.objects.get(
-                user=user, config_type=template.id)
+                user=user, config_type=template.id, stock=None)
             return ConfigurationSerializers(config_template).data
         except Configuration.DoesNotExist:
             return {}
@@ -25,11 +25,11 @@ class ConfigurationTemplateServices:
         template = ConfigurationTypeServices.get_template()
 
         try:
-            config_template = Configuration.objects.get(user=user, config_type=template.id)
+            config_template = Configuration.objects.get(user=user, config_type=template.id, stock=None)
         except Configuration.DoesNotExist:
             # try:
             #     # Nếu không tìm thấy, lấy template của user_id = 3
-            #     base_template = Configuration.objects.get(user_id=3, config_type=template.id)
+            #     base_template = Configuration.objects.get(user_id=3, config_type=template.id, stock=None)
             #     # Tạo một bản sao mới cho user hiện tại
             #     config_template = Configuration.objects.create(
             #         user=user,
@@ -90,7 +90,7 @@ class ConfigurationTemplateServices:
         template = ConfigurationTypeServices.get_template()
 
         config_template = Configuration.objects.get(
-            user=user, config_type=template.id)
+            user=user, config_type=template.id, stock=None)
 
         # init update data
 
@@ -152,7 +152,7 @@ class ConfigurationTemplateServices:
         template = ConfigurationTypeServices.get_template()
 
         try:
-            _ = Configuration.objects.get(user=user, config_type=template.id)
+            _ = Configuration.objects.get(user=user, config_type=template.id, stock=None)
             return True
         except Configuration.DoesNotExist:
             return False
