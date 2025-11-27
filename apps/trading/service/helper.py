@@ -446,7 +446,7 @@ def should_do_obligatory(
     config_type: str
 ):
     obligatory_condition_valid_fields = get_valid_use_and_obl_fields(config, config_type)
-    # print(f'check obligatory_condition_valid_fields {side}:', obligatory_condition_valid_fields)
+    logger.info(f'check obligatory_condition_valid_fields {side}: {obligatory_condition_valid_fields}')
     if len(obligatory_condition_valid_fields) == 0:
         return True, []
 
@@ -470,8 +470,8 @@ def should_do_obligatory(
             previous = round(get_previous_value_from_key(
                 config_type, obl, config, d1, d0, '_sufficient_condition', side), number_decimal)
             current = round(get_current_value_from_key(config_type, obl, d0), number_decimal) 
-            print(f'check current {obl}: ', current)
-            print(f'check previous {obl}: ', previous)      
+            logger.info(f'check current {obl}: {current} ', )
+            logger.info(f'check previous {obl}: {previous}')      
         current = round(get_current_value_from_key(config_type, obl, d0), number_decimal)
 
         if not handle_condition(obl, last_previous, previous, current):
