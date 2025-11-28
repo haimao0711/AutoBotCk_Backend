@@ -63,7 +63,7 @@ def cancel_all_orders(user: User, user_name: str, account: str, symbol: str, req
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
         send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)  
     else:
-        logger.info(f'Chua lay duoc danh sach chua khop to cancel all orrder')
+        logger.info(f'Chua lay duoc danh sach chua khop to cancel all orders')
 def cancel_all_buy_orders(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str):
     logger.info(f'Bắt đầu chạy hàm cancel all buy orders ')
     ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
@@ -80,6 +80,8 @@ def cancel_all_buy_orders(user: User, user_name: str, account: str, symbol: str,
         message_cancel = '** Chặn mua, đã hủy tất cả các lệnh mua đang đặt hiện tại**'
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
         send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)  
+    else:
+        logger.info(f'Chua lay duoc danh sach chua khop to cancel all buy orders')
 def cancel_all_sell_orders(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str):
     logger.info(f'Bắt đầu chạy hàm cancel all sell orders ')
     ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
@@ -97,7 +99,7 @@ def cancel_all_sell_orders(user: User, user_name: str, account: str, symbol: str
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
         send_message_telegram(user, MessageTypeEnum.ACT, message_cancel) 
     else:
-        logger.info(f'Chua lay duoc danh sach chua khop to cancel all orrder')
+        logger.info(f'Chua lay duoc danh sach chua khop to cancel all sell orders')
 
 
 
@@ -1262,11 +1264,14 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         is_use_vnindex_following = following_config.is_use_vnindex_config
                         is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config')                    
                         if is_use_vnindex_following:
-                            is_buy_vnindex, _ = should_buy_following(following_config, vnindex_data_following, 'vnindex_config')
+                            is_buy_vnindex, reason_buy_vnindex = should_buy_following(following_config, vnindex_data_following, 'vnindex_config')
                             if not is_buy_vnindex:
                                 is_buy = False
 
                         logger.info(f'⏱ Kiểm tra {interval_check}s - is_buy {symbol}: {is_buy}')
+                        logger.info(f'⏱ Kiểm tra {interval_check}s - reason_buy {symbol}: {reason_buy}')
+                        logger.info(f'⏱ Kiểm tra {interval_check}s - is_buy_vnindex {symbol}: {is_buy_vnindex}')
+                        logger.info(f'⏱ Kiểm tra {interval_check}s - reason_buy_vnindex {symbol}: {reason_buy_vnindex}')
                         if not is_buy:
                             logger.info(f'⚠️ Điều kiện mua không còn thỏa mãn, hủy lệnh {symbol} ngay!')
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Điều kiện mua không còn thỏa mãn', "B")
