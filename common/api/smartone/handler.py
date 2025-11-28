@@ -121,7 +121,7 @@ def handle_orders_not_matched(user_account, trade_account, symbol, url, valid_se
                 }
                 for order in not_matcheds
             ]
-        elif symbol == 'all_oder':
+        elif symbol == 'all_order':
         # Lọc tất cả các lệnh theo side
             orders_detail = [
                {

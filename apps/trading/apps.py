@@ -42,10 +42,14 @@ class TradingConfig(AppConfig):
         def bootstrap_celery_schedules():
             try:
                 from django.db import connection
-                from .scheduler.celery_scheduler import restart_all_user_schedules
+                from .scheduler.celery_scheduler import restart_all_user_schedules, cancel_all_orders_on_startup
                 
                 # Đảm bảo database kết nối
                 connection.ensure_connection()
+                
+                # Hủy tất cả lệnh cho tất cả users khi container khởi động
+                logger.info("🚀 Bắt đầu hủy tất cả lệnh khi khởi động container...")
+                cancel_all_orders_on_startup()
                 
                 # Restart schedules cho các user có flag True
                 # Chỉ gọi khi chạy celery-beat hoặc Django API server

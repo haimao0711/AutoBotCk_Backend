@@ -254,3 +254,44 @@ def get_user_schedule_status(user):
             "total_tasks": 0,
             "status": "error"
         }
+
+def cancel_all_orders_on_startup():
+    """
+    Hủy tất cả lệnh của tất cả users có scheduler_status=True khi container khởi động
+    """
+    try:
+        from apps.account.detail.services import AccountService
+        from apps.trading.service.handlers import cancel_all_orders
+        from apps import api
+        
+        users_with_scheduler = User.objects.filter(scheduler_status=True)
+        
+        if not users_with_scheduler.exists():
+            logger.info("🔄 Không có user nào có Scheduler đang chạy, không cần hủy lệnh.")
+            return
+            
+        logger.info(f"🔄 Bắt đầu hủy tất cả lệnh cho {users_with_scheduler.count()} user(s) khi khởi động container...")
+        
+        for user in users_with_scheduler:
+            try:
+                vps_account = AccountService.get_account_by_user(user)
+                if not vps_account:
+                    logger.warning(f"⚠️ User {user.username} không có account, bỏ qua.")
+                    continue
+                    
+                account_name = vps_account.name
+                account_num = vps_account.account_num
+                session_id = vps_account.vps_session_id
+                url = api.TRADING_URL
+                
+                logger.info(f"🔄 Đang hủy tất cả lệnh cho user {user.username}...")
+                cancel_all_orders(user, account_name, account_num, '', url, session_id, '', 'All')
+                logger.info(f"✅ Đã hủy tất cả lệnh cho user {user.username}")
+                
+            except Exception as e:
+                logger.exception(f"❌ Lỗi khi hủy lệnh cho user {user.username}: {e}")
+                
+        logger.info("✅ Hoàn thành việc hủy tất cả lệnh khi khởi động container.")
+        
+    except Exception as e:
+        logger.exception(f"❌ Lỗi trong cancel_all_orders_on_startup: {e}")
