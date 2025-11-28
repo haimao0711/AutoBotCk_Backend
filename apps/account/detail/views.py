@@ -28,6 +28,8 @@ from common.success.messages import SuccessMessage
 from apps.trading.service.handlers import cancel_all_buy_orders, cancel_all_sell_orders
 from apps import api
 import hashlib
+import logging
+logger = logging.getLogger(__name__)
 
 
 class AccountViews(APIView):
@@ -439,9 +441,13 @@ class AccountTradingView(APIView):
             type_block = body["type"]
             # Hủy lệnh mua hoặc bán khi block buy hoặc block sell
             if is_block_buy:
+                logger.info(f'Bắt đầu chạy cancel_all_buy_orders khi block buy')
                 cancel_all_buy_orders(user, account_name, account_num, 'all_order', api.TRADING_URL, session_id, '', "B")
+                logger.info(f'Đã chạy xong cancel_all_buy_orders khi block buy')
             if is_block_sell:
-                cancel_all_buy_orders(user, account_name, account_num, 'all_order', api.TRADING_URL, session_id, '', "S")
+                logger.info(f'Bắt đầu chạy cancel_all_sell_orders khi block sell')
+                cancel_all_sell_orders(user, account_name, account_num, 'all_order', api.TRADING_URL, session_id, '', "S")
+                logger.info(f'Đã chạy xong cancel_all_sell_orders khi block sell')
             vps_data_update = {
                 "is_block_buy": is_block_buy,
                 "is_block_sell": is_block_sell,
@@ -452,7 +458,7 @@ class AccountTradingView(APIView):
             if vps_serializer.is_valid():
                 vps_serializer.save()
             overview_configuration = ConfigurationOverviewServices.update_block_trade_overview(user=user, type_block=type_block, is_block_buy=is_block_buy, is_block_sell=is_block_sell )   
-            # print('check overview_configuration by user: ', overview_configuration) 
+
             if overview_configuration:
                 return Response({
                     "data": {
