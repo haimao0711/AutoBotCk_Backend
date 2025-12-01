@@ -440,14 +440,14 @@ class AccountTradingView(APIView):
             is_block_sell = body["is_block_sell"]
             type_block = body["type"]
             # Hủy lệnh mua hoặc bán khi block buy hoặc block sell
-            if is_block_buy:
-                logger.info(f'Bắt đầu chạy cancel_all_buy_orders khi block buy')
-                cancel_all_buy_orders(user, account_name, account_num, 'all_order', api.TRADING_URL, session_id, '', "B")
-                logger.info(f'Đã chạy xong cancel_all_buy_orders khi block buy')
-            if is_block_sell:
-                logger.info(f'Bắt đầu chạy cancel_all_sell_orders khi block sell')
-                cancel_all_sell_orders(user, account_name, account_num, 'all_order', api.TRADING_URL, session_id, '', "S")
-                logger.info(f'Đã chạy xong cancel_all_sell_orders khi block sell')
+            # if is_block_buy:
+            #     logger.info(f'Bắt đầu chạy cancel_all_buy_orders khi block buy')
+            #     cancel_all_buy_orders(user, account_name, account_num, 'all_order', api.TRADING_URL, session_id, '', "B")
+            #     logger.info(f'Đã chạy xong cancel_all_buy_orders khi block buy')
+            # if is_block_sell:
+            #     logger.info(f'Bắt đầu chạy cancel_all_sell_orders khi block sell')
+            #     cancel_all_sell_orders(user, account_name, account_num, 'all_order', api.TRADING_URL, session_id, '', "S")
+            #     logger.info(f'Đã chạy xong cancel_all_sell_orders khi block sell')
             vps_data_update = {
                 "is_block_buy": is_block_buy,
                 "is_block_sell": is_block_sell,

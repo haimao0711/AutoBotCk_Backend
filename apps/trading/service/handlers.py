@@ -267,7 +267,7 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
             update_price = round(old_price - step_price, 2)      
             update_volume = int(order['volume'])
             order_num = order['orderNo']
-            logger.info('check order_num sell: ', order_num)
+            logger.info(f'check order_num sell: {order_num}')
         # Nếu update_price chưa bé hơn limited_price thì handle update order
             if update_price > limited_price:
                 handle_update_order_service(user_name, account, request_url, symbol, session, '', order_num, old_price, update_price, update_volume, ref_id, 'S')
@@ -668,7 +668,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_buy_matched)
                     send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_matched)
             else:
-                logger.info('Không lấy được danh sách các lệnh đã khớp symbol: ', symbol)
+                logger.info(f'Không lấy được danh sách các lệnh đã khớp symbol: {symbol}')
         except Exception as e:
             logger.info(f"Lỗi khi xử lý matched orders: {e}")
             message = f'Không lấy được thông tin các lệnh mua tay đã khớp mã {symbol}'
@@ -1229,17 +1229,56 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 limited_price_to_buy = start_price - add_price_buy + slippage_buy  
 
                 interval_check = 10  # kiểm tra mỗi 10 giây
+                should_break_loop = False  # Flag để thoát khỏi vòng for
                 for i in range(int(limited_times) - 1):
+                    if should_break_loop:
+                        break
                     elapsed = 0
                     while elapsed < sleeping_time_buy:
                         time.sleep(interval_check)
                         elapsed += interval_check
+                        
+                        # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
+                        try:
+                            configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
+                                user=user, 
+                                stock_symbol=symbol
+                            )
+                            if configuration:
+                                refreshed_trading_config = configuration.get("trading_config")
+                                refreshed_following_config = configuration.get("following_config")
+                                refreshed_overview_config = configuration.get("overview_config")
+                                refreshed_stock = configuration.get("stock")
+                                
+                                # Cập nhật các biến config nếu lấy được
+                                if refreshed_trading_config:
+                                    trading_config = refreshed_trading_config
+                                    trading_candle = getattr(getattr(trading_config, "candle", None), "candle", "M5")
+                                    trading_chart_type = getattr(CandleEnum, trading_candle, CandleEnum.M5)
+                                if refreshed_following_config:
+                                    following_config = refreshed_following_config
+                                    following_candle = getattr(getattr(following_config, "candle", None), "candle", "D1")
+                                    following_chart_type = getattr(CandleEnum, following_candle, CandleEnum.D1)
+                                if refreshed_overview_config:
+                                    overview_config = refreshed_overview_config
+                                if refreshed_stock:
+                                    stock = refreshed_stock
+                        except Exception as e:
+                            logger.info(f'Lỗi khi lấy lại cấu hình cho {symbol}: {e}')
+                            # Tiếp tục dùng config cũ nếu lỗi
+                        is_block_buy_stock = overview_config.is_block_buy
+                        if is_block_buy_stock:
+                            logger.info(f'{symbol} đã bị chặn mua, hủy lệnh {symbol}')
+                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn mua', "B")
+                            should_break_loop = True
+                            break
                         res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                         number_stock_existing = res_stock.get('number_stock_existing', 0) if res_stock else 0
                         symbols_existing = res_stock.get('symbols_existing', []) if res_stock else []
                         if number_stock_existing >= vps_account.limit_number_stocks and symbol not in symbols_existing:
                             logger.info(f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh {symbol}')
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn cổ phiếu tối đa', "B")
+                            should_break_loop = True
                             break
                         # --- Tải dữ liệu và kiểm tra điều kiện mua ---
                         vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
@@ -1282,10 +1321,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         if not is_buy:
                             logger.info(f'⚠️ Điều kiện mua không còn thỏa mãn, hủy lệnh {symbol} ngay!')
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Điều kiện mua không còn thỏa mãn', "B")
+                            should_break_loop = True
                             break  # thoát vòng kiểm tra, không update nữa
 
                     else:
                         # --- Chỉ đến đây sau khi đã chờ đủ sleeping_time_buy ---
+                        if should_break_loop:
+                            break
                         logger.info(f'🔄 Bắt đầu sửa lệnh mua lần thứ {i + 1} của {symbol}')                      
                         # --- Thực hiện update_buy_order ---
                         message_update = update_buy_order(
@@ -1376,10 +1418,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             latest_stoch_rsi_following  = stock_data_following.iloc[-1]['stoch_rsi']
 
             take_profit_type = ''
-            logger.info(f'check percentage_loss {symbol}: {percentage_loss}')
-            logger.info(f'check take_profit_percent {symbol}: {take_profit_percent}')
-            logger.info(f'check percent_take_profit_sell_first {symbol}: {percent_take_profit_sell_first}')
-            logger.info(f'check percent_take_profit_sell_first_two {symbol}: {percent_take_profit_sell_first_two}')
             if  ( (percentage_loss >= take_profit_percent and use_take_profit_trigger) 
                  or (use_take_profit_first_part_two and percentage_loss >= percent_take_profit_sell_first_two) 
                  or (use_take_profit_first_part and percentage_loss >= percent_take_profit_sell_first)
