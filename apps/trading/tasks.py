@@ -91,7 +91,7 @@ def cancel_trading_task(self, user_id, job_type="morning"):
         session_id = vps_account.vps_session_id
         url = api.TRADING_URL 
         
-        cancel_all_orders(user, account_name, account_num, '', url, session_id, '', 'All')
+        cancel_all_orders(user, account_name, account_num, 'calendar_cancel', url, session_id, '', 'All')
         
     except Exception as exc:
         logger.error(f'Error in cancel_trading_task: {exc}')

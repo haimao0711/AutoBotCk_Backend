@@ -566,7 +566,7 @@ def should_do_necessary(
     # print('check list necessary_condition_valid_fields: ', necessary_condition_valid_fields)
 
     if len(necessary_condition_valid_fields) == 0:
-        return True, []
+        return False, []
     
     d0 = data_df.iloc[-1]
     d1 = data_df.iloc[-2]

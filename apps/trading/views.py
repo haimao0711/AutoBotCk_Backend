@@ -154,7 +154,7 @@ class TradingViews(APIView):
             account_num = vps_account.account_num
             session_id = vps_account.vps_session_id
             url = api.TRADING_URL 
-            cancel_all_orders(user, account_name, account_num, '', url, session_id, '', 'All')
+            cancel_all_orders(user, account_name, account_num, 'calendar_cancel', url, session_id, '', 'All')
                
         except Exception as e:
             print(f"Unexpected error: {e}")

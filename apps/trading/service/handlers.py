@@ -60,8 +60,15 @@ def cancel_all_orders(user: User, user_name: str, account: str, symbol: str, req
             else:
                 logger.info(f'Chua huy duoc lenh sell {symbol}')
         message_cancel = '📢📢📢** Khởi động lại Bot, đã hủy tất cả các lệnh đang đặt hiện tại** 📢📢📢'
+        if symbol == 'calendar_cancel':
+            message_cancel = '📢📢📢** Hủy tất cả các lệnh đang đặt hiện tại theo lịch** 📢📢📢'
+        elif symbol == 'cancel_all_buy_orders':
+            message_cancel = '** Chặn mua, đã hủy tất cả các lệnh mua đang đặt hiện tại**'
+        else:
+            message_cancel = '** Đã hủy tất cả các lệnh đang đặt hiện tại**'        
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
-        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)  
+        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)        
+ 
     else:
         logger.info(f'Chua lay duoc danh sach chua khop to cancel all orders')
 def cancel_all_buy_orders(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str):
@@ -79,7 +86,7 @@ def cancel_all_buy_orders(user: User, user_name: str, account: str, symbol: str,
                 logger.info(f'Chua huy duoc lenh {order['side']}  {symbol}')
         message_cancel = '** Chặn mua, đã hủy tất cả các lệnh mua đang đặt hiện tại**'
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
-        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)  
+        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
     else:
         logger.info(f'Chua lay duoc danh sach chua khop to cancel all buy orders')
 def cancel_all_sell_orders(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str):
