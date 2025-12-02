@@ -1331,7 +1331,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             if messages_to_cancel_update:
                                 reason_parts.append(f"- **Lí do STOCK:** {messages_to_cancel_update}")
                             
-                            reason_cancel_update = "\n    ".join(reason_parts) if reason_parts else "Không có lý do cụ thể"
+                            # Format với xuống dòng và thụt lề đúng cách (sau "Lí do:" sẽ xuống dòng)
+                            if reason_parts:
+                                reason_cancel_update = "\n    " + "\n    ".join(reason_parts)
+                            else:
+                                reason_cancel_update = "\n    Không có lý do cụ thể"
                             
                             logger.info(f'⚠️ Điều kiện mua không còn thỏa mãn, hủy lệnh {symbol} ngay!')
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, reason_cancel_update, "B")
