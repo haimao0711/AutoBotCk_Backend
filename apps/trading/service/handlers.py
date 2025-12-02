@@ -1082,7 +1082,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 )
                 messages_to_buy_vnindex = render_message(
                 buy_reason_vnindex, trading_chart_value=trading_candle, following_chart_type=following_candle)
-                logger.info(f'check buy_reason_vnindex {symbol}: {buy_reason_vnindex}') 
+                # logger.info(f'check buy_reason_vnindex {symbol}: {buy_reason_vnindex}') 
                 if not is_buy_vnindex:
                     is_buy = is_buy_vnindex  
 
@@ -1308,11 +1308,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
 
                         is_use_vnindex_following = following_config.is_use_vnindex_config
-                        is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config')                    
+                        is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config') 
+                        messages_to_cancel_update = render_message(reason_buy, trading_chart_value=trading_candle, following_chart_type=following_candle) 
+                        messages_to_cancel_update_vnindex = ''                  
                         if is_use_vnindex_following:
                             is_buy_vnindex, reason_buy_vnindex = should_buy_following(following_config, vnindex_data_following, 'vnindex_config')
                             logger.info(f'⏱ Kiểm tra {interval_check}s - is_buy_vnindex {symbol}: {is_buy_vnindex}')
                             logger.info(f'⏱ Kiểm tra {interval_check}s - reason_buy_vnindex {symbol}: {reason_buy_vnindex}')
+                            messages_to_cancel_update_vnindex = render_message(
+                            reason_buy_vnindex, trading_chart_value=trading_candle, following_chart_type=following_candle)
                             if not is_buy_vnindex:
                                 is_buy = False
 
@@ -1320,8 +1324,17 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         logger.info(f'⏱ Kiểm tra {interval_check}s - reason_buy {symbol}: {reason_buy}')
                         
                         if not is_buy:
+                            # Xây dựng reason với f-string và xử lý trường hợp rỗng
+                            reason_parts = []
+                            if messages_to_cancel_update_vnindex:
+                                reason_parts.append(f"- **Lí do VNINDEX:** {messages_to_cancel_update_vnindex}")
+                            if messages_to_cancel_update:
+                                reason_parts.append(f"- **Lí do STOCK:** {messages_to_cancel_update}")
+                            
+                            reason_cancel_update = "\n    ".join(reason_parts) if reason_parts else "Không có lý do cụ thể"
+                            
                             logger.info(f'⚠️ Điều kiện mua không còn thỏa mãn, hủy lệnh {symbol} ngay!')
-                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Điều kiện mua không còn thỏa mãn', "B")
+                            cancel_buy_order(user, user_name, account, symbol, request_url, session, reason_cancel_update, "B")
                             should_break_loop = True
                             break  # thoát vòng kiểm tra, không update nữa
 
@@ -1701,6 +1714,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
         logger.info(f'Kết thúc process_trading: {symbol}')
     except Exception as e:
+        ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
         logger.info(f"Error in {current_thread_name}: {str(e)}")
     finally:
         # Đóng connection của thread hiện tại
