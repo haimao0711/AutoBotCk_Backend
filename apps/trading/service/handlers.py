@@ -1311,13 +1311,14 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config')                    
                         if is_use_vnindex_following:
                             is_buy_vnindex, reason_buy_vnindex = should_buy_following(following_config, vnindex_data_following, 'vnindex_config')
+                            logger.info(f'⏱ Kiểm tra {interval_check}s - is_buy_vnindex {symbol}: {is_buy_vnindex}')
+                            logger.info(f'⏱ Kiểm tra {interval_check}s - reason_buy_vnindex {symbol}: {reason_buy_vnindex}')
                             if not is_buy_vnindex:
                                 is_buy = False
 
                         logger.info(f'⏱ Kiểm tra {interval_check}s - is_buy {symbol}: {is_buy}')
                         logger.info(f'⏱ Kiểm tra {interval_check}s - reason_buy {symbol}: {reason_buy}')
-                        logger.info(f'⏱ Kiểm tra {interval_check}s - is_buy_vnindex {symbol}: {is_buy_vnindex}')
-                        logger.info(f'⏱ Kiểm tra {interval_check}s - reason_buy_vnindex {symbol}: {reason_buy_vnindex}')
+                        
                         if not is_buy:
                             logger.info(f'⚠️ Điều kiện mua không còn thỏa mãn, hủy lệnh {symbol} ngay!')
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Điều kiện mua không còn thỏa mãn', "B")
