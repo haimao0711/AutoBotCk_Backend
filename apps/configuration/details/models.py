@@ -627,9 +627,12 @@ class Configuration(models.Model):
     stock_config_use_bolinger_a_part_to_take_profit = models.BooleanField(
         default=True, null=True)
     stock_config_use_stoch_rsi_to_take_profit = models.BooleanField(default=True)
+    stock_config_use_rsi_decrease_to_take_profit = models.BooleanField(default=True)
     stock_config_value_stoch_rsi_to_take_profit = models.FloatField(
         default=80, validators=[MinValueValidator(0), MaxValueValidator(100)])
     stock_config_percent_stoch_rsi_to_take_profit = models.FloatField(
+        default=0.5, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)
+    stock_config_percent_rsi_decrease_to_take_profit = models.FloatField(
         default=0.5, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)
     stock_config_percent_bolinger_a_part_to_take_profit = models.FloatField(
         default=0.5, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)

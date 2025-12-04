@@ -427,6 +427,7 @@ class ConfigurationServices:
         - stock_config_use_bolinger_a_part_to_take_profit = False
         - stock_config_use_stoch_rsi_to_take_profit = False
         - stock_config_use_take_profit_first_part hoặc stock_config_use_take_profit_first_part_two = False
+        - stock_config_use_rsi_decrease_to_take_profit = False
         """
         # Bước 1: Lấy config_type 'trading'
         config_type = ConfigurationTypeEnum.TRADING.value
@@ -443,16 +444,17 @@ class ConfigurationServices:
         if not check or not config_template:
             return ErrorType.UPDATE_FAILED, {}
 
-        # Bước 2: Tạo dữ liệu cập nhật cho 3 trường cùng lúc
+        # Bước 2: Tạo dữ liệu cập nhật cho 4 trường cùng lúc
         update_config_type_data = {
             'config_type': template.id,
             'user': user.id,
             'stock': stock_id,
             'stock_config_use_bolinger_a_part_to_take_profit': False,
-            'stock_config_use_stoch_rsi_to_take_profit': False
+            'stock_config_use_stoch_rsi_to_take_profit': False,
+            'stock_config_use_rsi_decrease_to_take_profit': False
         }
         
-        # Thêm flag thứ 3 tùy theo use_take_profit_first_part
+        # Thêm flag tùy theo use_take_profit_first_part
         if use_take_profit_first_part:
             update_config_type_data['stock_config_use_take_profit_first_part'] = False
         else:

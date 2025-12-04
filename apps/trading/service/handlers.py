@@ -1268,7 +1268,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             # Tiếp tục dùng config cũ nếu lỗi
                         is_block_buy_stock = overview_config.is_block_buy
                         if is_block_buy_stock:
-                            logger.info(f'{symbol} đã bị chặn mua, hủy lệnh {symbol}')
+                            logger.info(f'{symbol} đã bị chặn mua, hủy lệnh mua {symbol}')
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn mua', "B")
                             should_break_loop = True
                             break
@@ -1406,8 +1406,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             use_take_profit_first_part_two = trading_config.stock_config_use_take_profit_first_part_two
             use_bolinger_a_part_to_take_profit = trading_config.stock_config_use_bolinger_a_part_to_take_profit
             use_stoch_rsi_to_take_profit = trading_config.stock_config_use_stoch_rsi_to_take_profit
+            use_rsi_decrease_to_take_profit = following_config.stock_config_use_rsi_decrease_to_take_profit
             value_stoch_rsi_to_take_profit = trading_config.stock_config_value_stoch_rsi_to_take_profit
             percent_stoch_rsi_to_take_profit = trading_config.stock_config_percent_stoch_rsi_to_take_profit
+            percent_rsi_decrease_to_take_profit = following_config.stock_config_percent_rsi_decrease_to_take_profit
             percentage_loss = res_stock_balance.get('stock_balance', {}).get('percentage_loss', 0) if res_stock_balance else 0            
             percent_take_profit_sell_first = trading_config.stock_config_percent_take_profit_sell_first*100
             percent_take_profit_sell_first_two = trading_config.stock_config_percent_take_profit_sell_first_two*100
@@ -1434,7 +1436,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             price_current = stock_data_trading.iloc[-1]['close']    
             upper_bolinger = stock_data_following.iloc[-1]['upper_bolinger']
             latest_stoch_rsi_following  = stock_data_following.iloc[-1]['stoch_rsi']
-
+            current_rsi_following  = stock_data_following.iloc[-1]['rsi']
+            previous_rsi_following = stock_data_following.iloc[-2]['rsi']
+            logger.info(f'check current_rsi_following {symbol}: {current_rsi_following}')
+            logger.info(f'check previous_rsi_following {symbol}: {previous_rsi_following}')
             take_profit_type = ''
             if  ( (percentage_loss >= take_profit_percent and use_take_profit_trigger) 
                  or (use_take_profit_first_part_two and percentage_loss >= percent_take_profit_sell_first_two) 
@@ -1456,6 +1461,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 # Chốt lãi khi giá hiện tại chạm bolllinger    
                 is_take_profit, percent_take_profit, messages_take_profit = should_take_profit_bolinger(symbol, trading_config, price_current, upper_bolinger )
                 take_profit_type = 'Bán một phần khi chạm bollinger trên'
+            if use_rsi_decrease_to_take_profit and current_rsi_following < previous_rsi_following:
+                # Chốt lãi khi giá rsi giảm
+                is_take_profit, percent_take_profit, messages_take_profit = True, percent_rsi_decrease_to_take_profit
+                messages_take_profit=f'Bán một phần khi RSI giảm, RSI D1: {previous_rsi_following} > RSI D0: {current_rsi_following}'
+                take_profit_type = 'Bán một phần khi RSI giảm'
             volume_take_profit = int(volume_balance*percent_take_profit)
             volume_take_profit = ((volume_take_profit + 99) // 100) * 100     
             is_trading_take_profit = False
@@ -1661,9 +1671,34 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 time.sleep(sleeping_time_sell)
                 limited_times = time_to_sell // sleeping_time_sell
                 limited_price_to_sell = start_price + add_price_sell - slippage_sell
-                logger.info(f'check limit_price_to_sell {symbol}: {limited_price_to_sell}')
-                
+                interval_check = 10  # kiểm tra mỗi 10 giây
+                should_break_loop = False  # Flag để thoát khỏi vòng for                
                 for i in range(int(limited_times) - 1):
+                    if should_break_loop:
+                        break
+                    elapsed = 0
+                    while elapsed < sleeping_time_sell:
+                        time.sleep(interval_check)
+                        elapsed += interval_check                        
+                        # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
+                        try:
+                            configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
+                                user=user, 
+                                stock_symbol=symbol
+                            )
+                            if configuration:
+                                refreshed_overview_config = configuration.get("overview_config")                             
+                                if refreshed_overview_config:
+                                    overview_config = refreshed_overview_config
+                        except Exception as e:
+                            logger.info(f'Lỗi khi lấy lại cấu hình bán cho {symbol}: {e}')
+                            # Tiếp tục dùng config cũ nếu lỗi
+                        is_block_sell_stock = overview_config.is_block_sell_stock
+                        if is_block_sell_stock:
+                            logger.info(f'{symbol} đã bị chặn bán, hủy lệnh bán {symbol}')
+                            cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn bán', "S")
+                            should_break_loop = True
+                            break
                     times_update = i + 1
                     message_update = update_sell_order(user_name, account, symbol, request_url, session, asp_net_session, "S", step_price, limited_price_to_sell, times_update)
                     if message_update:
@@ -1711,7 +1746,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
              #Trả lại trạng thái
                 if status_sell == SignalTelegramEnum.TAKEPROFIT and take_profit_type != 'Bán hết theo phần trăm lời': 
-                    logger.info('Tiến hành đóng chốt lãi một phần cho 3 loại ....') 
+                    logger.info('Tiến hành đóng chốt lãi một phần cho 4 loại ....') 
                     ConfigurationServices.update_all_take_profit_flags_false(user, stock_id, use_take_profit_first_part)
 
             ConfigurationServices.update_is_trading_configuration(user, stock_id, False)                        
