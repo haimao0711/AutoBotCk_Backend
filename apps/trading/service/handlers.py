@@ -1398,6 +1398,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
 
     #HANDLE SELL
+        is_trading = trading_config.is_trading
         if not is_block_sell_stock and symbol in symbols_existing and volume_balance_trade > 0:
             logger.info(f'bắt đầu hàm kiểm tra thực hiện sell {symbol}')
             # Handle take profit
@@ -1693,7 +1694,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         except Exception as e:
                             logger.info(f'Lỗi khi lấy lại cấu hình bán cho {symbol}: {e}')
                             # Tiếp tục dùng config cũ nếu lỗi
-                        is_block_sell_stock = overview_config.is_block_sell_stock
+                        is_block_sell_stock = overview_config.is_block_sell
+                        logger.info(f'check is_block_sell_stock {symbol}: {is_block_sell_stock}')
                         if is_block_sell_stock:
                             logger.info(f'{symbol} đã bị chặn bán, hủy lệnh bán {symbol}')
                             cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn bán', "S")
