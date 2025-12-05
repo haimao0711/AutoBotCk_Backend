@@ -1399,6 +1399,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
     #HANDLE SELL
         is_trading = trading_config.is_trading
+        logger.info(f'check is_trading {symbol}: {is_trading}')
         if not is_block_sell_stock and symbol in symbols_existing and volume_balance_trade > 0:
             logger.info(f'bắt đầu hàm kiểm tra thực hiện sell {symbol}')
             # Handle take profit
@@ -1439,14 +1440,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             latest_stoch_rsi_following  = stock_data_following.iloc[-1]['stoch_rsi']
             current_rsi_following  = stock_data_following.iloc[-1]['rsi']
             previous_rsi_following = stock_data_following.iloc[-2]['rsi']
-            logger.info(f'check current_rsi_following {symbol}: {current_rsi_following}')
-            logger.info(f'check previous_rsi_following {symbol}: {previous_rsi_following}')
             take_profit_type = ''
             if  ( (percentage_loss >= take_profit_percent and use_take_profit_trigger) 
                  or (use_take_profit_first_part_two and percentage_loss >= percent_take_profit_sell_first_two) 
                  or (use_take_profit_first_part and percentage_loss >= percent_take_profit_sell_first)
                 ):
                 # Chốt lãi khi giá hiện tại tăng so với giá vốn 
+                logger.info(f'Chốt lãi khi giá hiện tại tăng so với giá vốn {symbol}')
                 is_take_profit, percent_take_profit, messages_take_profit = should_sell_take_profit(symbol, trading_config, percentage_loss)
                 take_profit_type = (
                     'Bán lần 1 theo phần trăm lời'
@@ -1455,16 +1455,21 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 )
             elif use_stoch_rsi_to_take_profit and latest_stoch_rsi_following >= value_stoch_rsi_to_take_profit:
                 # Chốt lãi khi stoch_rsi hiện tại >= 
-                is_take_profit, percent_take_profit,  = True, percent_stoch_rsi_to_take_profit
+                logger.info(f'Chốt lãi khi stoch_rsi hiện tại >= {symbol}')
+                is_take_profit, percent_take_profit = True, percent_stoch_rsi_to_take_profit
                 messages_take_profit=f'Bán một phần khi stoch_rsi hiện tại({latest_stoch_rsi_following}) >= stoch rsi cấu hình({value_stoch_rsi_to_take_profit})'
                 take_profit_type = 'Bán một phần khi stoch_rsi >='
             elif use_bolinger_a_part_to_take_profit and price_current >= upper_bolinger:
-                # Chốt lãi khi giá hiện tại chạm bolllinger    
+                # Chốt lãi khi giá hiện tại chạm bolllinger
+                logger.info(f'Chốt lãi khi giá hiện tại chạm bolllinger {symbol}')    
                 is_take_profit, percent_take_profit, messages_take_profit = should_take_profit_bolinger(symbol, trading_config, price_current, upper_bolinger )
                 take_profit_type = 'Bán một phần khi chạm bollinger trên'
             if use_rsi_decrease_to_take_profit and current_rsi_following < previous_rsi_following:
                 # Chốt lãi khi giá rsi giảm
-                is_take_profit, percent_take_profit, messages_take_profit = True, percent_rsi_decrease_to_take_profit
+                logger.info(f'Chốt lãi khi giá rsi giảm {symbol}')
+                logger.info(f'check current_rsi_following {symbol}: {current_rsi_following}')
+                logger.info(f'check previous_rsi_following {symbol}: {previous_rsi_following}')
+                is_take_profit, percent_take_profit = True, percent_rsi_decrease_to_take_profit
                 messages_take_profit=f'Bán một phần khi RSI giảm, RSI D1: {previous_rsi_following} > RSI D0: {current_rsi_following}'
                 take_profit_type = 'Bán một phần khi RSI giảm'
             volume_take_profit = int(volume_balance*percent_take_profit)
@@ -1695,7 +1700,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             logger.info(f'Lỗi khi lấy lại cấu hình bán cho {symbol}: {e}')
                             # Tiếp tục dùng config cũ nếu lỗi
                         is_block_sell_stock = overview_config.is_block_sell
-                        logger.info(f'check is_block_sell_stock {symbol}: {is_block_sell_stock}')
+                        logger.info(f'check is_block_sell_stock mỗi {interval_check}s {symbol}: {is_block_sell_stock}')
                         if is_block_sell_stock:
                             logger.info(f'{symbol} đã bị chặn bán, hủy lệnh bán {symbol}')
                             cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn bán', "S")

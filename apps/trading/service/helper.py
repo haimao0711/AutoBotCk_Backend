@@ -681,14 +681,14 @@ def  should_buy(
     if is_valid_time_to_buy(following_config):
         if not following_config.is_buy or not trading_config.is_buy:
             if not following_config.is_buy:
-                return False, {
+                return False, False, {
                     'following': {
                         'failed': {
                             'others': [('error_not_setup_buy_following_configuration', None, None, None)]
                         }
                     }
                 }
-            return False, {
+            return False, False, {
                 'trading': {
                     'failed': {
                         'others': [('error_not_setup_buy_trading_configuration', None, None, None)]
@@ -821,14 +821,14 @@ def should_sell(
     if is_valid_time_to_sell(following_config):
         if not following_config.is_sell or not trading_config.is_sell:
             if not following_config.is_sell:
-                return False, {
+                return False, False, {
                     'following': {
                         'failed': {
                             'others': [('error_not_setup_buy_following_configuration', None, None, None)]
                         }
                     }
                 }
-            return False, {
+            return False, False, {
                 'trading': {
                     'failed': {
                         'others': [('error_not_setup_buy_trading_configuration', None, None, None)]
