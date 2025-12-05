@@ -1408,10 +1408,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             use_take_profit_first_part_two = trading_config.stock_config_use_take_profit_first_part_two
             use_bolinger_a_part_to_take_profit = trading_config.stock_config_use_bolinger_a_part_to_take_profit
             use_stoch_rsi_to_take_profit = trading_config.stock_config_use_stoch_rsi_to_take_profit
-            use_rsi_decrease_to_take_profit = following_config.stock_config_use_rsi_decrease_to_take_profit
+            use_rsi_decrease_to_take_profit = trading_config.stock_config_use_rsi_decrease_to_take_profit
             value_stoch_rsi_to_take_profit = trading_config.stock_config_value_stoch_rsi_to_take_profit
             percent_stoch_rsi_to_take_profit = trading_config.stock_config_percent_stoch_rsi_to_take_profit
-            percent_rsi_decrease_to_take_profit = following_config.stock_config_percent_rsi_decrease_to_take_profit
+            percent_rsi_decrease_to_take_profit = trading_config.stock_config_percent_rsi_decrease_to_take_profit
             percentage_loss = res_stock_balance.get('stock_balance', {}).get('percentage_loss', 0) if res_stock_balance else 0            
             percent_take_profit_sell_first = trading_config.stock_config_percent_take_profit_sell_first*100
             percent_take_profit_sell_first_two = trading_config.stock_config_percent_take_profit_sell_first_two*100
