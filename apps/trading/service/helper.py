@@ -945,7 +945,7 @@ def should_sell_take_profit(
  #Kết quả chốt lời kiểu nào và phần trăm chốt lời
     is_take_profit = use_take_profit_trigger
     percent_profit = 1
-    messages_take_profit = f'Mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {take_profit_percent*100}%'
+    messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {take_profit_percent*100}%'
 
     if use_take_profit_first_part:
         is_take_profit = use_take_profit_first_part
