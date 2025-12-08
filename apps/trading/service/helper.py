@@ -950,11 +950,11 @@ def should_sell_take_profit(
     if use_take_profit_first_part:
         is_take_profit = use_take_profit_first_part
         percent_profit = percent_take_profit_sell_second
-        messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {percent_take_profit_sell_first}%'
+        messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi lần 1 {symbol} vì mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {percent_take_profit_sell_first}%'
     elif use_take_profit_first_part_two:
         is_take_profit = use_take_profit_first_part_two
         percent_profit = percent_take_profit_sell_second_two
-        messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {percent_take_profit_sell_first_two}%'
+        messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi lần 2 {symbol} vì mức lời hiện tại là {percentage_loss}% thỏa mãn mức yêu cầu chốt lãi là {percent_take_profit_sell_first_two}%'
     elif use_take_profit_trigger:
         if percentage_loss >= take_profit_percent*100:
             is_take_profit = use_take_profit_trigger
@@ -973,7 +973,7 @@ def should_take_profit_bolinger(
     is_take_profit = False
     use_bolinger_a_part_to_take_profit = config.stock_config_use_bolinger_a_part_to_take_profit
     percent_profit = 0
-    messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì giá hiện tại: {price_current} >= bollinger trên: {upper_bolinger}'    
+    messages_take_profit = f'Bắt đầu chạy chart hành động chốt lãi lần 1 {symbol} vì giá hiện tại: {price_current} >= bollinger trên(chart theo dõi): {upper_bolinger}'    
     if use_bolinger_a_part_to_take_profit:
         is_take_profit = use_bolinger_a_part_to_take_profit
         percent_profit = config.stock_config_percent_bolinger_a_part_to_take_profit

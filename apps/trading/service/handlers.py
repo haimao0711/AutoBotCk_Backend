@@ -1457,7 +1457,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 # Chốt lãi khi stoch_rsi hiện tại >= 
                 logger.info(f'Chốt lãi khi stoch_rsi hiện tại >= {symbol}')
                 is_take_profit, percent_take_profit = True, percent_stoch_rsi_to_take_profit
-                messages_take_profit=f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì stoch_rsi hiện tại({latest_stoch_rsi_following}) >= stoch rsi cấu hình({value_stoch_rsi_to_take_profit})'
+                messages_take_profit=f'Bắt đầu chạy chart hành động chốt lãi lần 1 {symbol} vì stoch_rsi(chart theo dõi) hiện tại({latest_stoch_rsi_following}) >= stoch rsi cấu hình({value_stoch_rsi_to_take_profit})'
                 take_profit_type = 'Bán một phần khi stoch_rsi >='
             elif use_bolinger_a_part_to_take_profit and price_current >= upper_bolinger:
                 # Chốt lãi khi giá hiện tại chạm bolllinger
@@ -1471,7 +1471,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 logger.info(f'check previous_rsi_following {symbol}: {previous_rsi_following}')
                 logger.info(f'check percent_rsi_decrease_to_take_profit {symbol}: {percent_rsi_decrease_to_take_profit}')
                 is_take_profit, percent_take_profit = True, percent_rsi_decrease_to_take_profit
-                messages_take_profit=f'Bắt đầu chạy chart hành động chốt lãi {symbol} vì RSI giảm, RSI D1: {previous_rsi_following} > RSI D0: {current_rsi_following}'
+                messages_take_profit=f'Bắt đầu chạy chart hành động chốt lãi lần 1 {symbol} vì RSI(chart theo dõi) giảm, RSI D1: {previous_rsi_following} > RSI D0: {current_rsi_following}'
                 take_profit_type = 'Bán một phần khi RSI giảm'
             volume_take_profit = int(volume_balance*percent_take_profit)
             volume_take_profit = ((volume_take_profit + 99) // 100) * 100     
@@ -1537,6 +1537,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             else:
                 status_sell = SignalTelegramEnum.SELL_FAILED
             #Tiến hành các bước kế tiếp
+            logger.info(f'check sell_reason {symbol}: {sell_reason}')
             messages_to_sell = render_message(
                 sell_reason, trading_chart_value=trading_candle_sell, following_chart_type=following_candle_sell)
             price_to_start = (
