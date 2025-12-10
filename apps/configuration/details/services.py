@@ -170,22 +170,22 @@ class ConfigurationServices:
             return ErrorType.UPDATE_FAILED, {}
 
         candle = CandleService.get_candle(candle_type=candle_type)
-        candle_second = CandleService.get_candle_second(candle_second_type=candle_second_type)
+        # candle_second = CandleService.get_candle_second(candle_second_type=candle_second_type)
         candle_sell = CandleService.get_candle_sell(candle_sell_type=candle_sell_type)
-        candle_sell_second = CandleService.get_candle_sell_second(candle_sell_second_type=candle_sell_second_type)
+        # candle_sell_second = CandleService.get_candle_sell_second(candle_sell_second_type=candle_sell_second_type)
         # init update data
         update_config_type_data = {
             'config_type': template.id,
             'user': user.id,
             'stock': stock_id,
             'candle': candle.id,
-            'candle_second': candle_second.id,
+            'candle_second': candle_type,
             'candle_sell': candle_sell.id,
-            'candle_sell_second': candle_sell_second.id,
+            'candle_sell_second': candle_sell_second_type,
             'account': None,
         }
-        logger.info(f'check candle_second: {candle_second}')
-        logger.info(f'check candle_sell_second: {candle_sell_second}')
+        logger.info(f'check candle_second: {candle_type}')
+        logger.info(f'check candle_sell_second: {candle_sell_second_type}')
         # handle input case
         if 'is_buy' in update_data and config_template.is_buy != update_data['is_buy']:
             update_config_type_data['is_buy'] = update_data['is_buy']
