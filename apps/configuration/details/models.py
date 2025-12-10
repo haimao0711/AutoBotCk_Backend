@@ -18,8 +18,8 @@ class Configuration(models.Model):
     candle = models.ForeignKey(Candle, on_delete=models.CASCADE, null=True, related_name='configuration_buy_set')
     candle_sell = models.ForeignKey(Candle, on_delete=models.CASCADE, null=True, related_name='configuration_sell_set')
     is_use_candle_second = models.BooleanField(default=True)
-    candle_second = models.ForeignKey(Candle, on_delete=models.CASCADE, null=True, related_name='configuration_buy_set')
-    candle_sell_second = models.ForeignKey(Candle, on_delete=models.CASCADE, null=True, related_name='configuration_sell_set')
+    candle_second = models.ForeignKey(Candle, on_delete=models.CASCADE, null=True, related_name='configuration_buy_second_set')
+    candle_sell_second = models.ForeignKey(Candle, on_delete=models.CASCADE, null=True, related_name='configuration_sell_second_set')
     config_type = models.ForeignKey( ConfigurationType, on_delete=models.CASCADE)
     level = models.IntegerField(default=6, validators=[
                                 MinValueValidator(1), MaxValueValidator(6)])
