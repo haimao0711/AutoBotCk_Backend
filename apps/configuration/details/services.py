@@ -166,9 +166,7 @@ class ConfigurationServices:
             return ErrorType.UPDATE_FAILED, {}
 
         candle = CandleService.get_candle(candle_type=candle_type)
-        candle_second = CandleService.get_candle(candle_type=candle_second_type)
         candle_sell = CandleService.get_candle_sell(candle_sell_type=candle_sell_type)
-        candle_sell_second = CandleService.get_candle_sell(candle_sell_type=candle_sell_second_type)
         # init update data
         update_config_type_data = {
             'config_type': template.id,
@@ -176,10 +174,18 @@ class ConfigurationServices:
             'stock': stock_id,
             'candle': candle.id,
             'candle_sell': candle_sell.id,
-            'candle_second': candle_second.id,
-            'candle_sell_second': candle_sell_second.id,
             'account': None,
         }
+        
+        # Chỉ cập nhật candle_second nếu có giá trị trong update_data
+        if candle_second_type:
+            candle_second = CandleService.get_candle_second(candle_second_type=candle_second_type)
+            update_config_type_data['candle_second'] = candle_second.id
+        
+        # Chỉ cập nhật candle_sell_second nếu có giá trị trong update_data
+        if candle_sell_second_type:
+            candle_sell_second = CandleService.get_candle_sell_second(candle_sell_second_type=candle_sell_second_type)
+            update_config_type_data['candle_sell_second'] = candle_sell_second.id
         # print('check update_config_type_data: ', update_config_type_data)
         # handle input case
         if 'is_buy' in update_data and config_template.is_buy != update_data['is_buy']:
@@ -251,8 +257,6 @@ class ConfigurationServices:
 
         candle = CandleService.get_candle(candle_type=candle_type)
         candle_sell = CandleService.get_candle_sell(candle_sell_type=candle_sell_type)
-        candle_second = CandleService.get_candle(candle_type=candle_second_type)
-        candle_sell_second = CandleService.get_candle_sell(candle_sell_type=candle_sell_second_type)
         result_list = []
 
         for config_template in all_configs:
@@ -262,10 +266,18 @@ class ConfigurationServices:
                 'stock': config_template.stock.id,
                 'candle': candle.id,
                 'candle_sell': candle_sell.id,
-                'candle_second': candle_second.id,
-                'candle_sell_second': candle_sell_second.id,
                 'account': None,
             }
+            
+            # Chỉ cập nhật candle_second nếu có giá trị trong update_data
+            if candle_second_type:
+                candle_second = CandleService.get_candle_second(candle_second_type=candle_second_type)
+                update_config_type_data['candle_second'] = candle_second.id
+            
+            # Chỉ cập nhật candle_sell_second nếu có giá trị trong update_data
+            if candle_sell_second_type:
+                candle_sell_second = CandleService.get_candle_sell_second(candle_sell_second_type=candle_sell_second_type)
+                update_config_type_data['candle_sell_second'] = candle_sell_second.id
 
             # Chỉ cập nhật nếu khác giá trị hiện tại
             if 'is_buy' in update_data and config_template.is_buy != update_data['is_buy']:

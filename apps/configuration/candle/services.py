@@ -25,4 +25,20 @@ class CandleService:
             return candle_sell
         except (Candle.DoesNotExist):
             raise ValueError(ErrorMessages.CANDLE_DOES_NOT_EXIST)
+    
+    @staticmethod
+    def get_candle_second(candle_second_type):
+        try:
+            candle_second = Candle.objects.get(candle_second=candle_second_type)
+            return candle_second
+        except (Candle.DoesNotExist):
+            raise ValueError(ErrorMessages.CANDLE_DOES_NOT_EXIST)
+    
+    @staticmethod
+    def get_candle_sell_second(candle_sell_second_type):
+        try:
+            candle_sell_second = Candle.objects.get(candle_sell_second=candle_sell_second_type)
+            return candle_sell_second
+        except (Candle.DoesNotExist):
+            raise ValueError(ErrorMessages.CANDLE_DOES_NOT_EXIST)
             
