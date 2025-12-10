@@ -1,3 +1,4 @@
+from calendar import c
 from common.errors.messages import ErrorMessages
 from common.errors.types import ErrorType
 from common.success.types import SuccessType
@@ -146,7 +147,9 @@ class ConfigurationServices:
         stock_id = update_data.get('stock_id')
         config_type = update_data.get('chart_type')
         candle_type = update_data.get('chart')
+        candle_second_type = update_data.get('chart_second')
         candle_sell_type = update_data.get('chart_sell')
+        candle_sell_second_type = update_data.get('chart_sell_second')
         # print('check update_data: ', update_data)
         if config_type == ConfigurationTypeEnum.TRADING.value:
             template = ConfigurationTypeServices.get_trading()
@@ -163,7 +166,9 @@ class ConfigurationServices:
             return ErrorType.UPDATE_FAILED, {}
 
         candle = CandleService.get_candle(candle_type=candle_type)
+        candle_second = CandleService.get_candle(candle_type=candle_second_type)
         candle_sell = CandleService.get_candle_sell(candle_sell_type=candle_sell_type)
+        candle_sell_second = CandleService.get_candle_sell(candle_sell_type=candle_sell_second_type)
         # init update data
         update_config_type_data = {
             'config_type': template.id,
@@ -171,6 +176,8 @@ class ConfigurationServices:
             'stock': stock_id,
             'candle': candle.id,
             'candle_sell': candle_sell.id,
+            'candle_second': candle_second.id,
+            'candle_sell_second': candle_sell_second.id,
             'account': None,
         }
         # print('check update_config_type_data: ', update_config_type_data)
@@ -186,6 +193,9 @@ class ConfigurationServices:
 
         if 'is_use_stock_config' in update_data and config_template.is_use_stock_config != update_data['is_use_stock_config']:
             update_config_type_data['is_use_stock_config'] = update_data['is_use_stock_config']
+
+        if 'is_use_candle_second' in update_data and config_template.is_use_candle_second != update_data['is_use_candle_second']:
+            update_config_type_data['is_use_candle_second'] = update_data['is_use_candle_second']
 
         for key, value in vnindex_config.items():
             update_config_type_data[f"vnindex_config_{key}"] = value
@@ -204,7 +214,9 @@ class ConfigurationServices:
                 return_data['stock_id'] = stock_id
                 return_data['stock_name'] = data.stock.name
                 return_data['chart'] = candle_type
+                return_data['chart_second'] = candle_second_type
                 return_data['chart_sell'] = candle_sell_type
+                return_data['chart_sell_second'] = candle_sell_second_type
                 return_data['chart_type'] = config_type
                 return SuccessType.UPDATED_SUCCESS, return_data
             else:
@@ -221,6 +233,8 @@ class ConfigurationServices:
         config_type = update_data.get('chart_type')
         candle_type = update_data.get('chart')
         candle_sell_type = update_data.get('chart_sell')
+        candle_second_type = update_data.get('chart_second')
+        candle_sell_second_type = update_data.get('chart_sell_second')
         
         # Lấy config_type template theo chart_type
         if config_type == ConfigurationTypeEnum.TRADING.value:
@@ -237,7 +251,8 @@ class ConfigurationServices:
 
         candle = CandleService.get_candle(candle_type=candle_type)
         candle_sell = CandleService.get_candle_sell(candle_sell_type=candle_sell_type)
-
+        candle_second = CandleService.get_candle(candle_type=candle_second_type)
+        candle_sell_second = CandleService.get_candle_sell(candle_sell_type=candle_sell_second_type)
         result_list = []
 
         for config_template in all_configs:
@@ -247,6 +262,8 @@ class ConfigurationServices:
                 'stock': config_template.stock.id,
                 'candle': candle.id,
                 'candle_sell': candle_sell.id,
+                'candle_second': candle_second.id,
+                'candle_sell_second': candle_sell_second.id,
                 'account': None,
             }
 
@@ -262,6 +279,8 @@ class ConfigurationServices:
 
             if 'is_use_stock_config' in update_data and config_template.is_use_stock_config != update_data['is_use_stock_config']:
                 update_config_type_data['is_use_stock_config'] = update_data['is_use_stock_config']
+            if 'is_use_candle_second' in update_data and config_template.is_use_candle_second != update_data['is_use_candle_second']:
+                update_config_type_data['is_use_candle_second'] = update_data['is_use_candle_second']
 
             for key, value in vnindex_config.items():
                 update_config_type_data[f"vnindex_config_{key}"] = value
@@ -283,6 +302,8 @@ class ConfigurationServices:
                     return_data['stock_name'] = data.stock.name
                     return_data['chart'] = candle_type
                     return_data['chart_sell'] = candle_sell_type
+                    return_data['chart_second'] = candle_second_type
+                    return_data['chart_sell_second'] = candle_sell_second_type
                     return_data['chart_type'] = config_type
                     result_list.append({
                         'stock_id': config_template.stock.id,
