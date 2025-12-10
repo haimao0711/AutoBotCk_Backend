@@ -7,3 +7,4 @@ class CandleEnum(Enum):
     M15 = 'M15'
     M5 = 'M5'
     M1 = 'M1'
+    None = 'None'
