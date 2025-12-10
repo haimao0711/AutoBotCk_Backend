@@ -17,8 +17,10 @@ class Configuration(models.Model):
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE, null=True)
     candle = models.ForeignKey(Candle, on_delete=models.CASCADE, null=True, related_name='configuration_buy_set')
     candle_sell = models.ForeignKey(Candle, on_delete=models.CASCADE, null=True, related_name='configuration_sell_set')
-    config_type = models.ForeignKey(
-        ConfigurationType, on_delete=models.CASCADE)
+    is_use_candle_second = models.BooleanField(default=True)
+    candle_second = models.ForeignKey(Candle, on_delete=models.CASCADE, null=True, related_name='configuration_buy_set')
+    candle_sell_second = models.ForeignKey(Candle, on_delete=models.CASCADE, null=True, related_name='configuration_sell_set')
+    config_type = models.ForeignKey( ConfigurationType, on_delete=models.CASCADE)
     level = models.IntegerField(default=6, validators=[
                                 MinValueValidator(1), MaxValueValidator(6)])
     margin_percentage = models.IntegerField(

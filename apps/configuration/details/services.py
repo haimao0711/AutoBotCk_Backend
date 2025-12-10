@@ -76,14 +76,27 @@ class ConfigurationServices:
                 return {}
             return_data = ConfigurationServices.convert_data_template(
                 template_data=data.__dict__)
+            chart_second = None
             chart_sell = None
+            chart_sell_second = None
             if data.candle_sell and data.candle_sell.candle_sell:
                 chart_sell = data.candle_sell.candle_sell
             elif data.candle and data.candle.candle:
                 chart_sell = data.candle.candle
+            if data.candle_second and data.candle_second.candle_second:
+                chart_second = data.candle_second.candle_second
+            elif data.candle and data.candle.candle:
+                chart_second = data.candle.candle
+            if data.candle_sell_second and data.candle_sell_second.candle_sell_second:
+                chart_sell_second = data.candle_sell_second.candle_sell_second
+            elif data.candle and data.candle.candle:
+                chart_sell_second = data.candle.candle
             return_data['chart'] = data.candle.candle
+            return_data['chart_second'] = chart_second
             return_data['chart_sell'] = chart_sell
+            return_data['chart_sell_second'] = chart_sell_second
             return_data['chart_type'] = data.config_type.configuration_type
+            return_data['is_use_chart_second'] = data.is_use_candle_second
             return_data['stock_id'] = data.stock.id
             return_data['stock_name'] = data.stock.name
             return return_data
