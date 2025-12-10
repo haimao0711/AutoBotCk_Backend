@@ -150,7 +150,7 @@ class ConfigurationServices:
         candle_second_type = update_data.get('chart_second')
         candle_sell_type = update_data.get('chart_sell')
         candle_sell_second_type = update_data.get('chart_sell_second')
-        # print('check update_data: ', update_data)
+        print('check update_data: ', update_data)
         if config_type == ConfigurationTypeEnum.TRADING.value:
             template = ConfigurationTypeServices.get_trading()
             check, config_template = ConfigurationServices.get_details_configutation_by_config_type(
@@ -166,27 +166,21 @@ class ConfigurationServices:
             return ErrorType.UPDATE_FAILED, {}
 
         candle = CandleService.get_candle(candle_type=candle_type)
+        candle_second = CandleService.get_candle_second(candle_second_type=candle_second_type)
         candle_sell = CandleService.get_candle_sell(candle_sell_type=candle_sell_type)
+        candle_sell_second = CandleService.get_candle_sell_second(candle_sell_second_type=candle_sell_second_type)
         # init update data
         update_config_type_data = {
             'config_type': template.id,
             'user': user.id,
             'stock': stock_id,
             'candle': candle.id,
+            'candle_second': candle_second.id,
             'candle_sell': candle_sell.id,
+            'candle_sell_second': candle_sell_second.id,
             'account': None,
         }
-        
-        # Chỉ cập nhật candle_second nếu có giá trị trong update_data
-        if candle_second_type:
-            candle_second = CandleService.get_candle_second(candle_second_type=candle_second_type)
-            update_config_type_data['candle_second'] = candle_second.id
-        
-        # Chỉ cập nhật candle_sell_second nếu có giá trị trong update_data
-        if candle_sell_second_type:
-            candle_sell_second = CandleService.get_candle_sell_second(candle_sell_second_type=candle_sell_second_type)
-            update_config_type_data['candle_sell_second'] = candle_sell_second.id
-        # print('check update_config_type_data: ', update_config_type_data)
+        print('check update_config_type_data: ', update_config_type_data)
         # handle input case
         if 'is_buy' in update_data and config_template.is_buy != update_data['is_buy']:
             update_config_type_data['is_buy'] = update_data['is_buy']
@@ -215,6 +209,9 @@ class ConfigurationServices:
 
             if template_serializer.is_valid():
                 data = template_serializer.save()
+                # Refresh object từ database để đảm bảo có dữ liệu mới nhất
+                data.refresh_from_db()
+                
                 return_data = ConfigurationServices.convert_data_template(
                     ConfigurationSerializers(data).data)
                 return_data['stock_id'] = stock_id
@@ -222,7 +219,7 @@ class ConfigurationServices:
                 return_data['chart'] = candle_type
                 
                 # Lấy giá trị chart_second từ database sau khi save (giống logic trong get_config_type_configuration)
-                if data.candle_second and data.candle_second.candle:
+                if data.candle_second:
                     return_data['chart_second'] = data.candle_second.candle
                 elif data.candle and data.candle.candle:
                     return_data['chart_second'] = data.candle.candle
@@ -331,6 +328,9 @@ class ConfigurationServices:
 
                 if template_serializer.is_valid():
                     data = template_serializer.save()
+                    # Refresh object từ database để đảm bảo có dữ liệu mới nhất
+                    data.refresh_from_db()
+                    
                     return_data = ConfigurationServices.convert_data_template(
                         ConfigurationSerializers(data).data
                     )
@@ -340,7 +340,7 @@ class ConfigurationServices:
                     return_data['chart_sell'] = candle_sell_type
                     
                     # Lấy giá trị chart_second từ database sau khi save
-                    if data.candle_second and data.candle_second.candle:
+                    if data.candle_second:
                         return_data['chart_second'] = data.candle_second.candle
                     elif data.candle and data.candle.candle:
                         return_data['chart_second'] = data.candle.candle
