@@ -15,6 +15,9 @@ from ...type.models import ConfigurationType
 from common.permissions.custom_permissions import ExchangeActionPermission
 from common.errors.messages import ErrorMessages
 from common.success.messages import SuccessMessage
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ConfigurationStockDetailViews(APIView):
     def get(self, request):
@@ -45,6 +48,7 @@ class ConfigurationStockDetailViews(APIView):
     def post(self, request):
         user = request.user
         data = request.data
+        logger.info(f'check data update: {data}')
         
         res_type, res_data = ConfigurationServices.update_config_type_configuration(user=user, update_data=data)
         

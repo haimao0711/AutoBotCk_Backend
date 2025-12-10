@@ -14,6 +14,9 @@ from ..type.services import ConfigurationTypeServices
 from ..type.serializers import ConfigurationTypeSerializer
 from .models import Configuration
 from .serializers import ConfigurationSerializers
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigurationServices:
@@ -150,7 +153,7 @@ class ConfigurationServices:
         candle_second_type = update_data.get('chart_second')
         candle_sell_type = update_data.get('chart_sell')
         candle_sell_second_type = update_data.get('chart_sell_second')
-        print('check update_data: ', update_data)
+        logger.info(f'check update_data: {update_data}')
         if config_type == ConfigurationTypeEnum.TRADING.value:
             template = ConfigurationTypeServices.get_trading()
             check, config_template = ConfigurationServices.get_details_configutation_by_config_type(
@@ -180,7 +183,7 @@ class ConfigurationServices:
             'candle_sell_second': candle_sell_second.id,
             'account': None,
         }
-        print('check update_config_type_data: ', update_config_type_data)
+        logger.info(f'check update_config_type_data: {update_config_type_data}')
         # handle input case
         if 'is_buy' in update_data and config_template.is_buy != update_data['is_buy']:
             update_config_type_data['is_buy'] = update_data['is_buy']
