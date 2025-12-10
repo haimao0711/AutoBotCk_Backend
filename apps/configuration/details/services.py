@@ -153,7 +153,8 @@ class ConfigurationServices:
         candle_second_type = update_data.get('chart_second')
         candle_sell_type = update_data.get('chart_sell')
         candle_sell_second_type = update_data.get('chart_sell_second')
-        logger.info(f'check update_data: {update_data}')
+        logger.info(f'check candle_second_type: {candle_second_type}')
+        logger.info(f'check candle_sell_second_type: {candle_sell_second_type}')
         if config_type == ConfigurationTypeEnum.TRADING.value:
             template = ConfigurationTypeServices.get_trading()
             check, config_template = ConfigurationServices.get_details_configutation_by_config_type(
@@ -183,7 +184,8 @@ class ConfigurationServices:
             'candle_sell_second': candle_sell_second.id,
             'account': None,
         }
-        logger.info(f'check update_config_type_data: {update_config_type_data}')
+        logger.info(f'check candle_second: {candle_second}')
+        logger.info(f'check candle_sell_second: {candle_sell_second}')
         # handle input case
         if 'is_buy' in update_data and config_template.is_buy != update_data['is_buy']:
             update_config_type_data['is_buy'] = update_data['is_buy']

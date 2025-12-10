@@ -48,7 +48,6 @@ class ConfigurationStockDetailViews(APIView):
     def post(self, request):
         user = request.user
         data = request.data
-        logger.info(f'check data update: {data}')
         
         res_type, res_data = ConfigurationServices.update_config_type_configuration(user=user, update_data=data)
         
