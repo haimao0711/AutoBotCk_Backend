@@ -28,17 +28,26 @@ class CandleService:
     
     @staticmethod
     def get_candle_second(candle_second_type):
+        # Tìm Candle object có candle=candle_second_type (giống như get_candle)
+        # vì các Candle objects được tạo với trường candle, không phải candle_second
         try:
-            candle_second = Candle.objects.get(candle_second=candle_second_type)
+            candle_second = Candle.objects.get(candle=candle_second_type)
             return candle_second
         except (Candle.DoesNotExist):
             raise ValueError(ErrorMessages.CANDLE_DOES_NOT_EXIST)
     
     @staticmethod
     def get_candle_sell_second(candle_sell_second_type):
+        # Tìm Candle object có candle_sell=candle_sell_second_type (giống như get_candle_sell)
+        # vì các Candle objects được tạo với trường candle_sell, không phải candle_sell_second
         try:
-            candle_sell_second = Candle.objects.get(candle_sell_second=candle_sell_second_type)
+            candle_sell_second = Candle.objects.get(candle_sell=candle_sell_second_type)
             return candle_sell_second
         except (Candle.DoesNotExist):
-            raise ValueError(ErrorMessages.CANDLE_DOES_NOT_EXIST)
+            # Nếu không tìm thấy theo candle_sell, thử tìm theo candle
+            try:
+                candle_sell_second = Candle.objects.get(candle=candle_sell_second_type)
+                return candle_sell_second
+            except (Candle.DoesNotExist):
+                raise ValueError(ErrorMessages.CANDLE_DOES_NOT_EXIST)
             
