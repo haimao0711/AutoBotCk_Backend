@@ -130,7 +130,7 @@ class ConfigurationServices:
             return_data['chart_sell'] = chart_sell
             return_data['chart_sell_second'] = chart_sell_second
             return_data['chart_type'] = data.config_type.configuration_type
-            return_data['is_use_chart_second'] = data.is_use_candle_second
+            return_data['is_use_candle_second'] = data.is_use_candle_second
             return_data['stock_id'] = data.stock.id
             return_data['stock_name'] = data.stock.name
             return return_data
