@@ -983,6 +983,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     revert_status_request_trade(user, stock_id)
 
 def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, percent_buy_trade: float):
+    # Khởi tạo stock_id = None để tránh lỗi nếu exception xảy ra trước khi khởi tạo
+    stock_id = None
     try:        
         # Các giá trị mặc định
         timezone = pytz.timezone('Asia/Ho_Chi_Minh')
@@ -1774,7 +1776,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
         logger.info(f'Kết thúc process_trading: {symbol}')
     except Exception as e:
-        ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
+        # Chỉ update nếu stock_id đã được khởi tạo
+        if stock_id is not None:
+            ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
         logger.info(f"Error in {current_thread_name}: {str(e)}")
     finally:
         # Đóng connection của thread hiện tại
