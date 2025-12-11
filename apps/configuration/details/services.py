@@ -221,33 +221,9 @@ class ConfigurationServices:
                 return_data['stock_id'] = stock_id
                 return_data['stock_name'] = data.stock.name
                 return_data['chart'] = candle_type
-                
-                # Lấy giá trị chart_second từ database sau khi save (giống logic trong get_config_type_configuration)
-                if data.candle_second:
-                    return_data['chart_second'] = data.candle_second.candle
-                elif data.candle and data.candle.candle:
-                    return_data['chart_second'] = data.candle.candle
-                else:
-                    # Nếu không có trong database, dùng giá trị từ update_data
-                    return_data['chart_second'] = candle_second_type if candle_second_type else None
-                
+                return_data['chart_second'] = candle_second_type                
                 return_data['chart_sell'] = candle_sell_type
-                
-                # Lấy giá trị chart_sell_second từ database sau khi save (giống logic trong get_config_type_configuration)
-                if data.candle_sell_second:
-                    # Thử lấy từ candle_sell trước, nếu không có thì lấy từ candle
-                    if data.candle_sell_second.candle_sell:
-                        return_data['chart_sell_second'] = data.candle_sell_second.candle_sell
-                    elif data.candle_sell_second.candle:
-                        return_data['chart_sell_second'] = data.candle_sell_second.candle
-                    else:
-                        return_data['chart_sell_second'] = candle_sell_second_type if candle_sell_second_type else None
-                elif data.candle and data.candle.candle:
-                    return_data['chart_sell_second'] = data.candle.candle
-                else:
-                    # Nếu không có trong database, dùng giá trị từ update_data
-                    return_data['chart_sell_second'] = candle_sell_second_type if candle_sell_second_type else None
-                
+                return_data['chart_sell_second'] = candle_sell_second_type                
                 return_data['chart_type'] = config_type
                 return SuccessType.UPDATED_SUCCESS, return_data
             else:
@@ -335,28 +311,8 @@ class ConfigurationServices:
                     return_data['stock_name'] = data.stock.name
                     return_data['chart'] = candle_type
                     return_data['chart_sell'] = candle_sell_type
-                    
-                    # Lấy giá trị chart_second từ database sau khi save
-                    if data.candle_second:
-                        return_data['chart_second'] = data.candle_second.candle
-                    elif data.candle and data.candle.candle:
-                        return_data['chart_second'] = data.candle.candle
-                    else:
-                        return_data['chart_second'] = candle_second_type if candle_second_type else None
-                    
-                    # Lấy giá trị chart_sell_second từ database sau khi save
-                    if data.candle_sell_second:
-                        if data.candle_sell_second.candle_sell:
-                            return_data['chart_sell_second'] = data.candle_sell_second.candle_sell
-                        elif data.candle_sell_second.candle:
-                            return_data['chart_sell_second'] = data.candle_sell_second.candle
-                        else:
-                            return_data['chart_sell_second'] = candle_sell_second_type if candle_sell_second_type else None
-                    elif data.candle and data.candle.candle:
-                        return_data['chart_sell_second'] = data.candle.candle
-                    else:
-                        return_data['chart_sell_second'] = candle_sell_second_type if candle_sell_second_type else None
-                    
+                    return_data['chart_second'] = candle_second_type
+                    return_data['chart_sell_second'] = candle_sell_second_type
                     return_data['chart_type'] = config_type
                     result_list.append({
                         'stock_id': config_template.stock.id,
