@@ -28,8 +28,6 @@ class CandleService:
     
     @staticmethod
     def get_candle_second(candle_second_type):
-        # Tìm Candle object có candle=candle_second_type (giống như get_candle)
-        # vì các Candle objects được tạo với trường candle, không phải candle_second
         try:
             candle_second = Candle.objects.get(candle=candle_second_type)
             return candle_second

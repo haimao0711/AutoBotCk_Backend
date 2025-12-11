@@ -212,9 +212,26 @@ class ConfigurationServices:
                 config_template, data=update_config_type_data, partial=True)
 
             if template_serializer.is_valid():
+                logger.info(f'validated_data: {template_serializer.validated_data}')
+                logger.info(f'candle_second in validated_data: {"candle_second" in template_serializer.validated_data}')
+                logger.info(f'candle_sell_second in validated_data: {"candle_sell_second" in template_serializer.validated_data}')
+                if 'candle_second' in template_serializer.validated_data:
+                    logger.info(f'candle_second value in validated_data: {template_serializer.validated_data["candle_second"]}')
+                if 'candle_sell_second' in template_serializer.validated_data:
+                    logger.info(f'candle_sell_second value in validated_data: {template_serializer.validated_data["candle_sell_second"]}')
+                
                 data = template_serializer.save()
+                logger.info(f'After save - data.candle_second: {data.candle_second}')
+                logger.info(f'After save - data.candle_second.id: {data.candle_second.id if data.candle_second else None}')
+                logger.info(f'After save - data.candle_sell_second: {data.candle_sell_second}')
+                logger.info(f'After save - data.candle_sell_second.id: {data.candle_sell_second.id if data.candle_sell_second else None}')
+                
                 # Refresh object từ database để đảm bảo có dữ liệu mới nhất
                 data.refresh_from_db()
+                logger.info(f'After refresh_from_db - data.candle_second: {data.candle_second}')
+                logger.info(f'After refresh_from_db - data.candle_second.id: {data.candle_second.id if data.candle_second else None}')
+                logger.info(f'After refresh_from_db - data.candle_sell_second: {data.candle_sell_second}')
+                logger.info(f'After refresh_from_db - data.candle_sell_second.id: {data.candle_sell_second.id if data.candle_sell_second else None}')
                 
                 return_data = ConfigurationServices.convert_data_template(
                     ConfigurationSerializers(data).data)
@@ -228,6 +245,9 @@ class ConfigurationServices:
                 return SuccessType.UPDATED_SUCCESS, return_data
             else:
                 errors = template_serializer.errors
+                logger.error(f'Serializer errors: {errors}')
+                logger.error(f'Serializer errors detail - candle_second: {errors.get("candle_second", "Not in errors")}')
+                logger.error(f'Serializer errors detail - candle_sell_second: {errors.get("candle_sell_second", "Not in errors")}')
                 return ErrorType.UPDATE_FAILED, {'errors': {'message': str(errors)}}
         except Exception as error:
             return ErrorType.UPDATE_FAILED, {'errors': {'message': str(error)}}
