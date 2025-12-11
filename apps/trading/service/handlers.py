@@ -1004,9 +1004,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         following_candle_sell = prepared["following_candle_sell"]
         following_candle_sell_second = prepared["following_candle_sell_second"]
         trading_chart_type = prepared["trading_chart_type"]
+        trading_chart_type_second = prepared["trading_chart_type_second"]
         trading_chart_type_sell = prepared["trading_chart_type_sell"]
+        trading_chart_type_sell_second = prepared["trading_chart_type_sell_second   "]
         following_chart_type = prepared["following_chart_type"]
+        following_chart_type_second = prepared["following_chart_type_second"]
         following_chart_type_sell = prepared["following_chart_type_sell"]
+        following_chart_type_sell_second = prepared["following_chart_type_sell_second"]
         trading_config = prepared["trading_config"]
         following_config = prepared["following_config"]        
         overview_config = prepared["overview_config"]
@@ -1027,10 +1031,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
         cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
         cash_available = cash_balance['cash_available']
-        logger.info(f'check following_candle {symbol}: {following_candle}')
-        logger.info(f'check following_candle_second {symbol}: {following_candle_second}')
-        logger.info(f'check following_candle_sell {symbol}: {following_candle_sell}')
-        logger.info(f'check following_candle_sell_second {symbol}: {following_candle_sell_second}')
+        logger.info(f'check following_chart_type {symbol}: {following_chart_type}')
+        logger.info(f'check following_chart_type_second {symbol}: {following_chart_type_second}')
+        logger.info(f'check following_chart_type_sell {symbol}: {following_chart_type_sell}')
+        logger.info(f'check following_chart_type_sell_second {symbol}: {following_chart_type_sell_second}')
     #HANDLE BUY
         if not is_block_buy_stock:
             # Tải dữ liệu
@@ -1804,9 +1808,13 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
 
         # Xác định kiểu biểu đồ dựa trên enum (có thể điều chỉnh theo logic cụ thể)
         trading_chart_type = getattr(CandleEnum, trading_candle, CandleEnum.M5)
+        trading_chart_type_second = getattr(CandleEnum, trading_candle_second, CandleEnum.M5)
         trading_chart_type_sell = getattr(CandleEnum, trading_candle_sell, CandleEnum.M5)
+        trading_chart_type_sell_second = getattr(CandleEnum, trading_candle_sell_second, CandleEnum.M5)
         following_chart_type = getattr(CandleEnum, following_candle, CandleEnum.D1)
+        following_chart_type_second = getattr(CandleEnum, following_candle_second, CandleEnum.D1)
         following_chart_type_sell = getattr(CandleEnum, following_candle_sell, CandleEnum.D1)
+        following_chart_type_sell_second = getattr(CandleEnum, following_candle_sell_second, CandleEnum.D1)
         prepared_configs.append({
             "trading_candle": trading_candle,
             "trading_candle_second": trading_candle_second,
@@ -1817,9 +1825,13 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
             "following_candle_sell": following_candle_sell,
             "following_candle_sell_second": following_candle_sell_second,
             "trading_chart_type": trading_chart_type,
+            "trading_chart_type_second": trading_chart_type_second,
             "trading_chart_type_sell": trading_chart_type_sell,
+            "trading_chart_type_sell_second": trading_chart_type_sell_second,
             "following_chart_type": following_chart_type,
+            "following_chart_type_second": following_chart_type_second,
             "following_chart_type_sell": following_chart_type_sell,
+            "following_chart_type_sell_second": following_chart_type_sell_second,
             "stock": stock,
             "trading_config": trading_config,
             "following_config": following_config,
