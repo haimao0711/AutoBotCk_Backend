@@ -1801,14 +1801,18 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
         stock = configuration.get("stock")
 
         # Lấy giá trị candle từ trading_config và following_config, dùng giá trị mặc định nếu chưa có
+        # candle và candle_sell: lấy từ trường tương ứng của Candle object
         trading_candle = getattr(getattr(trading_config, "candle", None), "candle", "M5")
-        trading_candle_second = getattr(getattr(trading_config, "candle_second", None), "candle_second", "M5")
         trading_candle_sell = getattr(getattr(trading_config, "candle_sell", None), "candle_sell", "M5")
-        trading_candle_sell_second = getattr(getattr(trading_config, "candle_sell_second", None), "candle_sell_second", "M5")
         following_candle = getattr(getattr(following_config, "candle", None), "candle", "D1")
-        following_candle_second = getattr(getattr(following_config, "candle_second", None), "candle_second", "D1")
         following_candle_sell = getattr(getattr(following_config, "candle_sell", None), "candle_sell", "D1")
-        following_candle_sell_second = getattr(getattr(following_config, "candle_sell_second", None), "candle_sell_second", "D1")
+        
+        # candle_second và candle_sell_second: lấy từ trường candle/candle_sell của Candle object (giống logic trong services.py)
+        # Vì get_candle_second() tìm Candle object có candle="D1", nên cần lấy từ trường candle, không phải candle_second
+        trading_candle_second = getattr(getattr(trading_config, "candle_second", None), "candle", "M5")
+        trading_candle_sell_second = getattr(getattr(trading_config, "candle_sell_second", None), "candle_sell", "M5")
+        following_candle_second = getattr(getattr(following_config, "candle_second", None), "candle", "D1")
+        following_candle_sell_second = getattr(getattr(following_config, "candle_sell_second", None), "candle_sell", "D1")
 
         # Xác định kiểu biểu đồ dựa trên enum (có thể điều chỉnh theo logic cụ thể)
         trading_chart_type = getattr(CandleEnum, trading_candle, CandleEnum.M5)
@@ -1938,25 +1942,44 @@ def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str
 
     stock = configuration.get("stock")
 
+    # candle và candle_sell: lấy từ trường tương ứng của Candle object
     trading_candle = getattr(getattr(trading_config, "candle", None), "candle", "M5")
     trading_candle_sell = getattr(getattr(trading_config, "candle_sell", None), "candle_sell", "M5")
     following_candle = getattr(getattr(following_config, "candle", None), "candle", "D1")
     following_candle_sell = getattr(getattr(following_config, "candle_sell", None), "candle_sell", "D1")
+    
+    # candle_second và candle_sell_second: lấy từ trường candle/candle_sell của Candle object (giống logic trong services.py)
+    trading_candle_second = getattr(getattr(trading_config, "candle_second", None), "candle", "M5")
+    trading_candle_sell_second = getattr(getattr(trading_config, "candle_sell_second", None), "candle_sell", "M5")
+    following_candle_second = getattr(getattr(following_config, "candle_second", None), "candle", "D1")
+    following_candle_sell_second = getattr(getattr(following_config, "candle_sell_second", None), "candle_sell", "D1")
 
     trading_chart_type = getattr(CandleEnum, trading_candle, CandleEnum.M5)
+    trading_chart_type_second = getattr(CandleEnum, trading_candle_second, CandleEnum.M5)
     trading_chart_type_sell = getattr(CandleEnum, trading_candle_sell, CandleEnum.M5)
+    trading_chart_type_sell_second = getattr(CandleEnum, trading_candle_sell_second, CandleEnum.M5)
     following_chart_type = getattr(CandleEnum, following_candle, CandleEnum.D1)
+    following_chart_type_second = getattr(CandleEnum, following_candle_second, CandleEnum.D1)
     following_chart_type_sell = getattr(CandleEnum, following_candle_sell, CandleEnum.D1)
+    following_chart_type_sell_second = getattr(CandleEnum, following_candle_sell_second, CandleEnum.D1)
 
     prepared_configs.append({
         "trading_candle": trading_candle,
+        "trading_candle_second": trading_candle_second,
         "trading_candle_sell": trading_candle_sell,
+        "trading_candle_sell_second": trading_candle_sell_second,
         "following_candle": following_candle,
+        "following_candle_second": following_candle_second,
         "following_candle_sell": following_candle_sell,
+        "following_candle_sell_second": following_candle_sell_second,
         "trading_chart_type": trading_chart_type,
+        "trading_chart_type_second": trading_chart_type_second,
         "trading_chart_type_sell": trading_chart_type_sell,
+        "trading_chart_type_sell_second": trading_chart_type_sell_second,
         "following_chart_type": following_chart_type,
+        "following_chart_type_second": following_chart_type_second,
         "following_chart_type_sell": following_chart_type_sell,
+        "following_chart_type_sell_second": following_chart_type_sell_second,
         "stock": stock,
         "trading_config": trading_config,
         "following_config": following_config,

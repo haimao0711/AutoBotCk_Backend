@@ -87,21 +87,15 @@ class ConfigurationServices:
                 chart_sell = data.candle_sell.candle_sell
             elif data.candle and data.candle.candle:
                 chart_sell = data.candle.candle
-            # Lấy từ trường candle của Candle object (vì đó là giá trị chính)
+            # Lấy từ trường candle của Candle object - hoạt động độc lập, không fallback về candle
             if data.candle_second and data.candle_second.candle:
                 chart_second = data.candle_second.candle
-            elif data.candle and data.candle.candle:
-                chart_second = data.candle.candle
-            # Lấy từ trường candle_sell hoặc candle của Candle object
+            # Lấy từ trường candle_sell của Candle object - hoạt động độc lập, không fallback về candle
             if data.candle_sell_second:
                 if data.candle_sell_second.candle_sell:
                     chart_sell_second = data.candle_sell_second.candle_sell
                 elif data.candle_sell_second.candle:
                     chart_sell_second = data.candle_sell_second.candle
-                else:
-                    chart_sell_second = None
-            elif data.candle and data.candle.candle:
-                chart_sell_second = data.candle.candle
             return_data['chart'] = data.candle.candle
             return_data['chart_second'] = chart_second
             return_data['chart_sell'] = chart_sell
@@ -128,21 +122,15 @@ class ConfigurationServices:
                 chart_sell = data.candle_sell.candle_sell
             elif data.candle and data.candle.candle:
                 chart_sell = data.candle.candle
-            # Lấy từ trường candle của Candle object (vì đó là giá trị chính)
+            # Lấy từ trường candle của Candle object - hoạt động độc lập, không fallback về candle
             if data.candle_second and data.candle_second.candle:
                 chart_second = data.candle_second.candle
-            elif data.candle and data.candle.candle:
-                chart_second = data.candle.candle
-            # Lấy từ trường candle_sell hoặc candle của Candle object
+            # Lấy từ trường candle_sell của Candle object - hoạt động độc lập, không fallback về candle
             if data.candle_sell_second:
                 if data.candle_sell_second.candle_sell:
                     chart_sell_second = data.candle_sell_second.candle_sell
                 elif data.candle_sell_second.candle:
                     chart_sell_second = data.candle_sell_second.candle
-                else:
-                    chart_sell_second = None
-            elif data.candle and data.candle.candle:
-                chart_sell_second = data.candle.candle
             return_data['chart'] = data.candle.candle
             return_data['chart_second'] = chart_second
             return_data['chart_sell'] = chart_sell
