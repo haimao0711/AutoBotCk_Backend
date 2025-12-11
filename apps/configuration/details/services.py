@@ -233,6 +233,23 @@ class ConfigurationServices:
                 logger.info(f'After refresh_from_db - data.candle_sell_second: {data.candle_sell_second}')
                 logger.info(f'After refresh_from_db - data.candle_sell_second.id: {data.candle_sell_second.id if data.candle_sell_second else None}')
                 
+                # Kiểm tra trực tiếp từ database bằng query mới
+                from django.db import connection
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT candle_second_id, candle_sell_second_id FROM configuration_configuration WHERE id = %s",
+                        [data.id]
+                    )
+                    row = cursor.fetchone()
+                    logger.info(f'Direct DB query - candle_second_id: {row[0] if row and row[0] else None}, candle_sell_second_id: {row[1] if row and row[1] else None}')
+                
+                # Kiểm tra lại bằng ORM query mới
+                config_from_db = Configuration.objects.get(id=data.id)
+                logger.info(f'New ORM query - config_from_db.candle_second: {config_from_db.candle_second}')
+                logger.info(f'New ORM query - config_from_db.candle_second.id: {config_from_db.candle_second.id if config_from_db.candle_second else None}')
+                logger.info(f'New ORM query - config_from_db.candle_sell_second: {config_from_db.candle_sell_second}')
+                logger.info(f'New ORM query - config_from_db.candle_sell_second.id: {config_from_db.candle_sell_second.id if config_from_db.candle_sell_second else None}')
+                
                 return_data = ConfigurationServices.convert_data_template(
                     ConfigurationSerializers(data).data)
                 return_data['stock_id'] = stock_id
