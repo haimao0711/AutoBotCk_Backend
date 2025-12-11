@@ -1008,7 +1008,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         trading_chart_type = prepared["trading_chart_type"]
         trading_chart_type_second = prepared["trading_chart_type_second"]
         trading_chart_type_sell = prepared["trading_chart_type_sell"]
-        trading_chart_type_sell_second = prepared["trading_chart_type_sell_second   "]
+        trading_chart_type_sell_second = prepared["trading_chart_type_sell_second"]
         following_chart_type = prepared["following_chart_type"]
         following_chart_type_second = prepared["following_chart_type_second"]
         following_chart_type_sell = prepared["following_chart_type_sell"]
