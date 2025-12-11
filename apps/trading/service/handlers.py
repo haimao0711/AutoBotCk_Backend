@@ -996,9 +996,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         current_thread_name = threading.current_thread().name
         # Lấy dữ liệu đã chuẩn bị  
         trading_candle = prepared["trading_candle"]
+        trading_candle_second = prepared["trading_candle_second"]
         trading_candle_sell = prepared["trading_candle_sell"]
+        trading_candle_sell_second = prepared["trading_candle_sell_second"]
         following_candle = prepared["following_candle"]
+        following_candle_second = prepared["following_candle_second"]
         following_candle_sell = prepared["following_candle_sell"]
+        following_candle_sell_second = prepared["following_candle_sell_second"]
         trading_chart_type = prepared["trading_chart_type"]
         trading_chart_type_sell = prepared["trading_chart_type_sell"]
         following_chart_type = prepared["following_chart_type"]
@@ -1023,6 +1027,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
         cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
         cash_available = cash_balance['cash_available']
+        logger.info(f'check following_candle {symbol}: {following_candle}')
+        logger.info(f'check following_candle_second {symbol}: {following_candle_second}')
+        logger.info(f'check following_candle_sell {symbol}: {following_candle_sell}')
+        logger.info(f'check following_candle_sell_second {symbol}: {following_candle_sell_second}')
     #HANDLE BUY
         if not is_block_buy_stock:
             # Tải dữ liệu
@@ -1786,9 +1794,13 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
 
         # Lấy giá trị candle từ trading_config và following_config, dùng giá trị mặc định nếu chưa có
         trading_candle = getattr(getattr(trading_config, "candle", None), "candle", "M5")
+        trading_candle_second = getattr(getattr(trading_config, "candle_second", None), "candle_second", "M5")
         trading_candle_sell = getattr(getattr(trading_config, "candle_sell", None), "candle_sell", "M5")
+        trading_candle_sell_second = getattr(getattr(trading_config, "candle_sell_second", None), "candle_sell_second", "M5")
         following_candle = getattr(getattr(following_config, "candle", None), "candle", "D1")
+        following_candle_second = getattr(getattr(following_config, "candle_second", None), "candle_second", "D1")
         following_candle_sell = getattr(getattr(following_config, "candle_sell", None), "candle_sell", "D1")
+        following_candle_sell_second = getattr(getattr(following_config, "candle_sell_second", None), "candle_sell_second", "D1")
 
         # Xác định kiểu biểu đồ dựa trên enum (có thể điều chỉnh theo logic cụ thể)
         trading_chart_type = getattr(CandleEnum, trading_candle, CandleEnum.M5)
@@ -1797,9 +1809,13 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
         following_chart_type_sell = getattr(CandleEnum, following_candle_sell, CandleEnum.D1)
         prepared_configs.append({
             "trading_candle": trading_candle,
+            "trading_candle_second": trading_candle_second,
             "trading_candle_sell": trading_candle_sell,
+            "trading_candle_sell_second": trading_candle_sell_second,
             "following_candle": following_candle,
+            "following_candle_second": following_candle_second,
             "following_candle_sell": following_candle_sell,
+            "following_candle_sell_second": following_candle_sell_second,
             "trading_chart_type": trading_chart_type,
             "trading_chart_type_sell": trading_chart_type_sell,
             "following_chart_type": following_chart_type,

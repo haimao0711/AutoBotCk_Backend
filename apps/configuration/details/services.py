@@ -87,12 +87,19 @@ class ConfigurationServices:
                 chart_sell = data.candle_sell.candle_sell
             elif data.candle and data.candle.candle:
                 chart_sell = data.candle.candle
-            if data.candle_second and data.candle_second.candle_second:
-                chart_second = data.candle_second.candle_second
+            # Lấy từ trường candle của Candle object (vì đó là giá trị chính)
+            if data.candle_second and data.candle_second.candle:
+                chart_second = data.candle_second.candle
             elif data.candle and data.candle.candle:
                 chart_second = data.candle.candle
-            if data.candle_sell_second and data.candle_sell_second.candle_sell_second:
-                chart_sell_second = data.candle_sell_second.candle_sell_second
+            # Lấy từ trường candle_sell hoặc candle của Candle object
+            if data.candle_sell_second:
+                if data.candle_sell_second.candle_sell:
+                    chart_sell_second = data.candle_sell_second.candle_sell
+                elif data.candle_sell_second.candle:
+                    chart_sell_second = data.candle_sell_second.candle
+                else:
+                    chart_sell_second = None
             elif data.candle and data.candle.candle:
                 chart_sell_second = data.candle.candle
             return_data['chart'] = data.candle.candle
@@ -121,12 +128,19 @@ class ConfigurationServices:
                 chart_sell = data.candle_sell.candle_sell
             elif data.candle and data.candle.candle:
                 chart_sell = data.candle.candle
-            if data.candle_second and data.candle_second.candle_second:
-                chart_second = data.candle_second.candle_second
+            # Lấy từ trường candle của Candle object (vì đó là giá trị chính)
+            if data.candle_second and data.candle_second.candle:
+                chart_second = data.candle_second.candle
             elif data.candle and data.candle.candle:
                 chart_second = data.candle.candle
-            if data.candle_sell_second and data.candle_sell_second.candle_sell_second:
-                chart_sell_second = data.candle_sell_second.candle_sell_second
+            # Lấy từ trường candle_sell hoặc candle của Candle object
+            if data.candle_sell_second:
+                if data.candle_sell_second.candle_sell:
+                    chart_sell_second = data.candle_sell_second.candle_sell
+                elif data.candle_sell_second.candle:
+                    chart_sell_second = data.candle_sell_second.candle
+                else:
+                    chart_sell_second = None
             elif data.candle and data.candle.candle:
                 chart_sell_second = data.candle.candle
             return_data['chart'] = data.candle.candle
@@ -143,7 +157,6 @@ class ConfigurationServices:
 
     @staticmethod
     def update_config_type_configuration(user, update_data):
-        logger.info('đã chạy hàm update_config_type_configuration')
         vnindex_config = update_data.get('vnindex_config')
         stock_config = update_data.get('stock_config')
         template, check, config_template = None, True, None
@@ -153,8 +166,6 @@ class ConfigurationServices:
         candle_second_type = update_data.get('chart_second')
         candle_sell_type = update_data.get('chart_sell')
         candle_sell_second_type = update_data.get('chart_sell_second')
-        logger.info(f'check candle_second_type: {candle_second_type}')
-        logger.info(f'check candle_sell_second_type: {candle_sell_second_type}')
         if config_type == ConfigurationTypeEnum.TRADING.value:
             template = ConfigurationTypeServices.get_trading()
             check, config_template = ConfigurationServices.get_details_configutation_by_config_type(
@@ -184,7 +195,6 @@ class ConfigurationServices:
             'candle_sell_second': candle_sell_second.id,
             'account': None,
         }
-        logger.info(f'check update_config_type_data: {update_config_type_data}')
         # handle input case
         if 'is_buy' in update_data and config_template.is_buy != update_data['is_buy']:
             update_config_type_data['is_buy'] = update_data['is_buy']
@@ -212,76 +222,27 @@ class ConfigurationServices:
                 config_template, data=update_config_type_data, partial=True)
 
             if template_serializer.is_valid():
-                logger.info(f'validated_data: {template_serializer.validated_data}')
-                logger.info(f'candle_second in validated_data: {"candle_second" in template_serializer.validated_data}')
-                logger.info(f'candle_sell_second in validated_data: {"candle_sell_second" in template_serializer.validated_data}')
-                if 'candle_second' in template_serializer.validated_data:
-                    logger.info(f'candle_second value in validated_data: {template_serializer.validated_data["candle_second"]}')
-                if 'candle_sell_second' in template_serializer.validated_data:
-                    logger.info(f'candle_sell_second value in validated_data: {template_serializer.validated_data["candle_sell_second"]}')
-                
                 data = template_serializer.save()
-                logger.info(f'After save - data.candle_second: {data.candle_second}')
-                logger.info(f'After save - data.candle_second.id: {data.candle_second.id if data.candle_second else None}')
-                logger.info(f'After save - data.candle_sell_second: {data.candle_sell_second}')
-                logger.info(f'After save - data.candle_sell_second.id: {data.candle_sell_second.id if data.candle_sell_second else None}')
-                
-                # Refresh object từ database để đảm bảo có dữ liệu mới nhất
                 data.refresh_from_db()
-                logger.info(f'After refresh_from_db - data.candle_second: {data.candle_second}')
-                logger.info(f'After refresh_from_db - data.candle_second.id: {data.candle_second.id if data.candle_second else None}')
-                logger.info(f'After refresh_from_db - data.candle_sell_second: {data.candle_sell_second}')
-                logger.info(f'After refresh_from_db - data.candle_sell_second.id: {data.candle_sell_second.id if data.candle_sell_second else None}')
                 
-                # Kiểm tra trực tiếp từ database bằng query mới
-                from django.db import connection
-                import common.table_names as table
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        f"SELECT candle_second_id, candle_sell_second_id FROM {table.CONFIGURATION} WHERE id = %s",
-                        [data.id]
-                    )
-                    row = cursor.fetchone()
-                    logger.info(f'Direct DB query - candle_second_id: {row[0] if row and row[0] else None}, candle_sell_second_id: {row[1] if row and row[1] else None}')
-                
-                # Kiểm tra lại bằng ORM query mới
-                config_from_db = Configuration.objects.get(id=data.id)
-                logger.info(f'New ORM query - config_from_db.candle_second: {config_from_db.candle_second}')
-                logger.info(f'New ORM query - config_from_db.candle_second.id: {config_from_db.candle_second.id if config_from_db.candle_second else None}')
-                logger.info(f'New ORM query - config_from_db.candle_sell_second: {config_from_db.candle_sell_second}')
-                logger.info(f'New ORM query - config_from_db.candle_sell_second.id: {config_from_db.candle_sell_second.id if config_from_db.candle_sell_second else None}')
-                
-                try:
-                    return_data = ConfigurationServices.convert_data_template(
-                        ConfigurationSerializers(data).data)
-                    logger.info(f'After convert_data_template - return_data keys: {return_data.keys()}')
-                    return_data['stock_id'] = stock_id
-                    return_data['stock_name'] = data.stock.name
-                    return_data['chart'] = candle_type
-                    return_data['chart_second'] = candle_second_type                
-                    return_data['chart_sell'] = candle_sell_type
-                    return_data['chart_sell_second'] = candle_sell_second_type                
-                    return_data['chart_type'] = config_type
-                    logger.info(f'Before return - return_data prepared successfully')
-                    return SuccessType.UPDATED_SUCCESS, return_data
-                except Exception as e:
-                    logger.error(f'Error in creating return_data: {str(e)}')
-                    logger.exception(e)
-                    raise
+                return_data = ConfigurationServices.convert_data_template(
+                    ConfigurationSerializers(data).data)
+                return_data['stock_id'] = stock_id
+                return_data['stock_name'] = data.stock.name
+                return_data['chart'] = candle_type
+                return_data['chart_second'] = candle_second_type                
+                return_data['chart_sell'] = candle_sell_type
+                return_data['chart_sell_second'] = candle_sell_second_type                
+                return_data['chart_type'] = config_type
+                return SuccessType.UPDATED_SUCCESS, return_data
             else:
                 errors = template_serializer.errors
-                logger.error(f'Serializer errors: {errors}')
-                logger.error(f'Serializer errors detail - candle_second: {errors.get("candle_second", "Not in errors")}')
-                logger.error(f'Serializer errors detail - candle_sell_second: {errors.get("candle_sell_second", "Not in errors")}')
                 return ErrorType.UPDATE_FAILED, {'errors': {'message': str(errors)}}
         except Exception as error:
-            logger.error(f'Exception in update_config_type_configuration: {str(error)}')
-            logger.exception(error)
             return ErrorType.UPDATE_FAILED, {'errors': {'message': str(error)}}
 
     @staticmethod
     def update_all_config_type_configuration(user, update_data):
-        print('đã chạy hàm update_all_config_type_configuration')
         vnindex_config = update_data.get('vnindex_config', {})
         stock_config = update_data.get('stock_config', {})
         config_type = update_data.get('chart_type')
