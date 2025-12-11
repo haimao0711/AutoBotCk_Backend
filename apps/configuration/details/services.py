@@ -250,16 +250,23 @@ class ConfigurationServices:
                 logger.info(f'New ORM query - config_from_db.candle_sell_second: {config_from_db.candle_sell_second}')
                 logger.info(f'New ORM query - config_from_db.candle_sell_second.id: {config_from_db.candle_sell_second.id if config_from_db.candle_sell_second else None}')
                 
-                return_data = ConfigurationServices.convert_data_template(
-                    ConfigurationSerializers(data).data)
-                return_data['stock_id'] = stock_id
-                return_data['stock_name'] = data.stock.name
-                return_data['chart'] = candle_type
-                return_data['chart_second'] = candle_second_type                
-                return_data['chart_sell'] = candle_sell_type
-                return_data['chart_sell_second'] = candle_sell_second_type                
-                return_data['chart_type'] = config_type
-                return SuccessType.UPDATED_SUCCESS, return_data
+                try:
+                    return_data = ConfigurationServices.convert_data_template(
+                        ConfigurationSerializers(data).data)
+                    logger.info(f'After convert_data_template - return_data keys: {return_data.keys()}')
+                    return_data['stock_id'] = stock_id
+                    return_data['stock_name'] = data.stock.name
+                    return_data['chart'] = candle_type
+                    return_data['chart_second'] = candle_second_type                
+                    return_data['chart_sell'] = candle_sell_type
+                    return_data['chart_sell_second'] = candle_sell_second_type                
+                    return_data['chart_type'] = config_type
+                    logger.info(f'Before return - return_data prepared successfully')
+                    return SuccessType.UPDATED_SUCCESS, return_data
+                except Exception as e:
+                    logger.error(f'Error in creating return_data: {str(e)}')
+                    logger.exception(e)
+                    raise
             else:
                 errors = template_serializer.errors
                 logger.error(f'Serializer errors: {errors}')
@@ -267,6 +274,8 @@ class ConfigurationServices:
                 logger.error(f'Serializer errors detail - candle_sell_second: {errors.get("candle_sell_second", "Not in errors")}')
                 return ErrorType.UPDATE_FAILED, {'errors': {'message': str(errors)}}
         except Exception as error:
+            logger.error(f'Exception in update_config_type_configuration: {str(error)}')
+            logger.exception(error)
             return ErrorType.UPDATE_FAILED, {'errors': {'message': str(error)}}
 
     @staticmethod
