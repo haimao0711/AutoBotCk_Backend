@@ -235,9 +235,10 @@ class ConfigurationServices:
                 
                 # Kiểm tra trực tiếp từ database bằng query mới
                 from django.db import connection
+                import common.table_names as table
                 with connection.cursor() as cursor:
                     cursor.execute(
-                        "SELECT candle_second_id, candle_sell_second_id FROM configuration_configuration WHERE id = %s",
+                        f"SELECT candle_second_id, candle_sell_second_id FROM {table.CONFIGURATION} WHERE id = %s",
                         [data.id]
                     )
                     row = cursor.fetchone()
