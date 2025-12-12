@@ -1110,8 +1110,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 status_buy = SignalTelegramEnum.BUY_FAILED
             messages_to_buy = render_message(
                 buy_reason, trading_chart_value=trading_candle, following_chart_type=following_candle)
-            messages_to_buy_second = render_message(
-                buy_reason_second, trading_chart_value=trading_candle_second, following_chart_type=following_candle_second)
+           
             price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
             price_current = stock_data_trading.iloc[-1]['close']   
             level = overview_config.level         
