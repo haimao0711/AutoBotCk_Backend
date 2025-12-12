@@ -1039,7 +1039,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         logger.info(f'check following_chart_type_sell_second {symbol}: {following_chart_type_sell_second}')
     #HANDLE BUY
         if not is_block_buy_stock:
-            # Tải dữ liệu
+            # Tải dữ liệu lần 1
             vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
                 stock=stock, 
                 vnindex_stock=vnindex_stock, 
@@ -1078,7 +1078,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             is_use_vnindex_following = following_config.is_use_vnindex_config
             is_use_vnindex_trading = trading_config.is_use_vnindex_config
 
-            logger.info(f'bắt đầu hàm should buy {symbol}')
+            logger.info(f'bắt đầu hàm should buy lần 1 {symbol}')
             is_buy_following, is_buy, buy_reason = should_buy(
                         trading_config = trading_config,
                         following_config = following_config,
@@ -1100,17 +1100,54 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 if not is_buy_vnindex:
                     is_buy = is_buy_vnindex  
 
-            logger.info(f'check is_buy {symbol}: {is_buy}')
-            logger.info(f'check buy_reason CP {symbol}: {buy_reason}')     
+            logger.info(f'check is_buy following lần 1 {symbol}: {is_buy}')
+            logger.info(f'check buy_reason following CP lần 1 {symbol}: {buy_reason}')     
 
             number_order = trading_config.stock_config_number_pid_buy_once_time
 
-            if is_buy:
+            # Tải dữ liệu lần 2
+            vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                stock=stock, 
+                vnindex_stock=vnindex_stock, 
+                trading_chart_type=trading_chart_type_second, 
+                following_chart_type=following_chart_type_second
+            )
+            # Gán cho 3 dòng cuối
+            stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign          
+            stock_data_following_second.loc[stock_data_following_second.index[-3:], 'volume_trade'] = percent_buy_trade
+
+            logger.info(f'bắt đầu hàm should buy lần 2{symbol}')
+            is_buy_following_second, is_buy_second, buy_reason_second = should_buy(
+                        trading_config = trading_config,
+                        following_config = following_config,
+                        data_following_df = stock_data_following_second,
+                        data_trading_df = stock_data_trading_second,            
+                        config_type = 'stock_config'
+                    )  
+                    
+            messages_to_buy_vnindex_second = ''
+            if is_use_vnindex_following:
+                is_buy_vnindex_second, buy_reason_vnindex_second = should_buy_following(
+                    following_config = following_config,
+                    data_following_df = vnindex_data_following_second,
+                    config_type = 'vnindex_config'
+                )
+                messages_to_buy_vnindex_second = render_message(
+                buy_reason_vnindex_second, trading_chart_value=trading_candle_second, following_chart_type=following_candle_second)
+                logger.info(f'check buy_reason_vnindex_second {symbol}: {buy_reason_vnindex_second}') 
+                if not is_buy_vnindex_second:
+                    is_buy_second = is_buy_vnindex_second  
+
+                logger.info(f'check is_buy following lần 2 {symbol}: {is_buy_second}')
+                logger.info(f'check buy_reason following CP lần 2 {symbol}: {buy_reason_second}')
+            if is_buy and is_buy_second:
                 status_buy = SignalTelegramEnum.BUY_SUCCESS
             else:
                 status_buy = SignalTelegramEnum.BUY_FAILED
             messages_to_buy = render_message(
                 buy_reason, trading_chart_value=trading_candle, following_chart_type=following_candle)
+            messages_to_buy_second = render_message(
+                buy_reason_second, trading_chart_value=trading_candle_second, following_chart_type=following_candle_second)
             price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
             price_current = stock_data_trading.iloc[-1]['close']   
             level = overview_config.level         
@@ -1123,12 +1160,27 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 "level": level,
                 "current_price": round(price_current, 2),
                 "price": price_to_start,
+                "times": 'first',
                 "message": messages_to_buy,
                 "message_vnindex": messages_to_buy_vnindex,
                 "start_time_order": start_time_order,
+            }            
+            buy_attrs_second = {
+                "user_account": account,
+                "platform_trading": "Smart One",
+                "stock": stock.name,
+                "level": level,
+                "current_price": round(price_current, 2),
+                "price": price_to_start,
+                "times": 'second',
+                "message": messages_to_buy_second,
+                "message_vnindex": messages_to_buy_vnindex_second,
+                "start_time_order": start_time_order,
             }
             if is_buy_following and not is_buy:
-                send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)              
+                send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)   
+            if is_buy_following_second and not is_buy_second:
+                send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs_second)            
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_SUCCESS:
                 # logger.info(f'bắt đầu hàm đặt lệnh buy {symbol}')
@@ -1229,10 +1281,12 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
                 if is_send_order_buy:                    
-                    send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)              
+                    send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)    
+                    send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs_second)   
                     send_telegram_message_batch(user, MessageTypeEnum.OVERALL, buy_messages)
                 # Send telegram hành động
-                    send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs)              
+                    send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs) 
+                    send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs_second)   
                     send_telegram_message_batch(user, MessageTypeEnum.ACT, buy_messages)
                 # logger.info(f'kết thúc hàm đặt lệnh buy {symbol}')        
             
@@ -1337,7 +1391,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         logger.info(f'⏱ Kiểm tra {interval_check}s - is_buy {symbol}: {is_buy}')
                         logger.info(f'⏱ Kiểm tra {interval_check}s - reason_buy {symbol}: {reason_buy}')
                         
-                        if not is_buy:
+                        if not is_buy:                            
                             # Xây dựng reason với f-string và xử lý trường hợp rỗng
                             reason_parts = []
                             if messages_to_cancel_update_vnindex:

@@ -36,9 +36,10 @@ SESSION_FAILED = '''
 '''
 
 
-BUY_SIGNAL = '''
+BUY_SIGNAL = f'''
 📈📈📈
 🔔 **Tín hiệu MUA**:
+    - Chart theo dõi lần: {times}
     - Cổ phiếu: **{stock}**
     - **Lí do VNINDEX**: {message_vnindex}
     - **Lí do STOCK**: {message}
