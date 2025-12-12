@@ -36,7 +36,7 @@ SESSION_FAILED = '''
 '''
 
 
-BUY_SIGNAL = f'''
+BUY_SIGNAL = '''
 📈📈📈
 🔔 **Tín hiệu MUA**:
     - Chart theo dõi lần: {times}
