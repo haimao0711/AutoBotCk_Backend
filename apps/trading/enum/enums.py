@@ -20,6 +20,8 @@ class SellReasonType:
 class ChartType:
     Trading = 'trading'
     Following = 'following'
+    TradingSecond = 'trading_second'
+    FollowingSecond = 'following_second'
     Overview = 'overview'
 
 

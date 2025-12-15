@@ -159,11 +159,18 @@ def render_type(chart_type: str, chart_value: str) -> str:
     match chart_type:
         case ChartType.Trading:
             return f'''
-    **+ Cấu hình chart hành động** **{chart_value}:**'''
+    **+ Chart hành động** **{chart_value}:**'''
+        case ChartType.TradingSecond:
+            return f'''
+    **+ Chart hành động (phụ)** **{chart_value}:**'''
         case ChartType.Following:
             return f'''
 
-    **+ Cấu hình chart theo dõi** **{chart_value}:**'''
+    **+ Chart theo dõi** **{chart_value}:**'''
+        case ChartType.FollowingSecond:
+            return f'''
+
+    **+ Chart theo dõi (phụ)** **{chart_value}:**'''
         case _:
             return f'''
 
@@ -1083,7 +1090,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 messages +=  message + ' ✅'
         if key == 'following_second' and following_chart_type_second is not None:
-            messages += render_type(ChartType.Following, following_chart_type_second)
+            messages += render_type(ChartType.FollowingSecond, following_chart_type_second)
             for f_key, f_value in value.items():
                 if f_key == 'failed':
                     for f_failed_key, f_failed_value in f_value.items():
@@ -1181,7 +1188,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 messages += message + ' ✅'
         if key == 'trading_second' and trading_chart_value_second is not None:
-            messages += render_type(ChartType.Trading, trading_chart_value_second)
+            messages += render_type(ChartType.TradingSecond, trading_chart_value_second)
             for f_key, f_value in value.items():
                 if f_key == 'failed':
                     for f_failed_key, f_failed_value in f_value.items():
