@@ -608,9 +608,7 @@ def should_buy_chart(config: Configuration, data_df: pd.DataFrame, config_type: 
     sufficient, s_reasons = should_do_sufficient(config, data_df, 'buy', config_type)
     necessary, n_reasons = should_do_necessary(config, data_df, 'buy', config_type)
     obligatory, o_reasons = should_do_obligatory(config, data_df, 'buy', config_type)
-    # print('check sufficient: ', sufficient)
-    # print('check obligatory: ', obligatory)
-    # print('check o_reasons: ', o_reasons)
+    
     if obligatory:
         if sufficient:
             return sufficient, {
@@ -675,7 +673,9 @@ def  should_buy(
     trading_config: Configuration,
     following_config: Configuration,
     data_trading_df: pd.DataFrame,
+    data_trading_df_second: pd.DataFrame,
     data_following_df: pd.DataFrame,
+    data_following_df_second: pd.DataFrame,
     config_type: str
 ):
     if is_valid_time_to_buy(following_config):
@@ -696,32 +696,82 @@ def  should_buy(
                 }
             }
         obj_retured = {}
-        # print('check following_config buy: ', following_config)
-        # print('check trading_config buy: ', trading_config)
+        is_use_candle_following_second = following_config.is_use_candle_second
+        is_use_candle_trading_second = trading_config.is_use_candle_second
+        
+        # Tính toán kết quả cho following và following_second
         following, following_reasons = should_buy_chart(
             following_config, data_following_df, config_type)
+        following_second, following_reasons_second = should_buy_chart(
+            following_config, data_following_df_second, config_type)
 
+        # Tính toán kết quả cho trading và trading_second
         trading, trading_reasons = should_buy_chart_trading(
             trading_config, data_trading_df, config_type )
-        if not following:
+        trading_second, trading_reasons_second = should_buy_chart_trading(
+            trading_config, data_trading_df_second, config_type)
+        
+        # Xử lý following dựa trên is_use_candle_following_second
+        if is_use_candle_following_second:
+            # Nếu dùng candle second, cần cả following và following_second đều True
+            following_result = following and following_second
+            following_reasons_result = following_reasons
+        else:
+            following_result = following
+            following_reasons_result = following_reasons
+        
+        # Xử lý trading dựa trên is_use_candle_trading_second
+        if is_use_candle_trading_second:
+            # Nếu dùng candle second, cần cả trading và trading_second đều True
+            trading_result = trading and trading_second
+            trading_reasons_result = trading_reasons
+        else:
+            trading_result = trading
+            trading_reasons_result = trading_reasons
+        
+        # Xây dựng obj_retured dựa trên kết quả đã chọn
+        if not following_result:
             obj_retured['following'] = {
-                'failed': following_reasons
+                'failed': following_reasons_result
             }
         else:
             obj_retured['following'] = {
-                'success': following_reasons
+                'success': following_reasons_result
             }
-            if not trading:
-                obj_retured['trading'] = {
-                    'failed': trading_reasons
+        
+        # Thêm following_second vào obj_retured nếu có sử dụng candle second
+        if is_use_candle_following_second:
+            if not following_second:
+                obj_retured['following_second'] = {
+                    'failed': following_reasons_second
                 }
             else:
-                obj_retured['trading'] = {
-                    'success': trading_reasons
+                obj_retured['following_second'] = {
+                    'success': following_reasons_second
                 }
-        # print('check following and trading: ', following and trading)
+        
+        if not trading_result:
+            obj_retured['trading'] = {
+                'failed': trading_reasons_result
+            }
+        else:
+            obj_retured['trading'] = {
+                'success': trading_reasons_result
+            }
+        
+        # Thêm trading_second vào obj_retured nếu có sử dụng candle second
+        if is_use_candle_trading_second:
+            if not trading_second:
+                obj_retured['trading_second'] = {
+                    'failed': trading_reasons_second
+                }
+            else:
+                obj_retured['trading_second'] = {
+                    'success': trading_reasons_second
+                }
+        # print('check following and trading: ', following_result and trading_result)
         # print('check obj_retured: ', obj_retured)
-        return following,  following and trading, obj_retured
+        return following_result, following_result and trading_result, obj_retured
 
     else:
         return False, False, {
@@ -980,7 +1030,7 @@ def should_take_profit_bolinger(
     return is_take_profit, percent_profit, messages_take_profit
 
 
-def render_message(obj, trading_chart_value: str, following_chart_type: str):
+def render_message(obj, trading_chart_value: str, following_chart_type: str, trading_chart_value_second: str = None, following_chart_type_second: str = None):
     messages = ''
     for key, value in obj.items():
         if key == 'following':
@@ -1032,8 +1082,106 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str):
                                 message = message_template.format(
                                     previous=previous, current=current, old_previous=last_previous)
                                 messages +=  message + ' ✅'
+        if key == 'following_second' and following_chart_type_second is not None:
+            messages += render_type(ChartType.Following, following_chart_type_second)
+            for f_key, f_value in value.items():
+                if f_key == 'failed':
+                    for f_failed_key, f_failed_value in f_value.items():
+                        if f_failed_key == 'obligatory':
+                            for key_word, last_previous, previous, current in f_failed_value:
+                                message_template = getattr(
+                                    MESSAGES, key_word.upper())
+                                message = message_template.format(
+                                    previous=previous, current=current, old_previous=last_previous)
+                                messages += message + ' ❌'
+                        if f_failed_key == 'sufficient':
+                            for key_word, last_previous, previous, current in f_failed_value:
+                                message_template = getattr(
+                                    MESSAGES, key_word.upper())
+                                message = message_template.format(
+                                    previous=previous, current=current, old_previous=last_previous)
+                                messages += message + ' ❌'
+                        if f_failed_key == 'necessary':
+                            for key_word, last_previous, previous, current in f_failed_value:
+                                message_template = getattr(
+                                    MESSAGES, key_word.upper())
+                                message = message_template.format(
+                                    previous=previous, current=current, old_previous=last_previous)
+                                messages += message + ' ❌'
+                elif f_key == 'success':
+                    for f_success_key, f_success_value in f_value.items():
+                        if f_success_key == 'obligatory':
+                            for key_word, last_previous, previous, current in f_success_value:
+                                message_template = getattr(
+                                    MESSAGES, key_word.upper())
+                                message = message_template.format(
+                                    previous=previous, current=current, old_previous=last_previous)
+                                messages += message + ' ✅'
+                        if f_success_key == 'sufficient':
+                            for key_word, last_previous, previous, current in f_success_value:
+                                message_template = getattr(
+                                    MESSAGES, key_word.upper())
+                                message = message_template.format(
+                                    previous=previous, current=current, old_previous=last_previous)
+                                messages += message + ' ✅'
+                        if f_success_key == 'necessary':
+                            for key_word, last_previous, previous, current in f_success_value:
+                                message_template = getattr(
+                                    MESSAGES, key_word.upper())
+                                message = message_template.format(
+                                    previous=previous, current=current, old_previous=last_previous)
+                                messages +=  message + ' ✅'
         if key == 'trading':
             messages += render_type(ChartType.Trading, trading_chart_value)
+            for f_key, f_value in value.items():
+                if f_key == 'failed':
+                    for f_failed_key, f_failed_value in f_value.items():
+                        if f_failed_key == 'obligatory':
+                            for key_word, last_previous, previous, current in f_failed_value:
+                                message_template = getattr(
+                                    MESSAGES, key_word.upper())
+                                message = message_template.format(
+                                    previous=previous, current=current, old_previous=last_previous)
+                                messages += message + ' ❌'
+                        if f_failed_key == 'sufficient':
+                            for key_word, last_previous, previous, current in f_failed_value:
+                                message_template = getattr(
+                                    MESSAGES, key_word.upper())
+                                message = message_template.format(
+                                    previous=previous, current=current, old_previous=last_previous)
+                                messages += message + ' ❌'
+                        if f_failed_key == 'necessary':
+                            for key_word, last_previous, previous, current in f_failed_value:
+                                message_template = getattr(
+                                    MESSAGES, key_word.upper())
+                                message = message_template.format(
+                                    previous=previous, current=current, old_previous=last_previous)
+                                messages += message + ' ❌'
+                elif f_key == 'success':
+                    for f_success_key, f_success_value in f_value.items():
+                        if f_success_key == 'obligatory':
+                            for key_word, last_previous, previous, current in f_success_value:
+                                message_template = getattr(
+                                    MESSAGES, key_word.upper())
+                                message = message_template.format(
+                                    previous=previous, current=current, old_previous=last_previous)
+                                messages += message + ' ✅'
+                        if f_success_key == 'sufficient':
+                            for key_word, last_previous, previous, current in f_success_value:
+                                message_template = getattr(
+                                    MESSAGES, key_word.upper())
+                                message = message_template.format(
+                                    previous=previous, current=current, old_previous=last_previous)
+                                messages += message + ' ✅'
+                        if f_success_key == 'necessary':
+                            for key_word, last_previous, previous, current in f_success_value:
+                                message_template = getattr(
+                                    MESSAGES, key_word.upper())
+                                message = message_template.format(
+                                    previous=previous, current=current, old_previous=last_previous)
+                                messages += message + ' ✅'
+        if key == 'trading_second' and trading_chart_value_second is not None:
+            messages += render_type(ChartType.Trading, trading_chart_value_second)
             for f_key, f_value in value.items():
                 if f_key == 'failed':
                     for f_failed_key, f_failed_value in f_value.items():

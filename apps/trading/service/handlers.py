@@ -1046,6 +1046,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 trading_chart_type=trading_chart_type, 
                 following_chart_type=following_chart_type
             )
+             # Tải dữ liệu lần 2
+            vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                stock=stock, 
+                vnindex_stock=vnindex_stock, 
+                trading_chart_type=trading_chart_type_second, 
+                following_chart_type=following_chart_type_second
+            )
             sales_data = download_sales_volume(symbol=symbol)
             if sales_data is None:
                 logger.info(f'❌ Download sales_data cho {symbol} không thành công sau 3 lần thử!')
@@ -1074,16 +1081,19 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             # Gán cho 3 dòng cuối
             stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign          
             stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
-
+            stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign          
             is_use_vnindex_following = following_config.is_use_vnindex_config
             is_use_vnindex_trading = trading_config.is_use_vnindex_config
-
-            logger.info(f'bắt đầu hàm should buy lần 1 {symbol}')
+            is_use_candle_following_second = following_config.is_use_candle_second
+            is_use_candle_trading_second = trading_config.is_use_candle_second
+            logger.info(f'bắt đầu hàm should buy {symbol}')
             is_buy_following, is_buy, buy_reason = should_buy(
                         trading_config = trading_config,
                         following_config = following_config,
                         data_following_df = stock_data_following,
+                        data_following_df_second = stock_data_following_second,
                         data_trading_df = stock_data_trading,            
+                        data_trading_df_second = stock_data_trading_second,            
                         config_type = 'stock_config'
                     )  
                     
@@ -1109,7 +1119,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             else:
                 status_buy = SignalTelegramEnum.BUY_FAILED
             messages_to_buy = render_message(
-                buy_reason, trading_chart_value=trading_candle, following_chart_type=following_candle)
+                buy_reason, trading_chart_value=trading_candle, trading_chart_value_second=trading_candle_second, following_chart_type=following_candle, following_chart_type_second=following_candle_second)
            
             price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
             price_current = stock_data_trading.iloc[-1]['close']   
