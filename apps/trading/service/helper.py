@@ -165,9 +165,11 @@ def render_type(chart_type: str, chart_value: str) -> str:
     **+ Chart hành động (phụ)** **{chart_value}:**'''
         case ChartType.Following:
             return f'''
+
     **+ Chart theo dõi** **{chart_value}:**'''
         case ChartType.FollowingSecond:
             return f'''
+
     **+ Chart theo dõi (phụ)** **{chart_value}:**'''
         case _:
             return f'''
