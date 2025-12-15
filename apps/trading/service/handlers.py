@@ -1102,10 +1102,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 is_buy_vnindex, buy_reason_vnindex = should_buy_following(
                     following_config = following_config,
                     data_following_df = vnindex_data_following,
-                    config_type = 'vnindex_config'
+                    config_type = 'vnindex_config',
+                    data_following_df_second = vnindex_data_following_second
                 )
                 messages_to_buy_vnindex = render_message(
-                buy_reason_vnindex, trading_chart_value=trading_candle, following_chart_type=following_candle)
+                buy_reason_vnindex, trading_chart_value=trading_candle, following_chart_type=following_candle, following_chart_type_second=following_candle_second)
                 logger.info(f'check buy_reason_vnindex {symbol}: {buy_reason_vnindex}') 
                 if not is_buy_vnindex:
                     is_buy = is_buy_vnindex  

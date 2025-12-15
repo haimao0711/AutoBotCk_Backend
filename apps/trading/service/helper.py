@@ -793,7 +793,8 @@ def  should_buy(
 def  should_buy_following(
     following_config: Configuration,
     data_following_df: pd.DataFrame,
-    config_type: str
+    config_type: str,
+    data_following_df_second: pd.DataFrame = None
 
 ):
     if not following_config.is_buy:
@@ -806,21 +807,48 @@ def  should_buy_following(
         }
 
     obj_retured = {}
+    is_use_candle_following_second = following_config.is_use_candle_second
     
+    # Tính toán kết quả cho following và following_second
     following, following_reasons = should_buy_chart(
         following_config, data_following_df, config_type)
-
-
-    if not following:
+    following_second, following_reasons_second = None, None
+    
+    if is_use_candle_following_second and data_following_df_second is not None:
+        following_second, following_reasons_second = should_buy_chart(
+            following_config, data_following_df_second, config_type)
+    
+    # Xử lý following dựa trên is_use_candle_following_second
+    if is_use_candle_following_second and data_following_df_second is not None:
+        # Nếu dùng candle second, cần cả following và following_second đều True
+        following_result = following and following_second
+        following_reasons_result = following_reasons
+    else:
+        following_result = following
+        following_reasons_result = following_reasons
+    
+    # Xây dựng obj_retured dựa trên kết quả đã chọn
+    if not following_result:
         obj_retured['following'] = {
-            'failed': following_reasons
+            'failed': following_reasons_result
         }
     else:
         obj_retured['following'] = {
-            'success': following_reasons
+            'success': following_reasons_result
         }
+    
+    # Thêm following_second vào obj_retured nếu có sử dụng candle second
+    if is_use_candle_following_second and data_following_df_second is not None:
+        if not following_second:
+            obj_retured['following_second'] = {
+                'failed': following_reasons_second
+            }
+        else:
+            obj_retured['following_second'] = {
+                'success': following_reasons_second
+            }
 
-    return following , obj_retured
+    return following_result , obj_retured
 
 
 
