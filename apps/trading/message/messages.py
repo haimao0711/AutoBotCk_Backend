@@ -30,9 +30,9 @@ VNINDEX_CONFIG_RSI_TO_BUY_SUFFICIENT_CONDITION = '''
 VNINDEX_CONFIG_USE_RSI_OBL_TO_BUY = '''
         # **ĐKbb:**  RSI *(VNI)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
 VNINDEX_CONFIG_STOCH_RSI_TO_BUY_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**  StochRSI *(VNI)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
+        # **ĐK đủ:**  Srsi *(VNI)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
 VNINDEX_CONFIG_USE_STOCH_RSI_OBL_TO_BUY = '''
-        # **ĐKbb:**  StochRSI *(VNI)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
+        # **ĐKbb:**  Srsi *(VNI)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
 VNINDEX_CONFIG_MACD_TO_BUY_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(VNI)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
 VNINDEX_CONFIG_HISTOGRAM_TO_BUY_SUFFICIENT_CONDITION = '''
@@ -49,10 +49,10 @@ VNINDEX_CONFIG_RSI_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(VNI)* tăng, mới: {current}, cũ: {previous}'''
 
 VNINDEX_CONFIG_STOCH_RSI_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**  StochRSI *(VNI)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
+        # **ĐK đủ:**  Srsi *(VNI)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 VNINDEX_CONFIG_STOCH_RSI_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**  StochRSI *(VNI)* tăng, mới: {current}, cũ: {previous}'''
+        # **ĐK đủ:**  Srsi *(VNI)* tăng, mới: {current}, cũ: {previous}'''
 
 VNINDEX_CONFIG_MACD_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(VNI)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
@@ -80,16 +80,16 @@ VNINDEX_CONFIG_BOLINGER_TO_BUY_SUFFICIENT_CONDITION = '''
 # ================================================================================================================================================================
 
 VNINDEX_CONFIG_MAX_VnIndex_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  VnIndex <=, VnIndex cấu hình ({previous}) *<=* VnIndex hiện tại ({current}) '''
+        # **ĐK cần:**  VnIndex <=, cấu hình ({previous}) *<=* hiện tại ({current}) '''
 
 VNINDEX_CONFIG_MIN_VnIndex_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  VnIndex >=, VnIndex cấu hình ({previous}) *>=* VnIndex hiện tại ({current}) '''
+        # **ĐK cần:**  VnIndex >=, cấu hình ({previous}) *>=* hiện tại ({current}) '''
 
 VNINDEX_CONFIG_RSI_TO_BUY_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(VNI)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
 
 VNINDEX_CONFIG_STOCH_RSI_TO_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  StochRSI *(VNI)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
+        # **ĐK cần:**  Srsi *(VNI)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
 
 VNINDEX_CONFIG_MACD_TO_BUY_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(VNI)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
@@ -104,7 +104,7 @@ VNINDEX_CONFIG_RSI_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(VNI)* tăng, mới: {current}, cũ: {previous}'''
 
 VNINDEX_CONFIG_STOCH_RSI_REVERSED_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  StochRSI *(VNI)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
+        # **ĐK cần:**  Srsi *(VNI)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 VNINDEX_CONFIG_MACD_REVERSED_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(VNI)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
@@ -113,7 +113,7 @@ VNINDEX_CONFIG_HISTOGRAM_REVERSED_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  His*(VNI)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 VNINDEX_CONFIG_STOCH_RSI_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  StochRSI *(VNI)* tăng, mới: {current}, cũ: {previous}'''
+        # **ĐK cần:**  Srsi *(VNI)* tăng, mới: {current}, cũ: {previous}'''
 
 VNINDEX_CONFIG_MACD_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(VNI)* tăng, mới: {current}, cũ: {previous}'''
@@ -139,7 +139,7 @@ STOCK_CONFIG_USE_RSI_OBL_TO_BUY = '''
         # **ĐKbb:**  RSI *(CP)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
 
 STOCK_CONFIG_USE_STOCH_RSI_OBL_TO_BUY = '''
-        # **ĐKbb:**  StochRSI *(CP)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
+        # **ĐKbb:**  Srsi *(CP)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
 
 STOCK_CONFIG_USE_MACD_OBL_TO_BUY = '''
         # **ĐKbb:**  MACD *(CP)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
@@ -156,7 +156,7 @@ STOCK_CONFIG_RSI_TO_BUY_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(CP)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
 
 STOCK_CONFIG_STOCH_RSI_TO_BUY_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**  StochRSI *(CP)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
+        # **ĐK đủ:**  Srsi *(CP)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
 
 STOCK_CONFIG_MACD_TO_BUY_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(CP)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
@@ -168,7 +168,7 @@ STOCK_CONFIG_RSI_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(CP)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 STOCK_CONFIG_STOCH_RSI_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**  StochRSI *(CP)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
+        # **ĐK đủ:**  Srsi *(CP)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 STOCK_CONFIG_MACD_REVERSED_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(CP)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
@@ -180,7 +180,7 @@ STOCK_CONFIG_RSI_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(CP)* tăng, mới: {current}, cũ: {previous}'''
 
 STOCK_CONFIG_STOCH_RSI_INCREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**  StochRSI *(CP)* tăng, mới: {current}, cũ: {previous}'''
+        # **ĐK đủ:**  Srsi *(CP)* tăng, mới: {current}, cũ: {previous}'''
 
 STOCK_CONFIG_MACD_INCREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(CP)* tăng, mới: {current}, cũ: {previous}'''
@@ -202,7 +202,7 @@ STOCK_CONFIG_RSI_TO_BUY_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(CP)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
 
 STOCK_CONFIG_STOCH_RSI_TO_BUY_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  StochRSI *(CP)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
+        # **ĐK cần:**  Srsi *(CP)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
 
 STOCK_CONFIG_MACD_TO_BUY_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(CP)* <=, hiện tại ({current}) *<=* cấu hình ({previous})'''
@@ -214,7 +214,7 @@ STOCK_CONFIG_RSI_REVERSED_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(CP)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 STOCK_CONFIG_STOCH_RSI_REVERSED_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  StochRSI *(CP)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
+        # **ĐK cần:**  Srsi *(CP)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 STOCK_CONFIG_MACD_REVERSED_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(CP)* ↘↗, D2: {old_previous}, D1: {previous}, D0: {current}'''
@@ -226,7 +226,7 @@ STOCK_CONFIG_RSI_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(CP)* tăng, mới: {current}, cũ: {previous}'''
 
 STOCK_CONFIG_STOCH_RSI_INCREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  StochRSI *(CP)* tăng, mới: {current}, cũ: {previous}'''
+        # **ĐK cần:**  Srsi *(CP)* tăng, mới: {current}, cũ: {previous}'''
 
 STOCK_CONFIG_MACD_INCREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(CP)* tăng, mới: {current}, cũ: {previous}'''
@@ -293,16 +293,16 @@ NOT_VALID_TIME_TO_SELL = '''
         # Chưa đến thời gian bắt đầu bán! ❌'''
 
 VNINDEX_CONFIG_MAX_VnIndex_SELL_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**:  VnIndex <=, VnIndex cấu hình ({previous}) *<=* VnIndex hiện tại ({current}) '''
+        # **ĐK đủ:**:  VnIndex <=, cấu hình ({previous}) *<=* hiện tại ({current}) '''
 
 VNINDEX_CONFIG_MIN_VnIndex_SELL_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**:  VnIndex >=, VnIndex cấu hình ({previous}) *>=* VnIndex hiện tại ({current}) '''
+        # **ĐK đủ:**:  VnIndex >=, cấu hình ({previous}) *>=* hiện tại ({current}) '''
 
 VNINDEX_CONFIG_RSI_TO_SELL_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(VNI)* >=, hiện tại ({current}) *>=* cấu hình ({previous})'''
 
 VNINDEX_CONFIG_STOCH_RSI_TO_SELL_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**  StochRSI *(VNI)* >=, hiện tại ({current}) *>=* cấu hình ({previous}) '''
+        # **ĐK đủ:**  Srsi *(VNI)* >=, hiện tại ({current}) *>=* cấu hình ({previous}) '''
 
 VNINDEX_CONFIG_MACD_TO_SELL_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(VNI)* >=, hiện tại ({current}) *>=* cấu hình ({previous}) '''
@@ -315,10 +315,10 @@ VNINDEX_CONFIG_RSI_DECREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(VNI)* giảm, mới: {current}, cũ: {previous}'''
 
 VNINDEX_CONFIG_STOCH_RSI_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**  StochRSI *(VNI)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
+        # **ĐK đủ:**  Srsi *(VNI)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 VNINDEX_CONFIG_STOCH_RSI_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**  StochRSI *(VNI)* giảm, mới: {current}, cũ: {previous}'''
+        # **ĐK đủ:**  Srsi *(VNI)* giảm, mới: {current}, cũ: {previous}'''
 
 VNINDEX_CONFIG_MACD_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(VNI)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
@@ -349,7 +349,7 @@ VNINDEX_CONFIG_RSI_TO_SELL_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(VNI)* >=, hiện tại ({current}) *>=* cấu hình ({previous})'''
 
 VNINDEX_CONFIG_STOCH_RSI_TO_SELL_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  StochRSI *(VNI)* >=, hiện tại ({current}) *>=* cấu hình ({previous}) '''
+        # **ĐK cần:**  Srsi *(VNI)* >=, hiện tại ({current}) *>=* cấu hình ({previous}) '''
 
 VNINDEX_CONFIG_MACD_TO_SELL_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(VNI)* >=, hiện tại ({current}) *>=* cấu hình ({previous}) '''
@@ -360,7 +360,7 @@ VNINDEX_CONFIG_RSI_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(VNI)* giảm, mới: {current}, cũ: {previous}'''
 
 VNINDEX_CONFIG_STOCH_RSI_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  StochRSI *(VNI)* giảm, mới: {current}, cũ: {previous}'''
+        # **ĐK cần:**  Srsi *(VNI)* giảm, mới: {current}, cũ: {previous}'''
 
 VNINDEX_CONFIG_MACD_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(VNI)* giảm, mới: {current}, cũ: {previous}'''
@@ -374,7 +374,7 @@ VNINDEX_CONFIG_RSI_REVERSED_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(VNI)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 VNINDEX_CONFIG_STOCH_RSI_REVERSED_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  StochRSI *(VNI)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
+        # **ĐK cần:**  Srsi *(VNI)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 VNINDEX_CONFIG_MACD_REVERSED_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(VNI)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
@@ -383,7 +383,7 @@ VNINDEX_CONFIG_HISTOGRAM_REVERSED_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  His*(VNI)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 VNINDEX_CONFIG_BOLINGER_TO_SELL_NECESSARY_CONDITION = '''              
-        # **ĐK cần:** Giá chạm cạnh dưới Bolinger *(VNI)*, Bolinger ({previous}) >= Giá cổ phiếu hiện tại ({current})'''
+        # **ĐK cần:** Chạm cạnh dưới Bolinger *(VNI)*, Bolinger ({previous}) >= Giá hiện tại ({current})'''
 
 
 # ================================================================================================================================================================
@@ -395,7 +395,7 @@ STOCK_CONFIG_RSI_TO_SELL_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(CP)* >=, hiện tại ({current}) *>=* cấu hình ({previous})'''
 
 STOCK_CONFIG_STOCH_RSI_TO_SELL_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**  StochRSI *(CP)* >=, hiện tại ({current}) *>=* cấu hình ({previous}) '''
+        # **ĐK đủ:**  Srsi *(CP)* >=, hiện tại ({current}) *>=* cấu hình ({previous}) '''
 
 STOCK_CONFIG_MACD_TO_SELL_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(CP)* >=, hiện tại ({current}) *>=* cấu hình ({previous}) '''
@@ -407,7 +407,7 @@ STOCK_CONFIG_RSI_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(CP)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 STOCK_CONFIG_STOCH_RSI_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**  StochRSI *(CP)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
+        # **ĐK đủ:**  Srsi *(CP)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 STOCK_CONFIG_MACD_REVERSED_DECREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(CP)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
@@ -420,7 +420,7 @@ STOCK_CONFIG_RSI_DECREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  RSI *(CP)* giảm, mới: {current}, cũ: {previous}'''
 
 STOCK_CONFIG_STOCH_RSI_DECREASE_SUFFICIENT_CONDITION = '''
-        # **ĐK đủ:**  StochRSI *(CP)* giảm, mới: {current}, cũ: {previous}'''
+        # **ĐK đủ:**  Srsi *(CP)* giảm, mới: {current}, cũ: {previous}'''
 
 STOCK_CONFIG_MACD_DECREASE_SUFFICIENT_CONDITION = '''
         # **ĐK đủ:**  MACD *(CP)* giảm, mới: {current}, cũ: {previous}'''
@@ -436,7 +436,7 @@ STOCK_CONFIG_RSI_TO_SELL_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(CP)* >=, hiện tại ({current}) *>=* cấu hình ({previous})'''
 
 STOCK_CONFIG_STOCH_RSI_TO_SELL_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  StochRSI *(CP)* >=, hiện tại ({current}) *>=* cấu hình ({previous}) '''
+        # **ĐK cần:**  Srsi *(CP)* >=, hiện tại ({current}) *>=* cấu hình ({previous}) '''
 
 STOCK_CONFIG_MACD_TO_SELL_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(CP)* >=, hiện tại ({current}) *>=* cấu hình ({previous}) '''
@@ -446,7 +446,7 @@ STOCK_CONFIG_RSI_REVERSED_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(CP)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 STOCK_CONFIG_STOCH_RSI_REVERSED_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  StochRSI *(CP)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
+        # **ĐK cần:**  Srsi *(CP)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
 
 STOCK_CONFIG_MACD_REVERSED_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(CP)* ↗↘, D2: {old_previous}, D1: {previous}, D0: {current}'''
@@ -459,7 +459,7 @@ STOCK_CONFIG_RSI_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  RSI *(CP)* giảm, mới: {current}, cũ: {previous}'''
 
 STOCK_CONFIG_STOCH_RSI_DECREASE_NECESSARY_CONDITION = '''
-        # **ĐK cần:**  StochRSI *(CP)* giảm, mới: {current}, cũ: {previous}'''
+        # **ĐK cần:**  Srsi *(CP)* giảm, mới: {current}, cũ: {previous}'''
 
 STOCK_CONFIG_MACD_DECREASE_NECESSARY_CONDITION = '''
         # **ĐK cần:**  MACD *(CP)* giảm, mới: {current}, cũ: {previous}'''
