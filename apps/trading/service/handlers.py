@@ -1032,11 +1032,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         ceil_price = res_stock_balance.get('stock_balance', {}).get('ceil_price', 0) if res_stock_balance else 0
         symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
         cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
-        cash_available = cash_balance['cash_available']
-        logger.info(f'check following_chart_type {symbol}: {following_chart_type}')
-        logger.info(f'check following_chart_type_second {symbol}: {following_chart_type_second}')
-        logger.info(f'check following_chart_type_sell {symbol}: {following_chart_type_sell}')
-        logger.info(f'check following_chart_type_sell_second {symbol}: {following_chart_type_sell_second}')
+        cash_available = cash_balance['cash_available']        
     #HANDLE BUY
         if not is_block_buy_stock:
             # Tải dữ liệu lần 1
