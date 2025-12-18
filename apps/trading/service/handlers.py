@@ -1079,9 +1079,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
             stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign          
             is_use_vnindex_following = following_config.is_use_vnindex_config
-            is_use_vnindex_trading = trading_config.is_use_vnindex_config
-            is_use_candle_following_second = following_config.is_use_candle_second
-            is_use_candle_trading_second = trading_config.is_use_candle_second
             logger.info(f'bắt đầu hàm should buy {symbol}')
             is_buy_following, is_buy, buy_reason = should_buy(
                         trading_config = trading_config,
@@ -1277,11 +1274,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                 if refreshed_trading_config:
                                     trading_config = refreshed_trading_config
                                     trading_candle = getattr(getattr(trading_config, "candle", None), "candle", "M5")
+                                    trading_candle_second = getattr(getattr(trading_config, "candle_second", None), "candle", "M5")
                                     trading_chart_type = getattr(CandleEnum, trading_candle, CandleEnum.M5)
+                                    trading_chart_type_second = getattr(CandleEnum, trading_candle_second, CandleEnum.M5)
                                 if refreshed_following_config:
                                     following_config = refreshed_following_config
                                     following_candle = getattr(getattr(following_config, "candle", None), "candle", "D1")
+                                    following_candle_second = getattr(getattr(following_config, "candle_second", None), "candle", "D1")
                                     following_chart_type = getattr(CandleEnum, following_candle, CandleEnum.D1)
+                                    following_chart_type_second = getattr(CandleEnum, following_candle_second, CandleEnum.D1)
                                 if refreshed_overview_config:
                                     overview_config = refreshed_overview_config
                                 if refreshed_stock:
@@ -1303,12 +1304,19 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn cổ phiếu tối đa', "B")
                             should_break_loop = True
                             break
-                        # --- Tải dữ liệu và kiểm tra điều kiện mua ---
+                        # --- Tải dữ liệu lần 1 ---
                         vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
                             stock=stock, 
                             vnindex_stock=vnindex_stock, 
                             trading_chart_type=trading_chart_type, 
                             following_chart_type=following_chart_type
+                        )
+                        # Tải dữ liệu lần 2
+                        vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                            stock=stock, 
+                            vnindex_stock=vnindex_stock, 
+                            trading_chart_type=trading_chart_type_second, 
+                            following_chart_type=following_chart_type_second
                         )
                         sales_data = download_sales_volume(symbol=symbol)
                         if sales_data is None or stock_data_following is None:
@@ -1329,13 +1337,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
                         stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign
                         stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
-
+                        stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign
                         is_use_vnindex_following = following_config.is_use_vnindex_config
-                        is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config') 
+                        is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config', stock_data_following_second) 
                         messages_to_cancel_update = render_message(reason_buy, trading_chart_value=trading_candle, following_chart_type=following_candle) 
                         messages_to_cancel_update_vnindex = ''                  
                         if is_use_vnindex_following:
-                            is_buy_vnindex, reason_buy_vnindex = should_buy_following(following_config, vnindex_data_following, 'vnindex_config')
+                            is_buy_vnindex, reason_buy_vnindex = should_buy_following(following_config, vnindex_data_following, 'vnindex_config', vnindex_data_following_second)
                             logger.info(f'⏱ Kiểm tra {interval_check}s - is_buy_vnindex {symbol}: {is_buy_vnindex}')
                             logger.info(f'⏱ Kiểm tra {interval_check}s - reason_buy_vnindex {symbol}: {reason_buy_vnindex}')
                             messages_to_cancel_update_vnindex = render_message(

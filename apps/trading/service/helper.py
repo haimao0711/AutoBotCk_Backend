@@ -726,19 +726,15 @@ def  should_buy(
         if is_use_candle_following_second and chart_following_second != 'OFF':
             # Nếu dùng candle second, cần cả following và following_second đều True
             following_result = following and following_second
-            following_reasons_result = following_reasons
         else:
             following_result = following
-            following_reasons_result = following_reasons
         
         # Xử lý trading dựa trên is_use_candle_trading_second
         if is_use_candle_trading_second and chart_trading_second != 'OFF':
             # Nếu dùng candle second, cần cả trading và trading_second đều True
             trading_result = trading and trading_second
-            trading_reasons_result = trading_reasons
         else:
             trading_result = trading
-            trading_reasons_result = trading_reasons
         
         # Xây dựng obj_retured['following'] dựa trên giá trị gốc following, không phải following_result
         if not following:
@@ -800,59 +796,64 @@ def  should_buy_following(
     data_following_df_second: pd.DataFrame = None
 
 ):
-    if not following_config.is_buy:
-        return False, {
-            'following': {
-                'failed': {
-                    'others': [('error_not_setup_buy_following_configuration', None, None, None)]
+    if is_valid_time_to_buy(following_config):
+        if not following_config.is_buy:
+            return False, {
+                'following': {
+                    'failed': {
+                        'others': [('error_not_setup_buy_following_configuration', None, None, None)]
+                    }
                 }
             }
-        }
 
-    obj_retured = {}
-    is_use_candle_following_second = following_config.is_use_candle_second   
-    # Tính toán kết quả cho following và following_second
-    following, following_reasons = should_buy_chart(
-        following_config, data_following_df, config_type)
-    following_second, following_reasons_second = None, None
-    
-    if is_use_candle_following_second and data_following_df_second is not None:
+        obj_retured = {}
+        is_use_candle_following_second = following_config.is_use_candle_second
+        # Kiểm tra None trước khi truy cập .candle để tránh lỗi 'NoneType' object has no attribute 'candle'
+        chart_following_second = getattr(getattr(following_config, "candle_second", None), "candle", "OFF")
+        # Tính toán kết quả cho following và following_second
+        following, following_reasons = should_buy_chart(
+            following_config, data_following_df, config_type)
         following_second, following_reasons_second = should_buy_chart(
             following_config, data_following_df_second, config_type)
-    
-    # Xử lý following dựa trên is_use_candle_following_second
-    if is_use_candle_following_second and data_following_df_second is not None:
-        # Nếu dùng candle second, cần cả following và following_second đều True
-        following_result = following and following_second
-        following_reasons_result = following_reasons
-    else:
-        following_result = following
-        following_reasons_result = following_reasons
-    
-    # Xây dựng obj_retured dựa trên kết quả đã chọn
-    if not following_result:
-        obj_retured['following'] = {
-            'failed': following_reasons_result
-        }
-    else:
-        obj_retured['following'] = {
-            'success': following_reasons_result
-        }
-    
-    # Thêm following_second vào obj_retured nếu có sử dụng candle second
-    if is_use_candle_following_second and data_following_df_second is not None:
-        if not following_second:
-            obj_retured['following_second'] = {
-                'failed': following_reasons_second
+        
+        # Xử lý following dựa trên is_use_candle_following_second
+        if is_use_candle_following_second and chart_following_second != 'OFF':
+            # Nếu dùng candle second, cần cả following và following_second đều True
+            following_result = following and following_second
+        else:
+            following_result = following
+        
+        # Xây dựng obj_retured['following'] dựa trên giá trị gốc following, không phải following_result
+        if not following:
+            obj_retured['following'] = {
+                'failed': following_reasons
             }
         else:
-            obj_retured['following_second'] = {
-                'success': following_reasons_second
+            obj_retured['following'] = {
+                'success': following_reasons
             }
+        
+        # Thêm following_second vào obj_retured nếu có sử dụng candle second
+        if is_use_candle_following_second:
+            if not following_second:
+                obj_retured['following_second'] = {
+                    'failed': following_reasons_second
+                }
+            else:
+                obj_retured['following_second'] = {
+                    'success': following_reasons_second
+                }
 
-    return following_result , obj_retured
-
-
+        return following_result , obj_retured
+    else:
+        return False, False, {
+            'special_buy': {
+                'failed':
+                    {
+                        'others': [('not_valid_time_to_buy', None, None, None)]
+                    }
+            }
+        }
 
 def  should_buy_trading(
     trading_config: Configuration,
@@ -963,42 +964,42 @@ def  should_sell_trading(
     config_type: str
 
     ):   
-    # if is_valid_time_to_sell(trading_config):
-    if not trading_config.is_sell:
-        return False, {
-            'trading': {
-                'failed': {
-                    'others': [('error_not_setup_sell_following_configuration', None, None, None)]
+    if is_valid_time_to_sell(trading_config):
+        if not trading_config.is_sell:
+            return False, {
+                'trading': {
+                    'failed': {
+                        'others': [('error_not_setup_sell_following_configuration', None, None, None)]
+                    }
                 }
             }
-        }
 
-    obj_retured = {}
-    
-    trading, trading_reasons = should_sell_chart(
-        trading_config, data_trading_df, config_type)
+        obj_retured = {}
+        
+        trading, trading_reasons = should_sell_chart(
+            trading_config, data_trading_df, config_type)
 
 
-    if not trading:
-        obj_retured['trading'] = {
-            'failed': trading_reasons
-        }
+        if not trading:
+            obj_retured['trading'] = {
+                'failed': trading_reasons
+            }
+        else:
+            obj_retured['trading'] = {
+                'success': trading_reasons
+            }
+
+        return trading , obj_retured
+
     else:
-        obj_retured['trading'] = {
-            'success': trading_reasons
+        return False, {
+            'special_sell': {
+                'failed':
+                    {
+                        'others': [('not_valid_time_to_sell', None, None, None)]
+                    }
+            }
         }
-
-    return trading , obj_retured
-
-    # else:
-    #     return False, {
-    #         'special_sell': {
-    #             'failed':
-    #                 {
-    #                     'others': [('not_valid_time_to_sell', None, None, None)]
-    #                 }
-    #         }
-    #     }
 
 def should_sell_stop_loss(
     config: Configuration,    
