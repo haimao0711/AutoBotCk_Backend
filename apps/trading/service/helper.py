@@ -903,7 +903,9 @@ def should_sell(
     trading_config: Configuration,
     following_config: Configuration,
     data_trading_df: pd.DataFrame,
+    data_trading_df_second: pd.DataFrame,
     data_following_df: pd.DataFrame,
+    data_following_df_second: pd.DataFrame,
     config_type: str
 ):     
     if is_valid_time_to_sell(following_config):
@@ -924,11 +926,39 @@ def should_sell(
                 }
             }
         obj_retured = {}
+        is_use_candle_following_second = following_config.is_use_candle_second
+        # Kiểm tra None trước khi truy cập .candle để tránh lỗi 'NoneType' object has no attribute 'candle'
+        chart_following_second = getattr(getattr(following_config, "candle_second", None), "candle", "OFF")
+        is_use_candle_trading_second = trading_config.is_use_candle_second
+        chart_trading_second = getattr(getattr(trading_config, "candle_second", None), "candle", "OFF")
+        
+        # Tính toán kết quả cho following và following_second
         following, following_reasons = should_sell_chart(
-        following_config, data_following_df, config_type)
+            following_config, data_following_df, config_type)
+        following_second, following_reasons_second = should_sell_chart(
+            following_config, data_following_df_second, config_type)
+
+        # Tính toán kết quả cho trading và trading_second
         trading, trading_reasons = should_sell_chart(
-            trading_config, data_trading_df, config_type
-        )
+            trading_config, data_trading_df, config_type)
+        trading_second, trading_reasons_second = should_sell_chart(
+            trading_config, data_trading_df_second, config_type)
+        
+        # Xử lý following dựa trên is_use_candle_following_second
+        if is_use_candle_following_second and chart_following_second != 'OFF':
+            # Nếu dùng candle second, cần cả following và following_second đều True
+            following_result = following and following_second
+        else:
+            following_result = following
+        
+        # Xử lý trading dựa trên is_use_candle_trading_second
+        if is_use_candle_trading_second and chart_trading_second != 'OFF':
+            # Nếu dùng candle second, cần cả trading và trading_second đều True
+            trading_result = trading and trading_second
+        else:
+            trading_result = trading
+        
+        # Xây dựng obj_retured['following'] dựa trên giá trị gốc following, không phải following_result
         if not following:
             obj_retured['following'] = {
                 'failed': following_reasons
@@ -937,16 +967,40 @@ def should_sell(
             obj_retured['following'] = {
                 'success': following_reasons
             }
-            if not trading:
-                obj_retured['trading'] = {
-                    'failed': trading_reasons
+        
+        # Thêm following_second vào obj_retured nếu có sử dụng candle second
+        if is_use_candle_following_second:
+            if not following_second:
+                obj_retured['following_second'] = {
+                    'failed': following_reasons_second
                 }
             else:
-                obj_retured['trading'] = {
-                    'success': trading_reasons
+                obj_retured['following_second'] = {
+                    'success': following_reasons_second
+                }
+        
+        # Xây dựng obj_retured['trading'] dựa trên giá trị gốc trading, không phải trading_result
+        if not trading:
+            obj_retured['trading'] = {
+                'failed': trading_reasons
+            }
+        else:
+            obj_retured['trading'] = {
+                'success': trading_reasons
+            }
+        
+        # Thêm trading_second vào obj_retured nếu có sử dụng candle second
+        if is_use_candle_trading_second:
+            if not trading_second:
+                obj_retured['trading_second'] = {
+                    'failed': trading_reasons_second
+                }
+            else:
+                obj_retured['trading_second'] = {
+                    'success': trading_reasons_second
                 }
 
-        return following, following and trading, obj_retured
+        return following_result, following_result and trading_result, obj_retured
 
     else:
         return False, False, {

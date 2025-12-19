@@ -1461,6 +1461,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 trading_chart_type=trading_chart_type_sell, 
                 following_chart_type=following_chart_type_sell,
             )
+            # Tải dữ liệu lần 2
+            vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                stock=stock, 
+                vnindex_stock=vnindex_stock, 
+                trading_chart_type=trading_chart_type_sell_second, 
+                following_chart_type=following_chart_type_sell_second
+            )
             if stock_data_trading is None:
                 logger.info('Download data không thành công, bỏ qua!')
                 message_download_sell = f'Download data symbol {symbol } to sell không thành công. Bỏ qua lượt trade này!'
@@ -1554,9 +1561,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 is_sell_following, is_sell, sell_reason = should_sell(
                     trading_config=trading_config,
                     following_config=following_config,
-                    data_following_df = stock_data_following,
-                    data_trading_df = stock_data_trading,            
-                    config_type = 'stock_config'
+                    data_trading_df=stock_data_trading,
+                    data_trading_df_second=stock_data_trading_second,
+                    data_following_df=stock_data_following,
+                    data_following_df_second=stock_data_following_second,
+                    config_type='stock_config'
                 )
                 # logger.info(f'check is_sell {symbol}', is_sell) 
                 logger.info(f'check sell_reason {symbol}: {sell_reason}')
