@@ -927,11 +927,14 @@ def should_sell(
             }
         obj_retured = {}
         is_use_candle_following_second = following_config.is_use_candle_second
+        logger.info(f'check is_use_candle_following_second: {is_use_candle_following_second}')
         # Kiểm tra None trước khi truy cập .candle để tránh lỗi 'NoneType' object has no attribute 'candle'
         chart_following_second = getattr(getattr(following_config, "candle_second", None), "candle", "OFF")
+        logger.info(f'check chart_following_second: {chart_following_second}')
         is_use_candle_trading_second = trading_config.is_use_candle_second
+        logger.info(f'check is_use_candle_trading_second: {is_use_candle_trading_second}')
         chart_trading_second = getattr(getattr(trading_config, "candle_second", None), "candle", "OFF")
-        
+        logger.info(f'check chart_trading_second: {chart_trading_second}')
         # Tính toán kết quả cho following và following_second
         following, following_reasons = should_sell_chart(
             following_config, data_following_df, config_type)

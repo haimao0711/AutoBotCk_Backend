@@ -1468,6 +1468,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 trading_chart_type=trading_chart_type_sell_second, 
                 following_chart_type=following_chart_type_sell_second
             )
+            logger.info(f'check following_chart_type_sell_second {symbol}: {following_chart_type_sell_second}')
+            logger.info(f'check trading_chart_type_sell_second {symbol}: {trading_chart_type_sell_second}')
             if stock_data_trading is None:
                 logger.info('Download data không thành công, bỏ qua!')
                 message_download_sell = f'Download data symbol {symbol } to sell không thành công. Bỏ qua lượt trade này!'
@@ -1504,10 +1506,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 take_profit_type = 'Bán một phần khi chạm bollinger trên'
             if use_rsi_decrease_to_take_profit and current_rsi_following < previous_rsi_following:
                 # Chốt lãi khi giá rsi giảm
-                logger.info(f'Chốt lãi khi giá rsi giảm {symbol}')
-                logger.info(f'check current_rsi_following {symbol}: {current_rsi_following}')
-                logger.info(f'check previous_rsi_following {symbol}: {previous_rsi_following}')
-                logger.info(f'check percent_rsi_decrease_to_take_profit {symbol}: {percent_rsi_decrease_to_take_profit}')
+                logger.info(f'Chốt lãi khi giá rsi giảm {symbol}')                
                 is_take_profit, percent_take_profit = True, percent_rsi_decrease_to_take_profit
                 messages_take_profit=f'Bắt đầu chạy chart hành động chốt lãi lần 1 {symbol} vì RSI(chart theo dõi) giảm, RSI D1: {previous_rsi_following} > RSI D0: {current_rsi_following}'
                 take_profit_type = 'Bán một phần khi RSI giảm'
