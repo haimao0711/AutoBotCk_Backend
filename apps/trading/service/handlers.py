@@ -1576,10 +1576,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 status_sell = SignalTelegramEnum.SELL_SUCCESS
             else:
                 status_sell = SignalTelegramEnum.SELL_FAILED
-            #Tiến hành các bước kế tiếp
-            logger.info(f'check sell_reason {symbol}: {sell_reason}')
+            #Tiến hành các bước kế tiếp            
             messages_to_sell = render_message(
-                sell_reason, trading_chart_value=trading_candle_sell, following_chart_type=following_candle_sell)
+                sell_reason, trading_chart_value=trading_candle_sell, following_chart_type=following_candle_sell, trading_chart_value_second=trading_candle_sell_second, following_chart_type_second=following_candle_sell_second)
             price_to_start = (
                 stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
             price_current = stock_data_trading.iloc[-1]['close']
@@ -1600,7 +1599,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 "take_profit_type": take_profit_type,
                 "message": messages_to_sell
             }           
-                
+            send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)    
             is_send_order_sell = False   
 
             if status_sell in [SignalTelegramEnum.SELL_SUCCESS, SignalTelegramEnum.TAKEPROFIT]:
