@@ -1100,7 +1100,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 )
                 messages_to_buy_vnindex = render_message(
                 buy_reason_vnindex, trading_chart_value=trading_candle, following_chart_type=following_candle, following_chart_type_second=following_candle_second)
-                logger.info(f'check buy_reason_vnindex {symbol}: {buy_reason_vnindex}') 
+                # logger.info(f'check buy_reason_vnindex {symbol}: {buy_reason_vnindex}') 
                 if not is_buy_vnindex:
                     is_buy = is_buy_vnindex  
 
@@ -1639,7 +1639,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                     **sell_order_overrall_attrs })
                 
                 if volume >= 100:
-                # Xử lý bán nhạy cảm 
+                    # Xử lý bán nhạy cảm 
                     if trading_config.stock_config_is_mode_sensitive_sell:
                         sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
                         volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
@@ -1664,7 +1664,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             number_order -= 1
                         else:
                             logger.info(f"Error: lệnh bán nhạy cảm handle_sell_service  của {symbol} phản hồi là rỗng") 
-                # Chia đều phần còn lại của volume to sell
+                    # Chia đều phần còn lại của volume to sell
                     if volume >= 100:
                         number_order = min(number_order, volume // 100)
                         for i in range(int(number_order)):
@@ -1691,7 +1691,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                                         **sell_order_details_attrs })
                             else:
                                 logger.info(f"Error: lệnh bán lần thứ {i+1} hàm handle_sell_service  của {symbol} có phản hồi là rỗng") 
-                # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
+                    # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
                     if is_send_order_sell:
                         if status_sell == SignalTelegramEnum.TAKEPROFIT: 
                             send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_take_profit) 

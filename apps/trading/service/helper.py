@@ -846,7 +846,7 @@ def  should_buy_following(
 
         return following_result , obj_retured
     else:
-        return False, False, {
+        return False, {
             'special_buy': {
                 'failed':
                     {
