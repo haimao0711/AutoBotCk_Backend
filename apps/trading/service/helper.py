@@ -747,7 +747,7 @@ def  should_buy(
             }
         
         # Thêm following_second vào obj_retured nếu có sử dụng candle second
-        if is_use_candle_following_second:
+        if is_use_candle_following_second and chart_following_second != 'OFF':
             if not following_second:
                 obj_retured['following_second'] = {
                     'failed': following_reasons_second
@@ -768,7 +768,7 @@ def  should_buy(
             }
         
         # Thêm trading_second vào obj_retured nếu có sử dụng candle second
-        if is_use_candle_trading_second:
+        if is_use_candle_trading_second and chart_trading_second != 'OFF':
             if not trading_second:
                 obj_retured['trading_second'] = {
                     'failed': trading_reasons_second
@@ -969,7 +969,7 @@ def should_sell(
             }
         
         # Thêm following_second vào obj_retured nếu có sử dụng candle second
-        if is_use_candle_following_second:
+        if is_use_candle_following_second and chart_following_second != 'OFF':
             if not following_second:
                 obj_retured['following_second'] = {
                     'failed': following_reasons_second
@@ -990,7 +990,7 @@ def should_sell(
             }
         
         # Thêm trading_second vào obj_retured nếu có sử dụng candle second
-        if is_use_candle_trading_second:
+        if is_use_candle_trading_second and chart_trading_second != 'OFF':
             if not trading_second:
                 obj_retured['trading_second'] = {
                     'failed': trading_reasons_second
