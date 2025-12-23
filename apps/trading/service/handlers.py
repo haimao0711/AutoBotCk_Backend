@@ -361,9 +361,13 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     
     # Lấy dữ liệu đã chuẩn bị  
     trading_candle = prepared["trading_candle"]
+    trading_candle_second = prepared["trading_candle_second"]
     following_candle = prepared["following_candle"]
+    following_candle_second = prepared["following_candle_second"]
     trading_chart_type = prepared["trading_chart_type"]
+    trading_chart_type_second = prepared["trading_chart_type_second"]
     following_chart_type = prepared["following_chart_type"]
+    following_chart_type_second = prepared["following_chart_type_second"]
     trading_config = prepared["trading_config"]       
     overview_config = prepared["overview_config"]
     stock = prepared["stock"]
@@ -403,14 +407,21 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         if last_buy_check_time is None or (now - last_buy_check_time).total_seconds() >= 60:
             last_buy_check_time = now
 
-            # === XỬ LÝ MUA ===
-            _, _, stock_data_trading, _ = download_data(
+            # === XỬ LÝ MUA ===     
+            # Tải dữ liệu lần 1       
+            vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
                 stock=stock,
                 vnindex_stock=vnindex_stock,
                 trading_chart_type=trading_chart_type,
                 following_chart_type=following_chart_type
             )
-
+            # Tải dữ liệu lần 2
+            vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                stock=stock, 
+                vnindex_stock=vnindex_stock, 
+                trading_chart_type=trading_chart_type_second, 
+                following_chart_type=following_chart_type_second
+            )
             if stock_data_trading is None:
                 logger.info('Download data không thành công, bỏ qua!')
                 message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu mua tay. Vui lòng thử lại sau ít phút'
@@ -425,14 +436,15 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             is_buy, buy_reason = should_buy_trading(
                 trading_config=trading_config,
                 data_trading_df=stock_data_trading,
-                config_type='stock_config'
+                config_type='stock_config',
+                data_trading_df_second=stock_data_trading_second
             )
 
             if is_buy:
                 status_buy = SignalTelegramEnum.BUY_REQUEST_SUCCESS
 
             messages_to_buy = render_message(
-                buy_reason, trading_chart_value=trading_candle, following_chart_type=following_candle
+                buy_reason, trading_chart_value=trading_candle, trading_chart_value_second=trading_candle_second, following_chart_type=following_candle, following_chart_type_second=following_candle_second
             )
             time_now = datetime.now(timezone)
             start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
@@ -463,7 +475,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
         # Nếu price_to_start chưa được khởi tạo, download data một lần nữa để lấy giá
         if price_to_start is None:
-            try:
+            try:                
                 _, _, stock_data_trading_temp, _ = download_data(
                     stock=stock,
                     vnindex_stock=vnindex_stock,
@@ -557,7 +569,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
                 buy_order_attrs_send = {
                     'stock': symbol,
-                    'price': round(float(high_last_row - add_price_buy), 2), # Giá mua tạm thời giảm so với yêu cầu thuật toán, cần sửa lại
+                    # 'price': round(float(high_last_row - add_price_buy), 2), # Giá mua tạm thời giảm so với yêu cầu thuật toán, cần sửa lại
+                    'price': round(price_current, 2),
                     'volume': int(volume_buy_sensitive)
                 }
                 res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
@@ -690,9 +703,13 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     
     # Lấy dữ liệu đã chuẩn bị  
     trading_candle_sell = prepared["trading_candle_sell"]
+    trading_candle_sell_second = prepared["trading_candle_sell_second"]
     following_candle_sell = prepared["following_candle_sell"]
+    following_candle_sell_second = prepared["following_candle_sell_second"]
     trading_chart_type_sell = prepared["trading_chart_type_sell"]
+    trading_chart_type_sell_second = prepared["trading_chart_type_sell_second"]
     following_chart_type_sell = prepared["following_chart_type_sell"]
+    following_chart_type_sell_second = prepared["following_chart_type_sell_second"]
     trading_config = prepared["trading_config"]
     following_config = prepared["following_config"]        
     overview_config = prepared["overview_config"]
@@ -731,13 +748,20 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         if last_buy_check_time is None or (now - last_buy_check_time).total_seconds() >= 60:
             last_buy_check_time = now
 
-            # === XỬ LÝ MUA ===
-            # Tải dữ liệu
+            # === XỬ LÝ BÁN ===
+            # Tải dữ liệu lần 1
             vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
                 stock=stock, 
                 vnindex_stock=vnindex_stock, 
                 trading_chart_type=trading_chart_type_sell, 
                 following_chart_type=following_chart_type_sell,
+            )
+            # Tải dữ liệu lần 2
+            vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                stock=stock, 
+                vnindex_stock=vnindex_stock, 
+                trading_chart_type=trading_chart_type_sell_second, 
+                following_chart_type=following_chart_type_sell_second
             )
             if stock_data_trading is None:
                 logger.info('Download data không thành công, bỏ qua!')
@@ -752,13 +776,14 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             
             is_sell, sell_reason = should_sell_trading(
                 trading_config=trading_config,
-                data_trading_df=stock_data_trading,            
-                config_type='stock_config'
+                data_trading_df=stock_data_trading,
+                config_type='stock_config',
+                data_trading_df_second=stock_data_trading_second
             )
             if is_sell:
                 status_sell = SignalTelegramEnum.SELL_REQUEST_SUCCESS
             messages_to_sell = render_message(
-                sell_reason, trading_chart_value=trading_candle_sell, following_chart_type=following_candle_sell
+                sell_reason, trading_chart_value=trading_candle_sell, trading_chart_value_second=trading_candle_sell_second, following_chart_type=following_candle_sell, following_chart_type_second=following_candle_sell_second
             )
 
             sell_attrs = {
@@ -869,7 +894,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100
                 sell_order_attrs_send = {
                     'stock': symbol,
-                    'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
+                    # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
+                    'price': round(price_current, 2),
                     'volume': int(volume_sell_sensitive)
                 }
                 res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
@@ -1187,7 +1213,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
                     buy_order_attrs_send = {
                         'stock': symbol,
-                        'price': round(float(high_last_row - add_price_buy), 2) if round(float(high_last_row - add_price_buy), 2) > floor_price else round(floor_price, 2),
+                        # 'price': round(float(high_last_row - add_price_buy), 2) if round(float(high_last_row - add_price_buy), 2) > floor_price else round(floor_price, 2),
+                        'price': round(price_current, 2),
                         'volume': int(volume_buy_sensitive)
                     }
                     res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
@@ -1566,8 +1593,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     data_following_df_second=stock_data_following_second,
                     config_type='stock_config'
                 )
-                # logger.info(f'check is_sell {symbol}', is_sell) 
-                logger.info(f'check sell_reason {symbol}: {sell_reason}')
+                if is_sell_following:
+                    logger.info(f'check sell_reason {symbol}: {sell_reason}')
 
             if is_trading_take_profit:
                 status_sell = SignalTelegramEnum.TAKEPROFIT
@@ -1653,7 +1680,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100
                         sell_order_attrs_send = {
                             'stock': symbol,
-                            'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
+                            # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
+                            'price': round(price_current, 2), 
                             'volume': int(volume_sell_sensitive)
                         }
                         res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
