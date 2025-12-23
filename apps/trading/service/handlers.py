@@ -433,6 +433,39 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             price_to_start = (
                 stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close']) / 2
 
+            # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
+            try:
+                configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
+                    user=user, 
+                    stock_symbol=symbol
+                )
+                if configuration:
+                    refreshed_trading_config = configuration.get("trading_config")
+                    refreshed_following_config = configuration.get("following_config")
+                    refreshed_overview_config = configuration.get("overview_config")
+                    refreshed_stock = configuration.get("stock")
+                    
+                    # Cập nhật các biến config nếu lấy được
+                    if refreshed_trading_config:
+                        trading_config = refreshed_trading_config
+                        trading_candle = getattr(getattr(trading_config, "candle", None), "candle", "M5")
+                        trading_candle_second = getattr(getattr(trading_config, "candle_second", None), "candle", "M5")
+                        trading_chart_type = getattr(CandleEnum, trading_candle, CandleEnum.M5)
+                        trading_chart_type_second = getattr(CandleEnum, trading_candle_second, CandleEnum.M5)
+                    if refreshed_following_config:
+                        following_config = refreshed_following_config
+                        following_candle = getattr(getattr(following_config, "candle", None), "candle", "D1")
+                        following_candle_second = getattr(getattr(following_config, "candle_second", None), "candle", "D1")
+                        following_chart_type = getattr(CandleEnum, following_candle, CandleEnum.D1)
+                        following_chart_type_second = getattr(CandleEnum, following_candle_second, CandleEnum.D1)
+                    if refreshed_overview_config:
+                        overview_config = refreshed_overview_config
+                    if refreshed_stock:
+                        stock = refreshed_stock
+            except Exception as e:
+                logger.info(f'Lỗi khi lấy lại cấu hình cho {symbol}: {e}')
+                # Tiếp tục dùng config cũ nếu lỗi
+
             is_buy, buy_reason = should_buy_trading(
                 trading_config=trading_config,
                 data_trading_df=stock_data_trading,
@@ -773,6 +806,39 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             logger.info('Download data thành công!')
             price_to_start = (
                 stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
+            
+            # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
+            try:
+                configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
+                    user=user, 
+                    stock_symbol=symbol
+                )
+                if configuration:
+                    refreshed_trading_config = configuration.get("trading_config")
+                    refreshed_following_config = configuration.get("following_config")
+                    refreshed_overview_config = configuration.get("overview_config")
+                    refreshed_stock = configuration.get("stock")
+                    
+                    # Cập nhật các biến config nếu lấy được
+                    if refreshed_trading_config:
+                        trading_config = refreshed_trading_config
+                        trading_candle_sell = getattr(getattr(trading_config, "candle_sell", None), "candle_sell", "M5")
+                        trading_candle_sell_second = getattr(getattr(trading_config, "candle_sell_second", None), "candle_sell", "M5")
+                        trading_chart_type_sell = getattr(CandleEnum, trading_candle_sell, CandleEnum.M5)
+                        trading_chart_type_sell_second = getattr(CandleEnum, trading_candle_sell_second, CandleEnum.M5)
+                    if refreshed_following_config:
+                        following_config = refreshed_following_config
+                        following_candle_sell = getattr(getattr(following_config, "candle_sell", None), "candle_sell", "D1")
+                        following_candle_sell_second = getattr(getattr(following_config, "candle_sell_second", None), "candle_sell", "D1")
+                        following_chart_type_sell = getattr(CandleEnum, following_candle_sell, CandleEnum.D1)
+                        following_chart_type_sell_second = getattr(CandleEnum, following_candle_sell_second, CandleEnum.D1)
+                    if refreshed_overview_config:
+                        overview_config = refreshed_overview_config
+                    if refreshed_stock:
+                        stock = refreshed_stock
+            except Exception as e:
+                logger.info(f'Lỗi khi lấy lại cấu hình cho {symbol}: {e}')
+                # Tiếp tục dùng config cũ nếu lỗi
             
             is_sell, sell_reason = should_sell_trading(
                 trading_config=trading_config,
