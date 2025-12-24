@@ -1563,7 +1563,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             )
             logger.info(f'check following_chart_type_sell_second {symbol}: {following_chart_type_sell_second}')
             logger.info(f'check trading_chart_type_sell_second {symbol}: {trading_chart_type_sell_second}')
-            if stock_data_trading is None:
+            if stock_data_trading is None or stock_data_trading_second is None:
                 logger.info('Download data không thành công, bỏ qua!')
                 message_download_sell = f'Download data symbol {symbol } to sell không thành công. Bỏ qua lượt trade này!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_download_sell)                 
@@ -1623,7 +1623,14 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         trading_chart_type=trading_chart_type_sell, 
                         following_chart_type=following_chart_type_sell,
                     )
-                    if stock_data_trading is None:
+                    # Tải dữ liệu lần 2
+                    vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                        stock=stock, 
+                        vnindex_stock=vnindex_stock, 
+                        trading_chart_type=trading_chart_type_sell_second, 
+                        following_chart_type=following_chart_type_sell_second
+                    )
+                    if stock_data_trading is None or stock_data_trading_second is None:
                         logger.info('Download data không thành công, bỏ qua!')
                         message_download = f'Không tải được dữ liệu mã {symbol}, hủy bán chốt lời lượt chạy này!'
                         send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
@@ -1633,7 +1640,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     is_sell, sell_reason = should_sell_trading(
                         trading_config=trading_config,
                         data_trading_df=stock_data_trading,            
-                        config_type='stock_config'
+                        config_type='stock_config',
+                        data_trading_df_second=stock_data_trading_second
                     )
                     if is_sell:
                         is_trading_take_profit = True            
@@ -1641,7 +1649,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     else:
                         status_sell = SignalTelegramEnum.TAKE_PROFIT_FAILED
                         messages_to_sell = render_message(
-                            sell_reason, trading_chart_value=trading_candle_sell, following_chart_type=following_candle_sell
+                            sell_reason, trading_chart_value=trading_candle_sell, trading_chart_value_second=trading_candle_sell_second, following_chart_type=following_candle_sell, following_chart_type_second=following_candle_sell_second
                         )
                         take_profit_attrs = {
                             "user_account": account,
