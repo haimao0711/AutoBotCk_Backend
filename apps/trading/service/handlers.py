@@ -1607,6 +1607,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             volume_take_profit = ((volume_take_profit + 99) // 100) * 100     
             is_trading_take_profit = False
             is_sell, sell_reason = False, ''
+            is_sell_following = False  
             if is_take_profit:
                 ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
                 send_message_telegram(user, MessageTypeEnum.OVERALL, messages_take_profit)
@@ -1690,8 +1691,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 "price": price_to_start,                
                 "take_profit_type": take_profit_type,
                 "message": messages_to_sell
-            }           
-            send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)    
+            }
+            if is_sell_following:           
+               send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)    
             is_send_order_sell = False   
 
             if status_sell in [SignalTelegramEnum.SELL_SUCCESS, SignalTelegramEnum.TAKEPROFIT]:

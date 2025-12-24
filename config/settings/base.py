@@ -336,6 +336,10 @@ CELERY_BROKER_TRANSPORT_OPTIONS = {
     # Handle Redis state changes (master/replica) gracefully
     'retry_on_timeout': True,
     'max_connections': 10,
+    # Fix ReadOnlyError: Disable restoring unacked messages on startup
+    # This prevents Celery from trying to write to Redis during initialization
+    'unacked_restore_limit': 0,  # 0 = don't restore any unacked messages
+    'unacked_mutex_expire': 0,  # Disable mutex completely
 }
 
 # Task Settings
