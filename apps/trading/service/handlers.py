@@ -603,7 +603,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 buy_order_attrs_send = {
                     'stock': symbol,
                     # 'price': round(float(high_last_row - add_price_buy), 2), # Giá mua tạm thời giảm so với yêu cầu thuật toán, cần sửa lại
-                    'price': round(price_current, 2),
+                    'price': round(start_price, 2),
                     'volume': int(volume_buy_sensitive)
                 }
                 res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
@@ -961,7 +961,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 sell_order_attrs_send = {
                     'stock': symbol,
                     # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
-                    'price': round(price_current, 2),
+                    'price': round(start_price, 2),
                     'volume': int(volume_sell_sensitive)
                 }
                 res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
@@ -1280,7 +1280,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     buy_order_attrs_send = {
                         'stock': symbol,
                         # 'price': round(float(high_last_row - add_price_buy), 2) if round(float(high_last_row - add_price_buy), 2) > floor_price else round(floor_price, 2),
-                        'price': round(price_current, 2),
+                        'price': round(start_price, 2),
                         'volume': int(volume_buy_sensitive)
                     }
                     res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
@@ -1757,7 +1757,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         sell_order_attrs_send = {
                             'stock': symbol,
                             # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
-                            'price': round(price_current, 2), 
+                            'price': round(start_price, 2), 
                             'volume': int(volume_sell_sensitive)
                         }
                         res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)

@@ -292,14 +292,35 @@ class DownloadService:
                 try:
                     data = res.content
                     decoded_data = data.decode('utf-8')
+                    
+                    # Kiểm tra response rỗng
                     if not decoded_data.strip():
                         print(f"Empty response for {stock.symbol}")
                         continue
+                    
+                    # Kiểm tra response có phải JSON hợp lệ không (basic check)
+                    stripped_data = decoded_data.strip()
+                    if not (stripped_data.startswith('{') or stripped_data.startswith('[')):
+                        print(f"Response không phải JSON format cho {stock.symbol}. Response preview: {decoded_data[:200]}")
+                        continue
+                    
+                    # Parse JSON
                     json_data = json.loads(decoded_data)
+                    
+                    # Kiểm tra key 's' có tồn tại không
+                    if 's' not in json_data:
+                        print(f"Response thiếu key 's' cho {stock.symbol}")
+                        continue
+                    
                     json_data.pop('s')
 
                     key_mapping = {'t': 'time', 'c': 'close',
                                    'o': 'open', 'l': 'low', 'h': 'high', 'v': 'volume'}
+
+                    # Kiểm tra key 't' có tồn tại và là list không
+                    if 't' not in json_data or not isinstance(json_data['t'], list):
+                        print(f"Response không có key 't' hoặc 't' không phải list cho {stock.symbol}")
+                        continue
 
                     renamed_data = [{key_mapping.get(key, key): value[i] for key, value in json_data.items(
                     )} for i in range(len(json_data['t']))]
@@ -309,8 +330,15 @@ class DownloadService:
 
                     data_download = data_download + renamed_data
 
-                except ValueError as e:
-                    print(f"Error down d1,m5,... khi status là 200: {e}")
+                except json.JSONDecodeError as e:
+                    print(f"Error parse JSON cho {stock.symbol} khi status là 200: {e}")
+                    print(f"Response preview (200 chars): {decoded_data[:200]}")
+                    continue
+                except KeyError as e:
+                    print(f"Error thiếu key trong JSON cho {stock.symbol}: {e}")
+                    continue
+                except (ValueError, TypeError) as e:
+                    print(f"Error xử lý dữ liệu cho {stock.symbol} khi status là 200: {e}")
                     continue
 
             else:
@@ -381,11 +409,43 @@ class DownloadService:
                         try:
                             data = res.content
                             decoded_data = data.decode('utf-8')
+                            
+                            # Kiểm tra response rỗng
+                            if not decoded_data.strip():
+                                if attempt < max_retries - 1:
+                                    time.sleep(1)
+                                    continue
+                                return pd.DataFrame()
+                            
+                            # Kiểm tra response có phải JSON hợp lệ không (basic check)
+                            stripped_data = decoded_data.strip()
+                            if not (stripped_data.startswith('{') or stripped_data.startswith('[')):
+                                if attempt < max_retries - 1:
+                                    time.sleep(1)
+                                    continue
+                                return pd.DataFrame()
+                            
+                            # Parse JSON
                             json_data = json.loads(decoded_data)
+                            
+                            # Kiểm tra key 's' có tồn tại không
+                            if 's' not in json_data:
+                                if attempt < max_retries - 1:
+                                    time.sleep(1)
+                                    continue
+                                return pd.DataFrame()
+                            
                             json_data.pop('s')
 
                             key_mapping = {'t': 'time', 'c': 'close',
                                         'o': 'open', 'l': 'low', 'h': 'high', 'v': 'volume'}
+
+                            # Kiểm tra key 't' có tồn tại và là list không
+                            if 't' not in json_data or not isinstance(json_data['t'], list):
+                                if attempt < max_retries - 1:
+                                    time.sleep(1)
+                                    continue
+                                return pd.DataFrame()
 
                             renamed_data = [{key_mapping.get(key, key): value[i] for key, value in json_data.items(
                             )} for i in range(len(json_data['t']))]
@@ -395,7 +455,17 @@ class DownloadService:
 
                             return pd.DataFrame(renamed_data)
 
-                        except ValueError as e:
+                        except json.JSONDecodeError as e:
+                            if attempt < max_retries - 1:
+                                time.sleep(1)
+                                continue
+                            return pd.DataFrame()
+                        except KeyError as e:
+                            if attempt < max_retries - 1:
+                                time.sleep(1)
+                                continue
+                            return pd.DataFrame()
+                        except (ValueError, TypeError) as e:
                             if attempt < max_retries - 1:
                                 time.sleep(1)
                                 continue
