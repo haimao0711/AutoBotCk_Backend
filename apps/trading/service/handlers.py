@@ -2130,7 +2130,7 @@ def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str
             threading.Thread(target=run_process_buy).start()
             return True
         elif request_sell:
-            threading.Thread(target=run_process_sell()).start()
+            threading.Thread(target=run_process_sell).start()
             return True
     else:
         logger.info("Không có dữ liệu trong prepared_configs, bỏ qua process_trade_request.")
