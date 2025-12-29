@@ -1433,14 +1433,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign
                         is_use_vnindex_following = following_config.is_use_vnindex_config
                         is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config', stock_data_following_second) 
-                        messages_to_cancel_update = render_message(reason_buy, trading_chart_value=trading_candle, following_chart_type=following_candle) 
+                        messages_to_cancel_update = render_message(
+                            reason_buy, trading_chart_value=trading_candle, trading_chart_value_second=trading_candle_second, following_chart_type=following_candle, following_chart_type_second=following_candle_second) 
                         messages_to_cancel_update_vnindex = ''                  
                         if is_use_vnindex_following:
                             is_buy_vnindex, reason_buy_vnindex = should_buy_following(following_config, vnindex_data_following, 'vnindex_config', vnindex_data_following_second)
                             logger.info(f'⏱ Kiểm tra {interval_check}s - is_buy_vnindex {symbol}: {is_buy_vnindex}')
                             logger.info(f'⏱ Kiểm tra {interval_check}s - reason_buy_vnindex {symbol}: {reason_buy_vnindex}')
                             messages_to_cancel_update_vnindex = render_message(
-                            reason_buy_vnindex, trading_chart_value=trading_candle, following_chart_type=following_candle)
+                                reason_buy_vnindex, trading_chart_value=trading_candle, trading_chart_value_second=trading_candle_second, following_chart_type=following_candle, following_chart_type_second=following_candle_second)
                             if not is_buy_vnindex:
                                 is_buy = False
 
