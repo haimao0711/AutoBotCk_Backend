@@ -184,7 +184,7 @@ BUY_REQUEST_FAILED_SIGNAL = dedent('''
 BUY_FAILED_UPDATE = dedent('''
 📈📈📈
 🔔 **Sửa lệnh MUA không thành công** ⛔⛔⛔
-❌ - **Tài khoản {user_account}** đã **Hủy** đặt lệnh **MUA**!
+❌ **Tài khoản {user_account}** đã **Hủy** đặt lệnh **MUA**!
 - **Cổ phiếu**: **{stock}**
 - **Lí do VNINDEX:** {message_vnindex}
 - **Lí do STOCK:** {message}
@@ -215,7 +215,7 @@ TAKE_PROFIT_FAILED_SIGNAL = dedent('''
 SELL_FAILED_UPDATE = dedent('''
 📉📉📉
 🔔 **Sửa lệnh BÁN không thành công** ⛔⛔⛔
-❌ - **Tài khoản {user_account}** đã **Hủy** đặt lệnh **BÁN**!
+❌ **Tài khoản {user_account}** đã **Hủy** đặt lệnh **BÁN**!
 - **Cổ phiếu**: **{stock}**
 - **Lí do:** {message}
 ''')
@@ -223,7 +223,7 @@ SELL_FAILED_UPDATE = dedent('''
 TAKEPROFIT_SIGNAL = dedent('''
 🎯🎯🎯
 🔔 **Tín hiệu CHỐT LÃI** 🚀🚀🚀
-🥇 - **Tài khoản {user_account}** đã đặt lệnh chốt lời!
+🥇 **Tài khoản {user_account}** đã đặt lệnh chốt lời!
 - **Cổ phiếu**: **{stock}**
 - Khối lượng: **{volume}**
 - Giá: **{price}**
@@ -234,7 +234,7 @@ TAKEPROFIT_SIGNAL = dedent('''
 STOPLOSS_SIGNAL = dedent('''
 🚨🚨🚨
 🔔 **Tín hiệu CẮT LỖ** 💔💔💔
-⚠️ - **Tài khoản {user_account}** trên **{platform_trading}** đã đặt lệnh cắt lỗ!
+⚠️ **Tài khoản {user_account}** trên **{platform_trading}** đã đặt lệnh cắt lỗ!
 - **Cổ phiếu**: **{stock}**
 - Khối lượng: **{volume}**
 - Giá: **{price}**
