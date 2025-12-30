@@ -159,22 +159,22 @@ def render_type(chart_type: str, chart_value: str) -> str:
     match chart_type:
         case ChartType.Trading:
             return f'''
-    **+ Chart hành động** **{chart_value}:**'''
+    **▶ Chart hành động** **{chart_value}:**'''
         case ChartType.TradingSecond:
             return f'''
-    **+ Chart hành động (phụ)** **{chart_value}:**'''
+    **▶ Chart hành động (phụ)** **{chart_value}:**'''
         case ChartType.Following:
             return f'''
-
-    **+ Chart theo dõi** **{chart_value}:**'''
+    
+    **▶ Chart theo dõi** **{chart_value}:**'''
         case ChartType.FollowingSecond:
             return f'''
-
-    **+ Chart theo dõi (phụ)** **{chart_value}:**'''
+    
+    **▶ Chart theo dõi (phụ)** **{chart_value}:**'''
         case _:
             return f'''
-
-    *+ Cấu hình riêng cho tài khoản*'''
+    
+    *▶ Cấu hình riêng cho tài khoản*'''
 
 
 def is_valid_time_to_buy(config: Configuration):
