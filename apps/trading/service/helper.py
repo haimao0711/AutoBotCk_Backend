@@ -141,20 +141,16 @@ def send_telegram_message_batch(user, message_type: MessageTypeEnum, batch_messa
 def render_type(chart_type: str, chart_value: str) -> str:
     match chart_type:
         case ChartType.Trading:
-            return f''' 
-                **▶ Chart hành động** **{chart_value}:**
+            return f'''  \n    **▶ Chart hành động** **{chart_value}:**
 '''
         case ChartType.TradingSecond:
-            return f''' 
-                **▶ Chart hành động (phụ)** **{chart_value}:**
+            return f'''  \n    **▶ Chart hành động (phụ)** **{chart_value}:**
 '''
         case ChartType.Following:
-            return f''' 
-                **▶ Chart theo dõi** **{chart_value}:**
+            return f'''  \n    **▶ Chart theo dõi** **{chart_value}:**
 '''
         case ChartType.FollowingSecond:
-            return f''' 
-                **▶ Chart theo dõi (phụ)** **{chart_value}:**
+            return f'''  \n    **▶ Chart theo dõi (phụ)** **{chart_value}:**
 '''
         case _:
             return f'''
