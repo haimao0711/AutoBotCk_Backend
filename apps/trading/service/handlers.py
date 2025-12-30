@@ -161,7 +161,7 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
                         'volume': order['volume'],
                         'status': order['status']
                     }
-                    # logger.info(f'check data update buy: {buy_update_details_attrs}')
+                    
                     message_buy_update.append({
                             'status_signal': SignalTelegramEnum.BUY_UPDATE_DETAIL,
                             **buy_update_details_attrs
