@@ -142,16 +142,20 @@ def render_type(chart_type: str, chart_value: str) -> str:
     match chart_type:
         case ChartType.Trading:
             return f'''
-    **▶ Chart hành động** **{chart_value}:**'''
+    **▶ Chart hành động** **{chart_value}:**
+'''
         case ChartType.TradingSecond:
             return f'''
-    **▶ Chart hành động (phụ)** **{chart_value}:**'''
+    **▶ Chart hành động (phụ)** **{chart_value}:**
+'''
         case ChartType.Following:
             return f'''    
-    **▶ Chart theo dõi** **{chart_value}:**'''
+    **▶ Chart theo dõi** **{chart_value}:**
+'''
         case ChartType.FollowingSecond:
             return f'''    
-    **▶ Chart theo dõi (phụ)** **{chart_value}:**'''
+    **▶ Chart theo dõi (phụ)** **{chart_value}:**
+'''
         case _:
             return f'''
                 
@@ -1157,7 +1161,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
     messages = ''
     for key, value in obj.items():
         if key == 'following':
-            messages += render_type(ChartType.Following, following_chart_type)
+            messages += render_type(ChartType.Following, following_chart_type).rstrip('\n')
             for f_key, f_value in value.items():
                 if f_key == 'failed':
                     for f_failed_key, f_failed_value in f_value.items():
@@ -1218,7 +1222,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                 message_cleaned = message.lstrip('\n').rstrip()
                                 messages += '\n' + message_cleaned + ' ✅'
         if key == 'following_second' and following_chart_type_second is not None:
-            messages += render_type(ChartType.FollowingSecond, following_chart_type_second)
+            messages += render_type(ChartType.FollowingSecond, following_chart_type_second).rstrip('\n')
             for f_key, f_value in value.items():
                 if f_key == 'failed':
                     for f_failed_key, f_failed_value in f_value.items():
@@ -1279,7 +1283,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                 message_cleaned = message.lstrip('\n').rstrip()
                                 messages += '\n' + message_cleaned + ' ✅'
         if key == 'trading':
-            messages += render_type(ChartType.Trading, trading_chart_value)
+            messages += render_type(ChartType.Trading, trading_chart_value).rstrip('\n')
             for f_key, f_value in value.items():
                 if f_key == 'failed':
                     for f_failed_key, f_failed_value in f_value.items():
@@ -1340,7 +1344,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                 message_cleaned = message.lstrip('\n').rstrip()
                                 messages += '\n' + message_cleaned + ' ✅'
         if key == 'trading_second' and trading_chart_value_second is not None:
-            messages += render_type(ChartType.TradingSecond, trading_chart_value_second)
+            messages += render_type(ChartType.TradingSecond, trading_chart_value_second).rstrip('\n')
             for f_key, f_value in value.items():
                 if f_key == 'failed':
                     for f_failed_key, f_failed_value in f_value.items():
