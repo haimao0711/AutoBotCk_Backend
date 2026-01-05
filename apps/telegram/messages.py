@@ -207,7 +207,7 @@ SELL_REQUEST_FAILED_SIGNAL = dedent('''
 TAKE_PROFIT_FAILED_SIGNAL = dedent('''
 📉📉📉
 🔔 **Tín hiệu CHỐT LÃI không thành công** ⛔⛔⛔
-- **Tài khoản {user_account}**
+ **Tài khoản {user_account}**
 - **Cổ phiếu**: **{stock}**
 - **Lí do:** {message}
 ''')
