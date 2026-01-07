@@ -180,7 +180,7 @@ BUY_REQUEST_FAILED_SIGNAL = dedent('''
 🛑 **Tín hiệu MUA TAY** không thành công:
 - **Tài khoản {user_account}**:
 - **Cổ phiếu**: **{stock}**    
-- **Lí do:** {message}
+- **Lí do:**{message}
 ''')
 
 BUY_FAILED_UPDATE = dedent('''
@@ -188,8 +188,8 @@ BUY_FAILED_UPDATE = dedent('''
 🔔 **Sửa lệnh MUA không thành công** ⛔⛔⛔
 ❌ **Tài khoản {user_account}** đã **Hủy** đặt lệnh **MUA**!
 - **Cổ phiếu**: **{stock}**
-- **Lí do VNINDEX:** {message_vnindex}
-- **Lí do STOCK:** {message}
+- **Lí do VNINDEX:**{message_vnindex}
+- **Lí do STOCK:**{message}
 ''')
 
 SELL_FAILED_SIGNAL = dedent('''
@@ -197,21 +197,21 @@ SELL_FAILED_SIGNAL = dedent('''
 🔔 **Tín hiệu BÁN không thành công** ⛔⛔⛔
 - **Tài khoản {user_account}** 
 - **Cổ phiếu**: **{stock}**
-- **Lí do:** {message}
+- **Lí do:**{message}
 ''')
 SELL_REQUEST_FAILED_SIGNAL = dedent('''
 📉📉📉
 🔔 **Tín hiệu BÁN TAY không thành công** ⛔⛔⛔
 - **Tài khoản {user_account}**
 - **Cổ phiếu**: **{stock}**
-- **Lí do:** {message}
+- **Lí do:**{message}
 ''')
 TAKE_PROFIT_FAILED_SIGNAL = dedent('''
 📉📉📉
 🔔 **Tín hiệu CHỐT LÃI không thành công** ⛔⛔⛔
  **Tài khoản {user_account}**
 - **Cổ phiếu**: **{stock}**
-- **Lí do:** {message}
+- **Lí do:**{message}
 ''')
 
 SELL_FAILED_UPDATE = dedent('''
@@ -219,7 +219,7 @@ SELL_FAILED_UPDATE = dedent('''
 🔔 **Sửa lệnh BÁN không thành công** ⛔⛔⛔
 ❌ **Tài khoản {user_account}** đã **Hủy** đặt lệnh **BÁN**!
 - **Cổ phiếu**: **{stock}**
-- **Lí do:** {message}
+- **Lí do:**{message}
 ''')
 
 TAKEPROFIT_SIGNAL = dedent('''
@@ -230,7 +230,7 @@ TAKEPROFIT_SIGNAL = dedent('''
 - Khối lượng: **{volume}**
 - Giá: **{price}**
 - Phương án chốt lãi: **{take_profit_type}**
-- **Lí do:** {message}
+- **Lí do:**{message}
 ''')
 
 STOPLOSS_SIGNAL = dedent('''
@@ -240,7 +240,7 @@ STOPLOSS_SIGNAL = dedent('''
 - **Cổ phiếu**: **{stock}**
 - Khối lượng: **{volume}**
 - Giá: **{price}**
-- **Lí do:** {message}
+- **Lí do:**{message}
 ''')
 
 DEFAULT_MESSAGE = '''

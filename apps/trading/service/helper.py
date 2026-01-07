@@ -1157,8 +1157,8 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
     messages = ''
     for key, value in obj.items():
         if key == 'following':
-            header = render_type(ChartType.Following, following_chart_type).strip()
-            messages += '\n  ' + header
+            header = render_type(ChartType.Following, following_chart_type).rstrip('\n')
+            messages += header
             for f_key, f_value in value.items():
                 if f_key == 'failed':
                     for f_failed_key, f_failed_value in f_value.items():
@@ -1170,7 +1170,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ❌'
+                                messages += '  \n' + message_cleaned + ' ❌'
                         if f_failed_key == 'sufficient':
                             for key_word, last_previous, previous, current in f_failed_value:
                                 message_template = getattr(
@@ -1179,7 +1179,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ❌'
+                                messages += '  \n' + message_cleaned + ' ❌'
                         if f_failed_key == 'necessary':
                             for key_word, last_previous, previous, current in f_failed_value:
                                 message_template = getattr(
@@ -1188,7 +1188,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ❌'
+                                messages += '  \n' + message_cleaned + ' ❌'
                 elif f_key == 'success':
                     for f_success_key, f_success_value in f_value.items():
                         if f_success_key == 'obligatory':
@@ -1199,7 +1199,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ✅'
+                                messages += '  \n' + message_cleaned + ' ✅'
                         if f_success_key == 'sufficient':
                             for key_word, last_previous, previous, current in f_success_value:
                                 message_template = getattr(
@@ -1208,7 +1208,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ✅'
+                                messages += '  \n' + message_cleaned + ' ✅'
                         if f_success_key == 'necessary':
                             for key_word, last_previous, previous, current in f_success_value:
                                 message_template = getattr(
@@ -1217,10 +1217,10 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ✅'
+                                messages += '  \n' + message_cleaned + ' ✅'
         if key == 'following_second' and following_chart_type_second is not None:
             header = render_type(ChartType.FollowingSecond, following_chart_type_second).strip()
-            messages += '\n  ' + header
+            messages += '  \n' + header
             for f_key, f_value in value.items():
                 if f_key == 'failed':
                     for f_failed_key, f_failed_value in f_value.items():
@@ -1232,7 +1232,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ❌'
+                                messages += '  \n' + message_cleaned + ' ❌'
                         if f_failed_key == 'sufficient':
                             for key_word, last_previous, previous, current in f_failed_value:
                                 message_template = getattr(
@@ -1241,7 +1241,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ❌'
+                                messages += '  \n' + message_cleaned + ' ❌'
                         if f_failed_key == 'necessary':
                             for key_word, last_previous, previous, current in f_failed_value:
                                 message_template = getattr(
@@ -1250,7 +1250,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ❌'
+                                messages += '  \n' + message_cleaned + ' ❌'
                 elif f_key == 'success':
                     for f_success_key, f_success_value in f_value.items():
                         if f_success_key == 'obligatory':
@@ -1261,7 +1261,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ✅'
+                                messages += '  \n' + message_cleaned + ' ✅'
                         if f_success_key == 'sufficient':
                             for key_word, last_previous, previous, current in f_success_value:
                                 message_template = getattr(
@@ -1270,7 +1270,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ✅'
+                                messages += '  \n' + message_cleaned + ' ✅'
                         if f_success_key == 'necessary':
                             for key_word, last_previous, previous, current in f_success_value:
                                 message_template = getattr(
@@ -1279,10 +1279,10 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ✅'
+                                messages += '  \n' + message_cleaned + ' ✅'
         if key == 'trading':
             header = render_type(ChartType.Trading, trading_chart_value).strip()
-            messages += '\n  ' + header
+            messages += '  \n' + header
             for f_key, f_value in value.items():
                 if f_key == 'failed':
                     for f_failed_key, f_failed_value in f_value.items():
@@ -1294,7 +1294,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ❌'
+                                messages += '  \n' + message_cleaned + ' ❌'
                         if f_failed_key == 'sufficient':
                             for key_word, last_previous, previous, current in f_failed_value:
                                 message_template = getattr(
@@ -1303,7 +1303,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ❌'
+                                messages += '  \n' + message_cleaned + ' ❌'
                         if f_failed_key == 'necessary':
                             for key_word, last_previous, previous, current in f_failed_value:
                                 message_template = getattr(
@@ -1312,7 +1312,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ❌'
+                                messages += '  \n' + message_cleaned + ' ❌'
                 elif f_key == 'success':
                     for f_success_key, f_success_value in f_value.items():
                         if f_success_key == 'obligatory':
@@ -1323,7 +1323,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ✅'
+                                messages += '  \n' + message_cleaned + ' ✅'
                         if f_success_key == 'sufficient':
                             for key_word, last_previous, previous, current in f_success_value:
                                 message_template = getattr(
@@ -1332,7 +1332,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ✅'
+                                messages += '  \n' + message_cleaned + ' ✅'
                         if f_success_key == 'necessary':
                             for key_word, last_previous, previous, current in f_success_value:
                                 message_template = getattr(
@@ -1341,10 +1341,10 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ✅'
+                                messages += '  \n' + message_cleaned + ' ✅'
         if key == 'trading_second' and trading_chart_value_second is not None:
             header = render_type(ChartType.TradingSecond, trading_chart_value_second).strip()
-            messages += '\n  ' + header
+            messages += '  \n' + header
             for f_key, f_value in value.items():
                 if f_key == 'failed':
                     for f_failed_key, f_failed_value in f_value.items():
@@ -1356,7 +1356,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ❌'
+                                messages += '  \n' + message_cleaned + ' ❌'
                         if f_failed_key == 'sufficient':
                             for key_word, last_previous, previous, current in f_failed_value:
                                 message_template = getattr(
@@ -1365,7 +1365,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ❌'
+                                messages += '  \n' + message_cleaned + ' ❌'
                         if f_failed_key == 'necessary':
                             for key_word, last_previous, previous, current in f_failed_value:
                                 message_template = getattr(
@@ -1374,7 +1374,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ❌'
+                                messages += '  \n' + message_cleaned + ' ❌'
                 elif f_key == 'success':
                     for f_success_key, f_success_value in f_value.items():
                         if f_success_key == 'obligatory':
@@ -1385,7 +1385,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ✅'
+                                messages += '  \n' + message_cleaned + ' ✅'
                         if f_success_key == 'sufficient':
                             for key_word, last_previous, previous, current in f_success_value:
                                 message_template = getattr(
@@ -1394,7 +1394,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ✅'
+                                messages += '  \n' + message_cleaned + ' ✅'
                         if f_success_key == 'necessary':
                             for key_word, last_previous, previous, current in f_success_value:
                                 message_template = getattr(

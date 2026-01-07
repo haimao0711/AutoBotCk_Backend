@@ -1459,7 +1459,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             if messages_to_cancel_update_vnindex:
                                 reason_parts.append(f"- **Lí do VNINDEX:** {messages_to_cancel_update_vnindex}")
                             if messages_to_cancel_update:
-                                reason_parts.append(f"- **Lí do STOCK:** {messages_to_cancel_update}")
+                                reason_parts.append(f"- **Lí do STOCK:**{messages_to_cancel_update}")
                             
                             # Format với xuống dòng và thụt lề đúng cách (sau "Lí do:" sẽ xuống dòng)
                             if reason_parts:
