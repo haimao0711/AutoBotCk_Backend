@@ -574,12 +574,12 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             logger.info(f'không có respon khi lấy số dư tiền mặt {symbol}')
         else: 
             volume_by_balance =  int(volume_to_buy - stock_balance)
-            volume = int(round(volume_to_buy * percent_first_buy / 100) * 100) if volume_by_balance > int(volume_to_buy*percent_first_buy) else volume_by_balance
-
+            volume = int((volume_to_buy * percent_first_buy / 100 + 0.5)) * 100 if volume_by_balance > int(volume_to_buy*percent_first_buy) else volume_by_balance
             buy_order_overrall_attrs = {
                 'user_account': account,
                 'stock': symbol,
-                'volume': volume,
+                'volume_to_buy': volume_to_buy,
+                'volume_set_buy': volume,
                 'level': level,
                 'start_price': round(start_price, 2),
                 "current_price": round(price_current, 2),
@@ -590,7 +590,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 "sleeping_time_buy": sleeping_time_buy,                     
                 'number_order': int(number_order),
                 'start_time_order': start_time_order,
-                'percent_first_buy': percent_first_buy
+                'percent_first_buy': percent_first_buy*100
             }
 
             buy_messages = []
@@ -601,10 +601,11 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
                 sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
                 volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
+                price_set_buy = min(start_price, price_current)
                 buy_order_attrs_send = {
                     'stock': symbol,
                     # 'price': round(float(high_last_row - add_price_buy), 2), # Giá mua tạm thời giảm so với yêu cầu thuật toán, cần sửa lại
-                    'price': round(start_price, 2),
+                    'price': round(price_set_buy, 2),
                     'volume': int(volume_buy_sensitive)
                 }
                 res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
@@ -959,10 +960,11 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
                 volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
                 volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100
+                    price_set_sell = max(start_price, price_current)
                 sell_order_attrs_send = {
                     'stock': symbol,
                     # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
-                    'price': round(start_price, 2),
+                    'price': round(price_set_sell, 2),
                     'volume': int(volume_sell_sensitive)
                 }
                 res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
@@ -1248,7 +1250,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 add_price_buy = trading_config.stock_config_add_price_buy
                 volume_to_buy = overview_config.volume_to_buy                
                 volume_by_balance =  int(volume_to_buy - stock_balance)
-                volume = int(round(volume_to_buy * percent_first_buy / 100) * 100) if volume_by_balance > int(volume_to_buy*percent_first_buy) else volume_by_balance
+                volume = int((volume_to_buy * percent_first_buy / 100 + 0.5)) * 100 if volume_by_balance > int(volume_to_buy*percent_first_buy) else volume_by_balance
 
                 if cash_available < volume*start_price:
                     logger.info('roi vao truong hop khong du tien mua theo yeu cau nen mua het so tien con lai')
@@ -1257,7 +1259,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 buy_order_overrall_attrs = {
                     'user_account': account,
                     'stock': symbol,
-                    'volume': volume,
+                    'volume_to_buy': volume_to_buy
+                    'volume_set_buy': volume,
                     'level': level,
                     'start_price': round(start_price, 2),
                     'limit_price': round(start_price - add_price_buy + slippage_buy, 2),
@@ -1268,7 +1271,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     "sleeping_time_buy": sleeping_time_buy,                   
                     'number_order': int(number_order),
                     'start_time_order': start_time_order,
-                    'percent_first_buy': percent_first_buy
+                    'percent_first_buy': percent_first_buy*100
                 }
                 buy_messages = []
                 buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_OVERRAL,
@@ -1278,10 +1281,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
                     sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
                     volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
+                    price_set_buy = min(start_price, price_current)
                     buy_order_attrs_send = {
                         'stock': symbol,
                         # 'price': round(float(high_last_row - add_price_buy), 2) if round(float(high_last_row - add_price_buy), 2) > floor_price else round(floor_price, 2),
-                        'price': round(start_price, 2),
+                        'price': round(price_set_buy, 2),
                         'volume': int(volume_buy_sensitive)
                     }
                     res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
@@ -1756,10 +1760,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
                         volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
                         volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100
+                        price_set_sell = max(start_price, price_current)
                         sell_order_attrs_send = {
                             'stock': symbol,
                             # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
-                            'price': round(start_price, 2), 
+                            'price': round(price_set_sell, 2), 
                             'volume': int(volume_sell_sensitive)
                         }
                         res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)

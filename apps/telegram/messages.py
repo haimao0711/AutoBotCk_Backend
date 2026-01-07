@@ -58,8 +58,9 @@ BUY_ORDER_OVERRAL = dedent('''
 💰💰💰 *{start_time_order}*
 🔔 **Tài khoản {user_account}**:
 - Lệnh MUA: **{stock}**
-- Khối lượng mua dự kiến: **{volume}**
-- Phần trăm mua 1 lần/tổng KL dự kiến: **{percent_first_buy}**
+- Khối lượng mua dự kiến: **{volume_to_buy}**
+- Phần trăm mua 1 lần/tổng KL dự kiến: **{percent_first_buy}**%
+- Khối lượng đặt mua: **{volume_sedt_buy}**
 - **Level**: **{level}**
 - **Giá hiện tại**: **{current_price}**
 - **Giá khởi đầu**: **{start_price}**
