@@ -1,4 +1,5 @@
 import pytz
+from textwrap import dedent
 import random
 from typing import List
 import pandas as pd
@@ -1405,7 +1406,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                     previous=previous, current=current, old_previous=last_previous)
                                 # Loại bỏ newline ở đầu, giữ nguyên indentation
                                 message_cleaned = message.lstrip('\n').rstrip()
-                                messages += '\n  ' + message_cleaned + ' ✅'
+                                messages += '  \n' + message_cleaned + ' ✅'
         if key == 'special_buy':
             message_template = getattr(
                 MESSAGES, 'not_valid_time_to_buy'.upper())
