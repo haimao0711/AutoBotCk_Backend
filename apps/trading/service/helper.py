@@ -1160,7 +1160,6 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
         if key == 'following':
             header = render_type(ChartType.Following, following_chart_type).rstrip('\n')
             messages += header
-            messages += f"{header}\n{body}\n"
             for f_key, f_value in value.items():
                 if f_key == 'failed':
                     for f_failed_key, f_failed_value in f_value.items():
