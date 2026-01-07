@@ -1259,7 +1259,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 buy_order_overrall_attrs = {
                     'user_account': account,
                     'stock': symbol,
-                    'volume_to_buy': volume_to_buy
+                    'volume_to_buy': volume_to_buy,
                     'volume_set_buy': volume,
                     'level': level,
                     'start_price': round(start_price, 2),
