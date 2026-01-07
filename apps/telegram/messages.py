@@ -59,9 +59,10 @@ BUY_ORDER_OVERRAL = dedent('''
 🔔 **Tài khoản {user_account}**:
 - Lệnh MUA: **{stock}**
 - Khối lượng mua dự kiến: **{volume}**
+- Phần trăm mua 1 lần/tổng KL dự kiến: **{percent_first_buy}**
 - **Level**: **{level}**
 - **Giá hiện tại**: **{current_price}**
-- Giá khởi đầu: **{start_price}**
+- **Giá khởi đầu**: **{start_price}**
 - Số lượng lệnh  dự kiến: **{number_order}**
 - Bước nhảy giá: **{step_price}**
 - Biên trượt: **{slippage_buy}**
@@ -171,7 +172,7 @@ BUY_FAILED_SIGNAL = dedent('''
 - **Level**: **{level}**
 - **Giá hiện tại**: **{current_price}**
 - **Lí do VNINDEX:**{message_vnindex}
-- **Lí do STOCK:** {message}
+- **Lí do STOCK:**{message}
 ''')
 BUY_REQUEST_FAILED_SIGNAL = dedent('''
 📈📈📈 *{start_time_order}*

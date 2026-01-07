@@ -589,7 +589,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 "add_price_buy": add_price_buy,
                 "sleeping_time_buy": sleeping_time_buy,                     
                 'number_order': int(number_order),
-                'start_time_order': start_time_order
+                'start_time_order': start_time_order,
+                'percent_first_buy': percent_first_buy
             }
 
             buy_messages = []
@@ -1266,7 +1267,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     "add_price_buy": add_price_buy, 
                     "sleeping_time_buy": sleeping_time_buy,                   
                     'number_order': int(number_order),
-                    'start_time_order': start_time_order
+                    'start_time_order': start_time_order,
+                    'percent_first_buy': percent_first_buy
                 }
                 buy_messages = []
                 buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_OVERRAL,
