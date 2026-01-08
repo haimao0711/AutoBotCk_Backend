@@ -555,6 +555,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         start_price = round_up_to_unit(open_last_row, close_last_row, step_price)       
         price_current = stock_data_trading.iloc[-1]['close']
         percent_first_buy = trading_config.stock_config_percent_first_buy
+        logger.info(f'percent_first_buy {symbol}: {percent_first_buy}')
         number_order = trading_config.stock_config_number_pid_buy_once_time
         time_now = datetime.now(timezone)
         start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
@@ -574,7 +575,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             logger.info(f'không có respon khi lấy số dư tiền mặt {symbol}')
         else: 
             volume_by_balance =  int(volume_to_buy - stock_balance)
-            volume = int((volume_to_buy * percent_first_buy / 100) / 100 + 0.5) * 100 if volume_by_balance > int(volume_to_buy * percent_first_buy / 100) else volume_by_balance
+            volume = ((int(volume_to_buy * percent_first_buy / 100) + 99) // 100) * 100 if volume_by_balance > (volume_to_buy * percent_first_buy / 100) else (volume_by_balance // 100) * 100
+            logger.info(f'volume {symbol}: {volume}')
             buy_order_overrall_attrs = {
                 'user_account': account,
                 'stock': symbol,
@@ -1255,8 +1257,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 add_price_buy = trading_config.stock_config_add_price_buy
                 volume_to_buy = overview_config.volume_to_buy                
                 volume_by_balance =  int(volume_to_buy - stock_balance)
-                volume = int((volume_to_buy * percent_first_buy / 100) / 100 + 0.5) * 100 if volume_by_balance > int(volume_to_buy * percent_first_buy / 100) else volume_by_balance
-
+                volume = ((int(volume_to_buy * percent_first_buy / 100) + 99) // 100) * 100 if volume_by_balance > (volume_to_buy * percent_first_buy / 100) else (volume_by_balance // 100) * 100
+                logger.info(f'volume {symbol}: {volume}')
                 if cash_available < volume*start_price:
                     logger.info('roi vao truong hop khong du tien mua theo yeu cau nen mua het so tien con lai')
                     volume = cash_available/start_price
