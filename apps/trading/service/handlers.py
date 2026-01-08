@@ -574,9 +574,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         elif not cash_balance:
             logger.info(f'không có respon khi lấy số dư tiền mặt {symbol}')
         else: 
-            volume_by_balance =  int(volume_to_buy - stock_balance)
-            volume = ((int(volume_to_buy * percent_first_buy / 100) + 99) // 100) * 100 if volume_by_balance > (volume_to_buy * percent_first_buy / 100) else (volume_by_balance // 100) * 100
-            logger.info(f'volume {symbol}: {volume}')
+            volume_buy_balance =  int(volume_to_buy - stock_balance)
+            volume = min(((int(volume_to_buy * percent_first_buy) + 99) // 100) * 100,(volume_buy_balance // 100) * 100)
             buy_order_overrall_attrs = {
                 'user_account': account,
                 'stock': symbol,
@@ -592,7 +591,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 "sleeping_time_buy": sleeping_time_buy,                     
                 'number_order': int(number_order),
                 'start_time_order': start_time_order,
-                'percent_first_buy': percent_first_buy
+                'percent_first_buy': percent_first_buy*100
             }
 
             buy_messages = []
@@ -1257,8 +1256,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 add_price_buy = trading_config.stock_config_add_price_buy
                 volume_to_buy = overview_config.volume_to_buy                
                 volume_by_balance =  int(volume_to_buy - stock_balance)
-                volume = ((int(volume_to_buy * percent_first_buy / 100) + 99) // 100) * 100 if volume_by_balance > (volume_to_buy * percent_first_buy / 100) else (volume_by_balance // 100) * 100
-                logger.info(f'volume {symbol}: {volume}')
+                volume = min(((int(volume_to_buy * percent_first_buy) + 99) // 100) * 100,(volume_buy_balance // 100) * 100)
                 if cash_available < volume*start_price:
                     logger.info('roi vao truong hop khong du tien mua theo yeu cau nen mua het so tien con lai')
                     volume = cash_available/start_price
