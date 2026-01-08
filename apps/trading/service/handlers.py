@@ -600,7 +600,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
       # Xử lý mua nhạy cảm 
             if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
                 sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
+                logger.info(f'sensitive_percentage {symbol}: {sensitive_percentage}')
                 volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
+                logger.info(f'volume_buy_sensitive {symbol}: {volume_buy_sensitive}')
                 price_set_buy = min(start_price, price_current)
                 buy_order_attrs_send = {
                     'stock': symbol,
@@ -608,6 +610,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     'price': round(price_set_buy, 2),
                     'volume': int(volume_buy_sensitive)
                 }
+                logger.info(f'buy_order_attrs_send {symbol}: {buy_order_attrs_send}')
                 res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
                 if res_buy:
                     is_send_order_buy = True
