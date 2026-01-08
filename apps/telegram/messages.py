@@ -173,8 +173,8 @@ BUY_FAILED_SIGNAL = dedent('''
 - **Tài khoản {user_account}**:
 - **Cổ phiếu**: **{stock}**
 - **Level**: **{level}**
-- **Giá hiện tại**: **{current_price}**
-- **Lí do VNINDEX:**{message_vnindex}
+- **Giá hiện tại**: **{current_price}**    
+- **Lí do VNINDEX:**{message_vnindex}    
 - **Lí do STOCK:**{message}
 ''')
 BUY_REQUEST_FAILED_SIGNAL = dedent('''
