@@ -625,6 +625,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     logger.info(f"Error: lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng")
             else:
                 logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
+                logger.info(f'volume_to_buy {symbol}: {volume_to_buy}')
+                logger.info(f'volume_set_buy {symbol}: {volume}')
         # Chia đều phần còn lại của volume to buy
             number_order = min(number_order, volume // 100)
             if volume >=100:
@@ -654,7 +656,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     volume -= volume_buy
             else:
                 logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
-      # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
+      # Send telegram tổng hợp khi thực hiện đặt xong các lệnh mua
         if is_send_order_buy:
             send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
             send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs)             
