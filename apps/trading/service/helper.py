@@ -1413,5 +1413,5 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
             message_template = getattr(
                 MESSAGES, 'not_valid_time_to_sell'.upper())
             messages += message_template
-
+    messages += '\n\n'
     return messages
