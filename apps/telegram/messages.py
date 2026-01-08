@@ -166,6 +166,7 @@ Lệnh BÁN: **{stock}** - Giá: **{price}** - KL: **{volume}** - Trạng thái:
 
 
 BUY_FAILED_SIGNAL = dedent('''
+
 📈📈📈 *{start_time_order}*
 🛑 **Tín hiệu MUA** không thành công:
 - **Tài khoản {user_account}**:
@@ -176,6 +177,7 @@ BUY_FAILED_SIGNAL = dedent('''
 - **Lí do STOCK:**{message}
 ''')
 BUY_REQUEST_FAILED_SIGNAL = dedent('''
+
 📈📈📈 *{start_time_order}*
 🛑 **Tín hiệu MUA TAY** không thành công:
 - **Tài khoản {user_account}**:
