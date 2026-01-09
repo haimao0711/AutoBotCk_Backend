@@ -538,7 +538,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
 
     is_send_order_buy = False   
     if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
-        logger.info(f'bắt đầu hàm đặt lệnh mua tay {symbol}') "B")
+        logger.info(f'bắt đầu hàm đặt lệnh mua tay {symbol}')
         timezone = pytz.timezone('Asia/Ho_Chi_Minh')
         last_row = stock_data_trading.iloc[-1]
         open_last_row = last_row['open'] 
@@ -937,10 +937,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             logger.info(f"❌ Lỗi khi gửi tin nhắn: {e}") 
     is_send_order_sell = False   
     if status_sell == SignalTelegramEnum.SELL_REQUEST_SUCCESS:
-        logger.info(f'bắt đầu đặt lệnh sell request {symbol}')
-         #Hủy tất cả các lệnh nếu còn đặt
-        cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lệnh bán cũ còn tồn', "S")
-
+        logger.info(f'bắt đầu đặt lệnh sell request {symbol}')        
         timezone = pytz.timezone('Asia/Ho_Chi_Minh')
         last_row = stock_data_trading.iloc[-1]
         open_last_row = last_row['open']
@@ -1295,7 +1292,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_SUCCESS:
                 # logger.info(f'bắt đầu hàm đặt lệnh buy {symbol}')
-                cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Các lệnh mua cũ còn tồn', "B")
                 last_row = stock_data_trading.iloc[-1]
                 open_last_row = last_row['open'] 
                 close_last_row = last_row['close']
@@ -1768,10 +1764,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             is_send_order_sell = False   
 
             if status_sell in [SignalTelegramEnum.SELL_SUCCESS, SignalTelegramEnum.TAKEPROFIT]:
-                logger.info(f'bắt đầu đặt lệnh sell {symbol}')     
-                #Hủy tất cả các lệnh nếu còn đặt
-                cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lệnh bán cũ còn tồn', "S")
-
+                logger.info(f'bắt đầu đặt lệnh sell {symbol}')   
                 timezone = pytz.timezone('Asia/Ho_Chi_Minh')
                 last_row = stock_data_trading.iloc[-1]
                 open_last_row = last_row['open']
