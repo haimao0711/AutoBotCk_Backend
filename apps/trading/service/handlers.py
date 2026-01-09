@@ -954,7 +954,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         start_price = round_up_to_unit(open_last_row, close_last_row, step_price)       
         price_current = stock_data_trading.iloc[-1]['close']
         number_order = trading_config.stock_config_number_pid_sell_once_time 
-        start_time_order = datetime.now(timezone)
+        start_time_order = datetime.now(timezone).strftime("%H:%M:%S ngày %d-%m-%Y")
         slippage_sell = trading_config.stock_config_slippage_sell
      # Dao động cộng trừ     
         add_price_sell = trading_config.stock_config_add_price_sell
