@@ -579,7 +579,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             buy_order_overrall_attrs = {
                 'user_account': account,
                 'stock': symbol,
-                'volume_to_buy': volume_to_buy,
+                'volume_to_buy': int(volume_to_buy),
                 'volume_set_buy': volume,
                 'level': level,
                 'start_price': round(start_price, 2),
@@ -588,10 +588,10 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 'step_price': step_price,
                 "slippage_buy": slippage_buy,
                 "add_price_buy": add_price_buy,
-                "sleeping_time_buy": sleeping_time_buy,                     
+                "sleeping_time_buy": int(sleeping_time_buy),                     
                 'number_order': int(number_order),
                 'start_time_order': start_time_order,
-                'percent_first_buy': percent_first_buy*100
+                'percent_first_buy': int(percent_first_buy*100)
             }
 
             buy_messages = []
@@ -975,13 +975,13 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         sell_order_overrall_attrs = {
             'user_account': account,
             'stock': symbol,
-            'volume': volume,
+            'volume': int(volume),
             'start_price': round(start_price, 2),
             "current_price": round(price_current, 2),
             'step_price': step_price,
             "slippage_sell": slippage_sell,
             "add_price_sell": add_price_sell,
-            "sleeping_time_sell": sleeping_time_sell,
+            "sleeping_time_sell": int(sleeping_time_sell),
             'limit_price': round(start_price + add_price_sell - slippage_sell, 2),  
             'number_order': int(number_order),
             'start_time_order': start_time_order
@@ -1323,8 +1323,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 buy_order_overrall_attrs = {
                     'user_account': account,
                     'stock': symbol,
-                    'volume_to_buy': volume_to_buy,
-                    'volume_set_buy': volume,
+                    'volume_to_buy': int(volume_to_buy),
+                    'volume_set_buy': int(volume),
                     'level': level,
                     'start_price': round(start_price, 2),
                     'limit_price': round(start_price - add_price_buy + slippage_buy, 2),
@@ -1332,10 +1332,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     'step_price': step_price,
                     "slippage_buy": slippage_buy,
                     "add_price_buy": add_price_buy, 
-                    "sleeping_time_buy": sleeping_time_buy,                   
+                    "sleeping_time_buy": int(sleeping_time_buy),                   
                     'number_order': int(number_order),
                     'start_time_order': start_time_order,
-                    'percent_first_buy': percent_first_buy
+                    'percent_first_buy': int(percent_first_buy*100)
                 }
                 buy_messages = []
                 buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_OVERRAL,
@@ -1798,14 +1798,14 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 sell_order_overrall_attrs = {
                     'user_account': account,
                     'stock': symbol,
-                    'volume': volume,
+                    'volume': int(volume),
                     'start_price': round(start_price, 2),
                     'limit_price': round(start_price + add_price_sell - slippage_sell, 2),
                     "current_price": round(price_current, 2),
                     'step_price': step_price,
                     "slippage_sell": slippage_sell,
                     "add_price_sell": add_price_sell,
-                    "sleeping_time_sell": sleeping_time_sell, 
+                    "sleeping_time_sell": int(sleeping_time_sell), 
                     'number_order': int(number_order),
                     'start_time_order': start_time_order
                 }
