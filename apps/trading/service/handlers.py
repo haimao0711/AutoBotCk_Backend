@@ -671,23 +671,53 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     
     # Update buy order
     if is_send_order_buy: 
-        time.sleep(sleeping_time_buy)
         limited_times = time_to_buy // sleeping_time_buy
         limited_price_to_buy = start_price - add_price_buy + slippage_buy
-        for i in range(int(limited_times) - 1):    
+        interval_check = 10  # kiểm tra mỗi 10 giây
+        should_break_loop = False  # Flag để thoát khỏi vòng for
+        for i in range(int(limited_times) - 1):
+            if should_break_loop:
+                break
+            elapsed = 0
+            while elapsed < sleeping_time_buy:
+                time.sleep(interval_check)
+                elapsed += interval_check
+                
+                # 🔄 Lấy lại cấu hình mới mỗi lần lặp để cập nhật cấu hình mới nhất
+                try:
+                    configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
+                        user=user, 
+                        stock_symbol=symbol
+                    )
+                    if configuration:
+                        refreshed_overview_config = configuration.get("overview_config")
+                        if refreshed_overview_config:
+                            overview_config = refreshed_overview_config
+                except Exception as e:
+                    logger.info(f'Lỗi khi lấy lại cấu hình mua tay cho {symbol}: {e}')
+                    # Tiếp tục dùng config cũ nếu lỗi
+                
+                is_block_buy_stock = overview_config.is_block_buy
+                logger.info(f'check is_block_buy_stock mỗi {interval_check}s (mua tay) {symbol}: {is_block_buy_stock}')
+                if is_block_buy_stock:
+                    logger.info(f'{symbol} đã bị chặn mua, hủy lệnh mua tay {symbol}')
+                    cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn mua', "B")
+                    revert_status_request_trade(user, stock_id)
+                    should_break_loop = True
+                    break
+            
             status_buy = SignalTelegramEnum.BUY_SUCCESS
             times_update = i + 1
             message_update = update_buy_order(user_name, account, symbol, request_url, session, asp_net_session, "B", 
                                               step_price, limited_price_to_buy, times_update)
-            if  message_update:
+            if message_update:
                 send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
                 send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
-                time.sleep(sleeping_time_buy)
             else:
                 logger.info(f"Sửa lệnh thất bại ở lần thứ {times_update}, sẽ huỷ lệnh.")                
                 cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Sửa lệnh mua không thành công', "B")
                 revert_status_request_trade(user, stock_id)
-                break             
+                break
 
      #Tổng kết các lệnh đã khớp theo symbol để send telegram
         try:
@@ -961,7 +991,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             **sell_order_overrall_attrs })
         
         if volume >= 100:
-        # Xử lý mua nhạy cảm 
+        # Xử lý bán nhạy cảm 
             if trading_config.stock_config_is_mode_sensitive_sell:
                 sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
                 volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
@@ -1024,12 +1054,42 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         logger.info('kết thúc hàm đặt lệnh sell')     
     
     if is_send_order_sell:
-        time.sleep(sleeping_time_sell)
         limited_times = time_to_sell // sleeping_time_sell
         limited_price_to_sell = start_price + add_price_sell - slippage_sell
         logger.info(f'check limit_price_to_sell {symbol}: {limited_price_to_sell}')
+        interval_check = 10  # kiểm tra mỗi 10 giây
+        should_break_loop = False  # Flag để thoát khỏi vòng for
         
         for i in range(int(limited_times) - 1):
+            if should_break_loop:
+                break
+            elapsed = 0
+            while elapsed < sleeping_time_sell:
+                time.sleep(interval_check)
+                elapsed += interval_check
+                
+                # 🔄 Lấy lại cấu hình mới mỗi lần lặp để cập nhật cấu hình mới nhất
+                try:
+                    configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
+                        user=user, 
+                        stock_symbol=symbol
+                    )
+                    if configuration:
+                        refreshed_overview_config = configuration.get("overview_config")
+                        if refreshed_overview_config:
+                            overview_config = refreshed_overview_config
+                except Exception as e:
+                    logger.info(f'Lỗi khi lấy lại cấu hình bán tay cho {symbol}: {e}')
+                    # Tiếp tục dùng config cũ nếu lỗi
+                
+                is_block_sell_stock = overview_config.is_block_sell
+                logger.info(f'check is_block_sell_stock mỗi {interval_check}s (bán tay) {symbol}: {is_block_sell_stock}')
+                if is_block_sell_stock:
+                    logger.info(f'{symbol} đã bị chặn bán, hủy lệnh bán tay {symbol}')
+                    cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn bán', "S")
+                    revert_status_request_trade(user, stock_id)
+                    should_break_loop = True
+                    break
             
             status_sell = SignalTelegramEnum.SELL_SUCCESS
             times_update = i + 1
@@ -1040,8 +1100,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             else:
                 cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lỗi không sửa được lệnh bán tay', "S")
                 revert_status_request_trade(user, stock_id)
-                break           
-            time.sleep(sleeping_time_sell) 
+                break 
 
         #Tổng kết các lệnh đã khớp theo symbol để send telegram 
         try:          
@@ -1476,22 +1535,17 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, reason_cancel_update, "B")
                             should_break_loop = True
                             break  # thoát vòng kiểm tra, không update nữa
-
+                    
+                    times_update = i + 1
+                    message_update = update_buy_order(
+                        user_name, account, symbol, request_url, session, asp_net_session, "B",
+                        step_price, limited_price_to_buy, times_update
+                    )
+                    if message_update:
+                        send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
+                        send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
                     else:
-                        # --- Chỉ đến đây sau khi đã chờ đủ sleeping_time_buy ---
-                        if should_break_loop:
-                            break
-                        logger.info(f'🔄 Bắt đầu sửa lệnh mua lần thứ {i + 1} của {symbol}')                      
-                        # --- Thực hiện update_buy_order ---
-                        message_update = update_buy_order(
-                            user_name, account, symbol, request_url, session, asp_net_session, "B",
-                            step_price, limited_price_to_buy, i + 1
-                        )
-                        if message_update:
-                            send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
-                            send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
-                        else:
-                            break
+                        break
 
                 #Tổng kết các lệnh đã khớp theo symbol để send telegram   
                 res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
@@ -1830,7 +1884,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             # Xử lý sửa lệnh
             if is_send_order_sell:
                 ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
-                time.sleep(sleeping_time_sell)
                 limited_times = time_to_sell // sleeping_time_sell
                 limited_price_to_sell = start_price + add_price_sell - slippage_sell
                 interval_check = 10  # kiểm tra mỗi 10 giây
@@ -1869,9 +1922,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
                     else:
                         cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lỗi không sửa được lệnh bán', "S")
-                        break           
-                    time.sleep(sleeping_time_sell) 
-
+                        break  
                 else:
                     # Vòng for chạy hết mà không gặp break (tức là số vòng chạy đạt limited_times
                     cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Vượt quá thời gian tối đa đặt lệnh bán', "S")
