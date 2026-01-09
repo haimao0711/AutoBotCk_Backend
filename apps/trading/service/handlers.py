@@ -538,9 +538,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
 
     is_send_order_buy = False   
     if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
-        logger.info(f'bắt đầu hàm đặt lệnh mua tay {symbol}')
-        #Hủy tất cả các lệnh nếu còn đặt
-        cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Các lệnh mua cũ còn tồn', "B")
+        logger.info(f'bắt đầu hàm đặt lệnh mua tay {symbol}') "B")
         timezone = pytz.timezone('Asia/Ho_Chi_Minh')
         last_row = stock_data_trading.iloc[-1]
         open_last_row = last_row['open'] 
