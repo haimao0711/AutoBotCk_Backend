@@ -49,12 +49,21 @@ logger = logging.getLogger(__name__)
 def cancel_all_orders(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str):
     logger.info(f'Bắt đầu chạy hàm cancel all order ')
     ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-    res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', side)    
+    
+    # Sử dụng helper function với retry
+    res_not_matcheds = get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, side)
+       
     if res_not_matcheds:
         logger.info(f'Da co danh sach chua khop to cancel all order: {res_not_matcheds}')
 
         for order in res_not_matcheds: 
-            res_cancel = handle_cancel_order_service(user_name, request_url, session, '', order['orderNo'], ref_id)
+            # Sử dụng helper execute_action_with_retry
+            res_cancel = execute_action_with_retry(
+                handle_cancel_order_service,
+                user_name, request_url, session, '', order['orderNo'], ref_id,
+                action_name=f"Cancel All Orders - {order['symbol']}"
+            )
+            
             if res_cancel:
                 logger.info(f"Da huy lenh {order['side']} mã {order['symbol']}: {res_cancel}")
             else:
@@ -74,16 +83,25 @@ def cancel_all_orders(user: User, user_name: str, account: str, symbol: str, req
 def cancel_all_buy_orders(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str):
     logger.info(f'Bắt đầu chạy hàm cancel all buy orders ')
     ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-    res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', side)    
+    
+    # Sử dụng helper function với retry
+    res_not_matcheds = get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, side)
+       
     if res_not_matcheds:
         logger.info(f'Da co danh sach chua khop to cancel all buy orders: {res_not_matcheds}')
 
         for order in res_not_matcheds: 
-            res_cancel = handle_cancel_order_service(user_name, request_url, session, '', order['orderNo'], ref_id)
+            # Sử dụng helper execute_action_with_retry
+            res_cancel = execute_action_with_retry(
+                handle_cancel_order_service,
+                user_name, request_url, session, '', order['orderNo'], ref_id,
+                action_name=f"Cancel All Buy Orders - {order['symbol']}"
+            )
+            
             if res_cancel:
                 logger.info(f"Da huy lenh {order['side']} mã {order['symbol']}: {res_cancel}")
             else:
-                logger.info(f'Chua huy duoc lenh {order['side']}  {symbol}')
+                logger.info(f"Chua huy duoc lenh {order['side']}  {symbol}")
         message_cancel = '** Chặn mua, đã hủy tất cả các lệnh mua đang đặt hiện tại**'
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
         send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
@@ -92,22 +110,74 @@ def cancel_all_buy_orders(user: User, user_name: str, account: str, symbol: str,
 def cancel_all_sell_orders(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str):
     logger.info(f'Bắt đầu chạy hàm cancel all sell orders ')
     ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-    res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', side)    
+    
+    # Sử dụng helper function với retry
+    res_not_matcheds = get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, side)
+       
     if res_not_matcheds:
         logger.info(f'Da co danh sach chua khop to cancel all sell orders: {res_not_matcheds}')
 
         for order in res_not_matcheds: 
-            res_cancel = handle_cancel_order_service(user_name, request_url, session, '', order['orderNo'], ref_id)
+            # Sử dụng helper execute_action_with_retry
+            res_cancel = execute_action_with_retry(
+                handle_cancel_order_service,
+                user_name, request_url, session, '', order['orderNo'], ref_id,
+                action_name=f"Cancel All Sell Orders - {order['symbol']}"
+            )
+            
             if res_cancel:
                 logger.info(f"Da huy lenh {order['side']} mã {order['symbol']}: {res_cancel}")
             else:
-                logger.info(f'Chua huy duoc lenh {order['side']} {symbol}')
+                logger.info(f"Chua huy duoc lenh {order['side']}  {symbol}")
         message_cancel = '** Chặn bán, đã hủy tất cả các lệnh bán đang đặt hiện tại**'
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
-        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel) 
+        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
     else:
         logger.info(f'Chua lay duoc danh sach chua khop to cancel all sell orders')
 
+def get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, side, max_retry=5, retry_delay=5):
+    """
+    Helper function to get unmatched orders with retry mechanism.
+    """
+    retry_count = 0
+    res_not_matcheds = None
+    
+    while not res_not_matcheds and retry_count < max_retry:
+        try:
+            res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', side)
+        except Exception as e:
+            logger.error(f"Lỗi khi gọi handle_orders_not_matched (Lần {retry_count + 1}/{max_retry}): {e}")
+            res_not_matcheds = None
+
+        if not res_not_matcheds:
+            retry_count += 1
+            if retry_count < max_retry:
+                logger.info(f"Lần thử {retry_count}/{max_retry}: Chưa có danh sách chưa khớp cho symbol {symbol}. Thử lại sau {retry_delay} giây...")
+                time.sleep(retry_delay)
+    
+    return res_not_matcheds
+
+def execute_action_with_retry(action_func, *args, max_retry=3, retry_delay=2, action_name="Action"):
+    """
+    Helper function to execute an action (update/cancel) with retry mechanism.
+    """
+    retry_count = 0
+    result = None
+    
+    while not result and retry_count < max_retry:
+        try:
+            result = action_func(*args)
+        except Exception as e:
+            logger.error(f"Lỗi khi thực hiện {action_name} (Lần {retry_count + 1}/{max_retry}): {e}")
+            result = None
+            
+        if not result:
+            retry_count += 1
+            if retry_count < max_retry:
+                logger.info(f"Thực hiện {action_name} thất bại. Thử lại lần {retry_count}/{max_retry} sau {retry_delay} giây...")
+                time.sleep(retry_delay)
+                
+    return result
 
 
 def update_buy_order(user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str, step_price: float, limited_price: float, times_update: int):
@@ -116,22 +186,39 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
     start_time_update = datetime.now(tz).strftime("%H:%M:%S ngày %d-%m-%Y")
     start_time = time.time()  # Lấy thời gian bắt đầu
     logger.info(f'Nhắc lại giới hạn update lệnh mua {symbol}: {limited_price}' )
-    max_retry = 5
-    retry_count = 0
-    res_not_matcheds = None
 
-    # Lặp lại tối đa max_retry lần hoặc cho đến khi lấy được danh sách chưa khớp
-    while not res_not_matcheds and retry_count < max_retry:
-        try:
-            res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', 'B')
-        except Exception as e:
-            logger.error(f"Lỗi khi gọi handle_orders_not_matched trong update_buy_order: {e}")
-            res_not_matcheds = None
 
-        if not res_not_matcheds:
-            retry_count += 1
-            logger.info(f"Lần thử {retry_count}/{max_retry}: Chưa có danh sách chưa khớp cho symbol {symbol}. Thử lại sau {5} giây...")
-            time.sleep(5)
+    message_buy_update = []
+
+    if res_not_matcheds:
+        logger.info(f"Đã có danh sách chưa khớp để update buy stock {symbol}: {res_not_matcheds}")
+        buy_update_overrall_attrs = {        
+            'user_account': account,
+            'stock': symbol,
+            'number_order': len(res_not_matcheds),
+            'start_time_order': start_time_update,
+            'times_update': times_update
+        } 
+        message_buy_update.append({
+            'status_signal': SignalTelegramEnum.BUY_UPDATE_OVERRAL,
+            **buy_update_overrall_attrs
+        })               
+        for order in res_not_matcheds:   
+            ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"   
+            old_price = float(order['showPrice'])
+            update_price = round(old_price + step_price, 2)            
+            update_volume = int(order['volume'])
+            order_num = order['orderNo']
+            try:
+def update_buy_order(user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str, step_price: float, limited_price: float, times_update: int):
+    logger.info(f'Bắt đầu chạy hàm update lệnh mua {symbol} ' )    
+    tz = pytz.timezone("Asia/Ho_Chi_Minh")
+    start_time_update = datetime.now(tz).strftime("%H:%M:%S ngày %d-%m-%Y")
+    start_time = time.time()  # Lấy thời gian bắt đầu
+    logger.info(f'Nhắc lại giới hạn update lệnh mua {symbol}: {limited_price}' )
+    
+    # Sử dụng helper function với retry
+    res_not_matcheds = get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, 'B')
 
     message_buy_update = []
 
@@ -157,24 +244,39 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
             try:
             # Nếu update_price chưa vượt limited_price thì handle update order
                 if update_price < limited_price:
-                    handle_update_order_service(user_name, account, request_url, symbol, session, '', order_num, old_price, update_price, update_volume, ref_id, 'B')
-                    buy_update_details_attrs = {
-                        'stock': order['symbol'],
-                        'old_price': old_price,
-                        'update_price': update_price,
-                        'volume': order['volume'],
-                        'status': order['status']
-                    }
+                    # Sử dụng helper execute_action_with_retry
+                    res_update_order = execute_action_with_retry(
+                        handle_update_order_service, 
+                        user_name, account, request_url, symbol, session, '', order_num, old_price, update_price, update_volume, ref_id, 'B',
+                        action_name="Update Buy Order"
+                    )
                     
-                    message_buy_update.append({
-                            'status_signal': SignalTelegramEnum.BUY_UPDATE_DETAIL,
-                            **buy_update_details_attrs
-                    })
+                    if res_update_order:
+                        buy_update_details_attrs = {
+                            'stock': order['symbol'],
+                            'old_price': old_price,
+                            'update_price': update_price,
+                            'volume': order['volume'],
+                            'status': order['status']
+                        }
+                        
+                        message_buy_update.append({
+                                'status_signal': SignalTelegramEnum.BUY_UPDATE_DETAIL,
+                                **buy_update_details_attrs
+                        })
+                    else:
+                        logger.info(f'Chua update duoc lenh mua one order {symbol}')
                 
             # Nếu update_price vượt quá limited_price thì handle cancel order
                 else:
                     logger.info(f'Huy lenh vi gia update: {update_price} da toi limited: {limited_price}')
-                    res_cancel_order = handle_cancel_order_service(user_name, request_url, session, '', order_num, ref_id)
+                    # Sử dụng helper execute_action_with_retry
+                    res_cancel_order = execute_action_with_retry(
+                        handle_cancel_order_service,
+                        user_name, request_url, session, '', order_num, ref_id,
+                        action_name="Cancel Buy Order (Limit Reached)"
+                    )
+                    
                     if res_cancel_order:
                         logger.info(f'Da huy lenh mua {symbol}: {res_cancel_order}')
                         buy_cancel_details_attrs = {
@@ -192,6 +294,12 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
             except Exception as e:
                 logger.info(f"[ERROR] Lỗi khi xử lý order {order_num}: {e}")
     else:
+        logger.info(f"Không có danh sách chưa khớp để update buy stock {symbol}. Ngưng update lệnh")
+
+    return message_buy_update
+            except Exception as e:
+                logger.info(f"[ERROR] Lỗi khi xử lý order {order_num}: {e}")
+    else:
         logger.info(f"Thử {max_retry} lần nhưng vẫn chưa có danh sách chưa khớp để update buy stock {symbol}. Ngưng update lệnh")
 
     return message_buy_update 
@@ -203,7 +311,10 @@ def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, reque
     tz = pytz.timezone("Asia/Ho_Chi_Minh")
     start_time_cancel = datetime.now(tz).strftime("%H:%M:%S ngày %d-%m-%Y")
     message_buy_cancel = []
-    res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', 'B')    
+    
+    # Sử dụng helper function với retry
+    res_not_matcheds = get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, 'B')
+        
     if res_not_matcheds:
         logger.info(f'Da co danh sach chua khop to cancel buy stock {symbol}: {res_not_matcheds}')
         buy_cancel_overrall_attrs = {        
@@ -219,7 +330,13 @@ def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, reque
         })            
 
         for order in res_not_matcheds:  
-            res_cancel = handle_cancel_order_service(user_name, request_url, session, '', order['orderNo'], ref_id)
+            # Sử dụng helper execute_action_with_retry
+            res_cancel = execute_action_with_retry(
+                handle_cancel_order_service,
+                user_name, request_url, session, '', order['orderNo'], ref_id,
+                action_name="Cancel Buy Order"
+            )
+            
             if res_cancel:
                 logger.info(f'Da huy lenh mua {symbol}: {res_cancel}')
                 buy_cancel_details_attrs = {
@@ -250,12 +367,9 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
     
     message_sell_update = []
     logger.info(f'Nhắc lại giới hạn update lệnh bán {symbol}: {limited_price}')
-    res_not_matcheds = None
-    try:
-        res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', 'S')
-    except Exception as e:
-         logger.error(f"Lỗi khi gọi handle_orders_not_matched trong update_sell_order: {e}")
-         res_not_matcheds = None
+    
+    # Sử dụng helper function với retry
+    res_not_matcheds = get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, 'S')
          
     if res_not_matcheds:
         logger.info(f'da co danh sach chưa khơp to update stock {symbol}: {res_not_matcheds}') 
@@ -280,22 +394,35 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
             logger.info(f'check order_num sell: {order_num}')
         # Nếu update_price chưa bé hơn limited_price thì handle update order
             if update_price > limited_price:
-                handle_update_order_service(user_name, account, request_url, symbol, session, '', order_num, old_price, update_price, update_volume, ref_id, 'S')
-                sell_update_details_attrs = {
-                    'stock': order['symbol'],
-                    'old_price': old_price,
-                    'update_price': update_price,
-                    'volume': order['volume'],
-                    'status': order['status']
-                    }
-                message_sell_update.append({
-                    'status_signal': SignalTelegramEnum.SELL_UPDATE_DETAIL,
-                    **sell_update_details_attrs
-                    })            
+                # Sử dụng helper execute_action_with_retry
+                res_update_order = execute_action_with_retry(
+                    handle_update_order_service,
+                    user_name, account, request_url, symbol, session, '', order_num, old_price, update_price, update_volume, ref_id, 'S',
+                    action_name="Update Sell Order"
+                )
+                
+                if res_update_order:
+                    sell_update_details_attrs = {
+                        'stock': order['symbol'],
+                        'old_price': old_price,
+                        'update_price': update_price,
+                        'volume': order['volume'],
+                        'status': order['status']
+                        }
+                    message_sell_update.append({
+                        'status_signal': SignalTelegramEnum.SELL_UPDATE_DETAIL,
+                        **sell_update_details_attrs
+                        })            
         # Nếu update_price nhỏ hơn limited_price thì handle cancel order
             else:
                 logger.info(f'Huy lenh vi gia update: {update_price} da toi limited: {limited_price}')
-                res_cancel_order = handle_cancel_order_service(user_name, request_url, session, '', order_num, ref_id)
+                # Sử dụng helper execute_action_with_retry
+                res_cancel_order = execute_action_with_retry(
+                    handle_cancel_order_service,
+                    user_name, request_url, session, '', order_num, ref_id,
+                    action_name="Cancel Sell Order (Limit Reached)"
+                )
+                
                 if res_cancel_order:
                     sell_cancel_details_attrs = {
                         'stock': res_cancel_order['symbol'],
@@ -321,7 +448,10 @@ def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, req
     time_now  = datetime.now(tz)
     start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y") 
     message_cancel = []
-    res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', 'S')    
+    
+    # Sử dụng helper function với retry
+    res_not_matcheds = get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, 'S')
+       
     if res_not_matcheds:
         logger.info(f'Da co danh sach chua khop to cancel sell stock {symbol}: {res_not_matcheds}')
         sell_cancel_overrall_attrs = {        
@@ -337,7 +467,13 @@ def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, req
         })            
         
         for order in res_not_matcheds: 
-            res_cancel = handle_cancel_order_service(user_name, request_url, session, '', order['orderNo'], ref_id)
+            # Sử dụng helper execute_action_with_retry
+            res_cancel = execute_action_with_retry(
+                handle_cancel_order_service,
+                user_name, request_url, session, '', order['orderNo'], ref_id,
+                action_name="Cancel Sell Order"
+            )
+            
             if res_cancel:
                 logger.info(f'Da huy lenh ban {symbol}: {res_cancel}')
                 sell_cancel_details_attrs = {
@@ -357,8 +493,8 @@ def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, req
         if message_cancel:
             send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_cancel)
             send_telegram_message_batch(user, MessageTypeEnum.ACT, message_cancel)
-        else:
-            logger.info(f'Chua lay duoc danh sach chua khop to cancel sell {symbol}')  
+    else:
+        logger.info(f'Chua lay duoc danh sach chua khop to cancel sell {symbol}')  
 
 def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool):
     # Các giá trị mặc định
@@ -2097,6 +2233,8 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         for config in configurations_is_trading
     ]
     logger.info(f'List symbol_is_trading của user {user.username}: {list_symbol_is_trading}  ')
+    message_is_trading = f'Danh sách mã đã trading của user {user.username}: {list_symbol_is_trading}  '
+    send_message_telegram(user, MessageTypeEnum.OVERALL, message_is_trading) 
     configurations_handle_trading = [
         config for config in user_configurations
         if (trading_config := config.get("trading_config")) and trading_config.is_trading is False
@@ -2122,7 +2260,8 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         for config in configurations_handle_trading
     ]
     logger.info(f'List list_symbols_process_trading của user {user.username} : {list_symbols_process_trading} ')
-
+    message_process_trading = f'Danh sách mã tiến hành chạy bot của user {user.username}: {list_symbol_is_trading}  '
+    send_message_telegram(user, MessageTypeEnum.OVERALL, message_process_trading) 
     trading_configurations(user, configurations_handle_trading, vps_account, percent_buy_trade)
 
 

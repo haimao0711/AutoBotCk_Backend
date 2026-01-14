@@ -293,5 +293,35 @@ def cancel_all_orders_on_startup():
                 
         logger.info("✅ Hoàn thành việc hủy tất cả lệnh khi khởi động container.")
         
+        
     except Exception as e:
         logger.exception(f"❌ Lỗi trong cancel_all_orders_on_startup: {e}")
+
+def revert_all_trading_status_on_startup():
+    """
+    Revert trạng thái request trade (is_buy_hand, is_sell_hand) và is_trading về False 
+    cho tất cả users khi container khởi động
+    """
+    try:
+        from apps.configuration.details.overview.services import ConfigurationOverviewServices
+        
+        users = User.objects.all()
+        
+        if not users.exists():
+            logger.info("🔄 Không có user nào trong hệ thống để revert status.")
+            return
+            
+        logger.info(f"🔄 Bắt đầu revert trading status cho {users.count()} user(s) khi khởi động container...")
+        
+        for user in users:
+            try:
+                # Hàm này đã bao gồm logic update cả request trade (overview) và is_trading (trading config)
+                ConfigurationOverviewServices.restart_request_trade_overview(user)
+                
+            except Exception as e:
+                logger.exception(f"❌ Lỗi khi revert trading status cho user {user.username}: {e}")
+                
+        logger.info("✅ Hoàn thành việc revert trading status khi khởi động container.")
+        
+    except Exception as e:
+        logger.exception(f"❌ Lỗi trong revert_all_trading_status_on_startup: {e}")
