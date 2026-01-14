@@ -113,7 +113,7 @@ def cancel_all_sell_orders(user: User, user_name: str, account: str, symbol: str
 def update_buy_order(user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str, step_price: float, limited_price: float, times_update: int):
     logger.info(f'Bắt đầu chạy hàm update lệnh mua {symbol} ' )    
     tz = pytz.timezone("Asia/Ho_Chi_Minh")
-    start_time_update = datetime.now(tz)
+    start_time_update = datetime.now(tz).strftime("%H:%M:%S ngày %d-%m-%Y")
     start_time = time.time()  # Lấy thời gian bắt đầu
     logger.info(f'Nhắc lại giới hạn update lệnh mua {symbol}: {limited_price}' )
     max_retry = 5
@@ -122,7 +122,11 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
 
     # Lặp lại tối đa max_retry lần hoặc cho đến khi lấy được danh sách chưa khớp
     while not res_not_matcheds and retry_count < max_retry:
-        res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', 'B')
+        try:
+            res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', 'B')
+        except Exception as e:
+            logger.error(f"Lỗi khi gọi handle_orders_not_matched trong update_buy_order: {e}")
+            res_not_matcheds = None
 
         if not res_not_matcheds:
             retry_count += 1
@@ -197,7 +201,7 @@ def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, reque
     ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
     # start_time_cancel = datetime.now(timezone)
     tz = pytz.timezone("Asia/Ho_Chi_Minh")
-    start_time_cancel = datetime.now(tz)
+    start_time_cancel = datetime.now(tz).strftime("%H:%M:%S ngày %d-%m-%Y")
     message_buy_cancel = []
     res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', 'B')    
     if res_not_matcheds:
@@ -245,8 +249,14 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
     start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")    
     
     message_sell_update = []
-    logger.info(f'Nhắc lại giới hạn update lệnh bán {symbol}: {limited_price}')   
-    res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', 'S')
+    logger.info(f'Nhắc lại giới hạn update lệnh bán {symbol}: {limited_price}')
+    res_not_matcheds = None
+    try:
+        res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', 'S')
+    except Exception as e:
+         logger.error(f"Lỗi khi gọi handle_orders_not_matched trong update_sell_order: {e}")
+         res_not_matcheds = None
+         
     if res_not_matcheds:
         logger.info(f'da co danh sach chưa khơp to update stock {symbol}: {res_not_matcheds}') 
         sell_update_overrall_attrs = {        
@@ -768,6 +778,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     session = vps_account.vps_session_id
     request_url = api.TRADING_URL
     ref_id = f"{user_name}.I.test.{int(time.time() * 1000)}"
+    timezone = pytz.timezone('Asia/Ho_Chi_Minh')
     
     
     # Lấy dữ liệu đã chuẩn bị  
@@ -888,6 +899,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 sell_reason, trading_chart_value=trading_candle_sell, trading_chart_value_second=trading_candle_sell_second, following_chart_type=following_candle_sell, following_chart_type_second=following_candle_sell_second
             )
 
+            time_now = datetime.now(timezone)
+            start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
             sell_attrs = {
                 "user_account": account,
                 "platform_trading": "Smart One",
@@ -895,6 +908,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 "volume": 0,
                 "price": price_to_start,
                 "message": messages_to_sell,
+                "start_time_order": start_time_order,
             }
             send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)    
             
@@ -923,6 +937,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             except Exception as e:
                 logger.error(f"Lỗi khi download data để lấy price_to_start: {e}")
                 price_to_start = 0  # Giá trị mặc định nếu có lỗi
+        time_now = datetime.now(timezone)
+        start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
         sell_attrs = {
             "user_account": account,
             "platform_trading": "Smart One",
@@ -930,6 +946,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             "volume": 0,
             "price": price_to_start if price_to_start is not None else 0,
             "message": message_stop_sell,
+            "start_time_order": start_time_order,
         }
         try:
             send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)
@@ -1260,7 +1277,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     is_buy = is_buy_vnindex  
 
             logger.info(f'check is_buy {symbol}: {is_buy}')
-            logger.info(f'check buy_reason {symbol}: {buy_reason}')     
+            # logger.info(f'check buy_reason {symbol}: {buy_reason}')     
 
             number_order = trading_config.stock_config_number_pid_buy_once_time
             if is_buy:
@@ -1582,7 +1599,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
     #HANDLE SELL
         is_trading = trading_config.is_trading
-        logger.info(f'check is_trading {symbol}: {is_trading}')
+        # logger.info(f'check is_trading {symbol}: {is_trading}')
         if not is_block_sell_stock and symbol in symbols_existing and volume_balance_trade > 0:
             logger.info(f'bắt đầu hàm kiểm tra thực hiện sell {symbol}')
             # Handle take profit
@@ -1728,7 +1745,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     config_type='stock_config'
                 )
                 if is_sell_following:
-                    logger.info(f'check sell_reason {symbol}: {sell_reason}')
+                    # logger.info(f'check sell_reason {symbol}: {sell_reason}')
 
             if is_trading_take_profit:
                 status_sell = SignalTelegramEnum.TAKEPROFIT
