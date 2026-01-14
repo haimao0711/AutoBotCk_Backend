@@ -1744,8 +1744,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     data_following_df_second=stock_data_following_second,
                     config_type='stock_config'
                 )
-                if is_sell_following:
-                    # logger.info(f'check sell_reason {symbol}: {sell_reason}')
+
 
             if is_trading_take_profit:
                 status_sell = SignalTelegramEnum.TAKEPROFIT
