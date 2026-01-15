@@ -704,7 +704,7 @@ class ConfigurationServices:
         configurations = Configuration.objects.filter(
             user=user, 
             stock__symbol=stock_symbol
-        ).select_related('stock', 'account')
+        ).select_related('stock')
 
         # Nếu không có config nào cho mã này
         if not configurations.exists():
