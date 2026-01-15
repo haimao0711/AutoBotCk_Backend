@@ -699,36 +699,40 @@ class ConfigurationServices:
 
     @staticmethod
     def get_user_configuration_by_stock_symbol(user: User, stock_symbol: str):
-        # Query all configurations for the given user
-        configurations = Configuration.objects.filter(user=user)
+        # Query trực tiếp với filter stock__symbol để giảm tải lấy toàn bộ
+        # Dùng select_related để avoid N+1 query
+        configurations = Configuration.objects.filter(
+            user=user, 
+            stock__symbol=stock_symbol
+        ).select_related('stock', 'account')
+
+        # Nếu không có config nào cho mã này
+        if not configurations.exists():
+            return None
 
         # Khởi tạo dict để lưu theo stock
-        user_configurations = {}
+        # Vì đã filter chính xác symbol nên ko cần check lại symbol nữa
+        # Tuy nhiên vẫn cần group lại để lấy overview có level thấp nhất
+        
+        user_configurations = {
+            'stock': None,
+            'trading_config': None,
+            'following_config': None,
+            'overview_config': []
+        }
+        
         overview_unsorted = []
 
-        # Duyệt qua tất cả configurations
+        # Duyệt qua kết quả đã filter (số lượng rất ít, max ~3-4 record)
         for config in configurations:
-            if not config.stock:
-                continue
-            stock_id = config.stock.symbol  # So sánh bằng symbol (mã cổ phiếu)
-
-            if stock_id != stock_symbol:
-                continue  # Bỏ qua nếu không phải mã cổ phiếu cần tìm
-
-            # Khởi tạo config cho cổ phiếu nếu chưa có
-            if stock_id not in user_configurations:
-                user_configurations[stock_id] = {
-                    'stock': config.stock,
-                    'trading_config': None,
-                    'following_config': None,
-                    'overview_config': []
-                }
+            if not user_configurations['stock']:
+                user_configurations['stock'] = config.stock
 
             # Gán theo loại config
             if config.config_type_id == 2:  # Trading
-                user_configurations[stock_id]['trading_config'] = config
+                user_configurations['trading_config'] = config
             elif config.config_type_id == 3:  # Following
-                user_configurations[stock_id]['following_config'] = config
+                user_configurations['following_config'] = config
             elif config.config_type_id == 4:  # Overview
                 overview_unsorted.append({
                     'stock': config.stock,
@@ -745,12 +749,10 @@ class ConfigurationServices:
 
         # Lấy phần tử đầu tiên (có level thấp nhất)
         overview = sorted_overview[0]
-        stock_id = overview['stock'].symbol
-
+        
         # Gán thêm trading và following nếu có
-        if stock_id in user_configurations:
-            overview['trading_config'] = user_configurations[stock_id].get('trading_config')
-            overview['following_config'] = user_configurations[stock_id].get('following_config')
+        overview['trading_config'] = user_configurations.get('trading_config')
+        overview['following_config'] = user_configurations.get('following_config')
 
         return overview
 
