@@ -180,36 +180,7 @@ def execute_action_with_retry(action_func, *args, max_retry=3, retry_delay=2, ac
     return result
 
 
-def update_buy_order(user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str, step_price: float, limited_price: float, times_update: int):
-    logger.info(f'Bắt đầu chạy hàm update lệnh mua {symbol} ' )    
-    tz = pytz.timezone("Asia/Ho_Chi_Minh")
-    start_time_update = datetime.now(tz).strftime("%H:%M:%S ngày %d-%m-%Y")
-    start_time = time.time()  # Lấy thời gian bắt đầu
-    logger.info(f'Nhắc lại giới hạn update lệnh mua {symbol}: {limited_price}' )
 
-
-    message_buy_update = []
-
-    if res_not_matcheds:
-        logger.info(f"Đã có danh sách chưa khớp để update buy stock {symbol}: {res_not_matcheds}")
-        buy_update_overrall_attrs = {        
-            'user_account': account,
-            'stock': symbol,
-            'number_order': len(res_not_matcheds),
-            'start_time_order': start_time_update,
-            'times_update': times_update
-        } 
-        message_buy_update.append({
-            'status_signal': SignalTelegramEnum.BUY_UPDATE_OVERRAL,
-            **buy_update_overrall_attrs
-        })               
-        for order in res_not_matcheds:   
-            ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"   
-            old_price = float(order['showPrice'])
-            update_price = round(old_price + step_price, 2)            
-            update_volume = int(order['volume'])
-            order_num = order['orderNo']
-            try:
 def update_buy_order(user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str, step_price: float, limited_price: float, times_update: int):
     logger.info(f'Bắt đầu chạy hàm update lệnh mua {symbol} ' )    
     tz = pytz.timezone("Asia/Ho_Chi_Minh")
