@@ -268,12 +268,7 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
         logger.info(f"Không có danh sách chưa khớp để update buy stock {symbol}. Ngưng update lệnh")
 
     return message_buy_update
-            except Exception as e:
-                logger.info(f"[ERROR] Lỗi khi xử lý order {order_num}: {e}")
-    else:
-        logger.info(f"Thử {max_retry} lần nhưng vẫn chưa có danh sách chưa khớp để update buy stock {symbol}. Ngưng update lệnh")
 
-    return message_buy_update 
 
 def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, request_url: str, session: str, reason: str, side: str):
     logger.info(f'Bắt đầu chạy hàm cancel buy oders {symbol} ' )
