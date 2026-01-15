@@ -2226,7 +2226,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
         for config in configurations_handle_trading
     ]
     logger.info(f'List list_symbols_process_trading của user {user.username} : {list_symbols_process_trading} ')
-    message_process_trading = f'Danh sách mã tiến hành chạy bot của user {user.username}: {list_symbol_is_trading}  '
+    message_process_trading = f'Danh sách mã tiến hành chạy bot của user {user.username}: {list_symbols_process_trading}  '
     send_message_telegram(user, MessageTypeEnum.OVERALL, message_process_trading) 
     trading_configurations(user, configurations_handle_trading, vps_account, percent_buy_trade)
 
