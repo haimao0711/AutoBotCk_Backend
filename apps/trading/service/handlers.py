@@ -135,7 +135,7 @@ def cancel_all_sell_orders(user: User, user_name: str, account: str, symbol: str
     else:
         logger.info(f'Chua lay duoc danh sach chua khop to cancel all sell orders')
 
-def get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, side, max_retry=5, retry_delay=5):
+def get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, side, max_retry=3, retry_delay=1):
     """
     Helper function to get unmatched orders with retry mechanism.
     """
