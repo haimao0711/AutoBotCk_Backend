@@ -26,6 +26,7 @@ from apps.telegram.sender import send_message, send_message_telegram
 # from apps.balance.services import BalanceService
 
 from common.signal.enums import SignalTelegramEnum
+from common.success.types import SuccessType
 from apps.telegram.enum.enums import MessageTypeEnum
 from typing import List
 from concurrent.futures import ProcessPoolExecutor, as_completed
