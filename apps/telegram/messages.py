@@ -4,8 +4,7 @@ __all__ = ['NOTIFY_RUNNING', 'NOTIFY_LOGIN', 'LOGIN_SUCCESS', 'LOGIN_FAILED', 'B
            'SELL_SIGNAL', 'BUY_FAILED_SIGNAL', 'BUY_FAILED_UPDATE', 'SELL_FAILED_SIGNAL', 'SELL_FAILED_UPDATE', 'DEFAULT_MESSAGE']
 
 NOTIFY_RUNNING = '''
-📢📢📢
-BOT của **{username}** đã chạy vào lúc **{time}**
+📢📢📢 BOT của **{username}** đã chạy vào lúc **{time}**
 '''
 
 NOTIFY_LOGIN = '''

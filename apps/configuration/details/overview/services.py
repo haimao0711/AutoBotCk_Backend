@@ -244,9 +244,7 @@ class ConfigurationOverviewServices:
 
 
     def create_overview_configuration(user, init_overview_data):
-        print('đã vào hàm create_overview_configuration ')
         if ConfigurationTemplateServices.check_template_is_exist(user=user):
-            print('đã vào if ConfigurationTemplateServices.check_template_is_exist ')
             return ConfigurationOverviewServices.create_a_new_overview_configuration(user, init_overview_data)
         return ErrorType.CREATE_FAILED, {}
 
