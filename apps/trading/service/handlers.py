@@ -501,7 +501,11 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     last_buy_check_time = None  # Dùng để giới hạn việc kiểm tra mua mỗi 60 giây
     message_stop_buy = 'Hết thời gian của lệnh mua tay'
     price_to_start = None  # Khởi tạo giá trị mặc định để tránh lỗi khi sử dụng sau vòng lặp
-    ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
+    update_status, update_data = ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
+    if update_status != SuccessType.UPDATED_SUCCESS:
+        logger.error(f'Failed to update is_trading for {symbol}: {update_data}')
+    else:
+        logger.info(f'Successfully updated is_trading for {symbol} to True')
     while datetime.now() < end_time:
         # Kiểm tra is_buy_hand mỗi 5 giây        
         configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
