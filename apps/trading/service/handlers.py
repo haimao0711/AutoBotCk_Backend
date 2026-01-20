@@ -1731,8 +1731,24 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     send_message_telegram(user, MessageTypeEnum.OVERALL, message_buy_matched_fail)
                     send_message_telegram(user, MessageTypeEnum.ACT, message_buy_matched_fail)
                     cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đảm bảo hết lệnh còn đặt khi kết thúc mỗi vòng mua', "B")
+          
+            # 🔄 Lấy cấu hình mới nhất để kiểm tra is_buy_hand hoặc is_sell_hand trước khi tắt is_trading
+            is_manual_active = False
+            try:
+                latest_config = ConfigurationServices.get_user_configuration_by_stock_symbol(user, symbol)
+                if latest_config:
+                    latest_overview = latest_config.get("overview_config")
+                    if latest_overview:
+                         # Kiểm tra xem có đang Mua Tay hoặc Bán Tay không
+                        if latest_overview.is_buy_hand or latest_overview.is_sell_hand:
+                            is_manual_active = True
+            except Exception as e:
+                logger.error(f"Lỗi khi kiểm tra lại cấu hình trước khi update is_trading cho {symbol}: {e}")
 
-            ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
+            if is_manual_active:
+                logger.info(f"⚠️ Giữ nguyên is_trading=True cho {symbol} vì đang có lệnh Mua/Bán Tay (is_buy_hand hoặc is_sell_hand=True)")
+            else:
+                ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
 
     #HANDLE SELL
         is_trading = trading_config.is_trading
@@ -2107,7 +2123,23 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     logger.info('Tiến hành đóng chốt lãi một phần cho 4 loại ....') 
                     ConfigurationServices.update_all_take_profit_flags_false(user, stock_id, use_take_profit_first_part)
 
-            ConfigurationServices.update_is_trading_configuration(user, stock_id, False)                        
+            # 🔄 Lấy cấu hình mới nhất để kiểm tra is_buy_hand hoặc is_sell_hand trước khi tắt is_trading
+            is_manual_active_sell = False
+            try:
+                latest_config_sell = ConfigurationServices.get_user_configuration_by_stock_symbol(user, symbol)
+                if latest_config_sell:
+                    latest_overview_sell = latest_config_sell.get("overview_config")
+                    if latest_overview_sell:
+                         # Kiểm tra xem có đang Mua Tay hoặc Bán Tay không
+                        if latest_overview_sell.is_buy_hand or latest_overview_sell.is_sell_hand:
+                            is_manual_active_sell = True
+            except Exception as e:
+                logger.error(f"Lỗi khi kiểm tra lại cấu hình trước khi update is_trading cho {symbol} (Sell flow): {e}")
+
+            if is_manual_active_sell:
+                logger.info(f"⚠️ Giữ nguyên is_trading=True cho {symbol} (Sell flow) vì đang có lệnh Mua/Bán Tay (is_buy_hand hoặc is_sell_hand=True)")
+            else:
+                ConfigurationServices.update_is_trading_configuration(user, stock_id, False)                        
 
         logger.info(f'Kết thúc process_trading: {symbol}')
     except Exception as e:
