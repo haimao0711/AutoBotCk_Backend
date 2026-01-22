@@ -1414,7 +1414,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     is_buy = is_buy_vnindex  
 
             logger.info(f'check is_buy {symbol}: {is_buy}')
-            if symbol in ['BID']:
+            if symbol in ['PC1', 'BVH']:
                 logger.info(f'check buy_reason {symbol}: {buy_reason}')     
 
             number_order = trading_config.stock_config_number_pid_buy_once_time
@@ -1443,6 +1443,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 "start_time_order": start_time_order,
             }
             if is_buy_following and not is_buy:
+                send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
+            
+            if symbol in ['PC1', 'BID']:
                 send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_SUCCESS:
