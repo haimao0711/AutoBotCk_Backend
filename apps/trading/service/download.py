@@ -14,6 +14,26 @@ def download_data(stock: Stock, vnindex_stock: Stock, trading_chart_type: Candle
         
         # print(vnindex_data_following, vnindex_data_trading)
         
+        # Patch realtime data for VNINDEX
+        try:
+            vnindex_info = DownloadService.get_stock_info(vnindex_stock.symbol, None)
+            if vnindex_info and 'matchPrice' in vnindex_info:
+                match_price = vnindex_info['matchPrice']
+                
+                if vnindex_data_following is not None and not vnindex_data_following.empty:
+                    last_idx = vnindex_data_following.index[-1]
+                    vnindex_data_following.at[last_idx, 'close'] = match_price
+                    vnindex_data_following.at[last_idx, 'high'] = max(vnindex_data_following.at[last_idx, 'high'], match_price)
+                    vnindex_data_following.at[last_idx, 'low'] = min(vnindex_data_following.at[last_idx, 'low'], match_price)
+
+                if vnindex_data_trading is not None and not vnindex_data_trading.empty:
+                    last_idx = vnindex_data_trading.index[-1]
+                    vnindex_data_trading.at[last_idx, 'close'] = match_price
+                    vnindex_data_trading.at[last_idx, 'high'] = max(vnindex_data_trading.at[last_idx, 'high'], match_price)
+                    vnindex_data_trading.at[last_idx, 'low'] = min(vnindex_data_trading.at[last_idx, 'low'], match_price)
+        except Exception as e:
+            print(f"Error patching VNINDEX realtime data: {e}")
+
         adding_idicator(vnindex_data_following)
         adding_idicator(vnindex_data_trading)
 
@@ -21,6 +41,27 @@ def download_data(stock: Stock, vnindex_stock: Stock, trading_chart_type: Candle
             stock=stock, chart_type=following_chart_type, download_status=DownloadStatusEnum.NEW.value)
         stock_data_trading = DownloadService.download_data_single(
             stock=stock, chart_type=trading_chart_type, download_status=DownloadStatusEnum.NEW.value)
+        
+        # Patch realtime data for Stock
+        try:
+            stock_info = DownloadService.get_stock_info(stock.symbol, None)
+            if stock_info and 'matchPrice' in stock_info:
+                match_price = stock_info['matchPrice']
+                
+                if stock_data_following is not None and not stock_data_following.empty:
+                    last_idx = stock_data_following.index[-1]
+                    stock_data_following.at[last_idx, 'close'] = match_price
+                    stock_data_following.at[last_idx, 'high'] = max(stock_data_following.at[last_idx, 'high'], match_price)
+                    stock_data_following.at[last_idx, 'low'] = min(stock_data_following.at[last_idx, 'low'], match_price)
+
+                if stock_data_trading is not None and not stock_data_trading.empty:
+                    last_idx = stock_data_trading.index[-1]
+                    stock_data_trading.at[last_idx, 'close'] = match_price
+                    stock_data_trading.at[last_idx, 'high'] = max(stock_data_trading.at[last_idx, 'high'], match_price)
+                    stock_data_trading.at[last_idx, 'low'] = min(stock_data_trading.at[last_idx, 'low'], match_price)
+        except Exception as e:
+            print(f"Error patching Stock realtime data: {e}")
+
         adding_idicator(stock_data_following)
         adding_idicator(stock_data_trading)
     except Exception as error:
