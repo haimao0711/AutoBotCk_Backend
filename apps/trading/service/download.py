@@ -4,6 +4,64 @@ from apps.stock.enums import DownloadStatusEnum
 from apps.stock.services import DownloadService
 from apps.trading.service.helper import adding_idicator
 import requests
+import pandas as pd
+from datetime import datetime
+import pytz
+
+def patch_realtime_data(df, match_price, chart_type):
+    if df is None or df.empty:
+        return
+
+    try:
+        # timezone
+        tz = pytz.timezone('Asia/Ho_Chi_Minh')
+        now = datetime.now(tz)
+        
+        start_time = None
+        
+        if chart_type == CandleEnum.M1:
+            start_time = now.replace(second=0, microsecond=0)
+        elif chart_type == CandleEnum.M5:
+            minute = (now.minute // 5) * 5
+            start_time = now.replace(minute=minute, second=0, microsecond=0)
+        elif chart_type == CandleEnum.M15:
+            minute = (now.minute // 15) * 15
+            start_time = now.replace(minute=minute, second=0, microsecond=0)
+        elif chart_type == CandleEnum.H1:
+            start_time = now.replace(minute=0, second=0, microsecond=0)
+        elif chart_type == CandleEnum.D1:
+            start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif chart_type == CandleEnum.W1:
+            start_time = now - pd.Timedelta(days=now.weekday())
+            start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        if start_time is None:
+            return
+
+        current_candle_ts = int(start_time.timestamp())
+        
+        last_idx = df.index[-1]
+        last_ts = int(df.at[last_idx, 'time'])
+        
+        if last_ts == current_candle_ts:
+            df.at[last_idx, 'close'] = match_price
+            df.at[last_idx, 'high'] = max(df.at[last_idx, 'high'], match_price)
+            df.at[last_idx, 'low'] = min(df.at[last_idx, 'low'], match_price)
+        elif last_ts < current_candle_ts:
+            # Append
+            new_row = {
+                'time': current_candle_ts,
+                'open': match_price,
+                'high': match_price,
+                'low': match_price,
+                'close': match_price,
+                'volume': 0,
+                'id': df.at[last_idx, 'id'] if 'id' in df.columns else None
+            }
+            df.loc[len(df)] = new_row
+            
+    except Exception as e:
+        print(f"Error in patch_realtime_data: {e}")
 
 def download_data(stock: Stock, vnindex_stock: Stock, trading_chart_type: CandleEnum, following_chart_type: CandleEnum):
     try:
@@ -12,25 +70,13 @@ def download_data(stock: Stock, vnindex_stock: Stock, trading_chart_type: Candle
         vnindex_data_trading = DownloadService.download_data_single(
             stock=vnindex_stock, chart_type=trading_chart_type, download_status=DownloadStatusEnum.NEW.value)
         
-        # print(vnindex_data_following, vnindex_data_trading)
-        
         # Patch realtime data for VNINDEX
         try:
             vnindex_info = DownloadService.get_stock_info(vnindex_stock.symbol, None)
             if vnindex_info and 'matchPrice' in vnindex_info:
                 match_price = vnindex_info['matchPrice']
-                
-                if vnindex_data_following is not None and not vnindex_data_following.empty:
-                    last_idx = vnindex_data_following.index[-1]
-                    vnindex_data_following.at[last_idx, 'close'] = match_price
-                    vnindex_data_following.at[last_idx, 'high'] = max(vnindex_data_following.at[last_idx, 'high'], match_price)
-                    vnindex_data_following.at[last_idx, 'low'] = min(vnindex_data_following.at[last_idx, 'low'], match_price)
-
-                if vnindex_data_trading is not None and not vnindex_data_trading.empty:
-                    last_idx = vnindex_data_trading.index[-1]
-                    vnindex_data_trading.at[last_idx, 'close'] = match_price
-                    vnindex_data_trading.at[last_idx, 'high'] = max(vnindex_data_trading.at[last_idx, 'high'], match_price)
-                    vnindex_data_trading.at[last_idx, 'low'] = min(vnindex_data_trading.at[last_idx, 'low'], match_price)
+                patch_realtime_data(vnindex_data_following, match_price, following_chart_type)
+                patch_realtime_data(vnindex_data_trading, match_price, trading_chart_type)
         except Exception as e:
             print(f"Error patching VNINDEX realtime data: {e}")
 
@@ -47,18 +93,8 @@ def download_data(stock: Stock, vnindex_stock: Stock, trading_chart_type: Candle
             stock_info = DownloadService.get_stock_info(stock.symbol, None)
             if stock_info and 'matchPrice' in stock_info:
                 match_price = stock_info['matchPrice']
-                
-                if stock_data_following is not None and not stock_data_following.empty:
-                    last_idx = stock_data_following.index[-1]
-                    stock_data_following.at[last_idx, 'close'] = match_price
-                    stock_data_following.at[last_idx, 'high'] = max(stock_data_following.at[last_idx, 'high'], match_price)
-                    stock_data_following.at[last_idx, 'low'] = min(stock_data_following.at[last_idx, 'low'], match_price)
-
-                if stock_data_trading is not None and not stock_data_trading.empty:
-                    last_idx = stock_data_trading.index[-1]
-                    stock_data_trading.at[last_idx, 'close'] = match_price
-                    stock_data_trading.at[last_idx, 'high'] = max(stock_data_trading.at[last_idx, 'high'], match_price)
-                    stock_data_trading.at[last_idx, 'low'] = min(stock_data_trading.at[last_idx, 'low'], match_price)
+                patch_realtime_data(stock_data_following, match_price, following_chart_type)
+                patch_realtime_data(stock_data_trading, match_price, trading_chart_type)
         except Exception as e:
             print(f"Error patching Stock realtime data: {e}")
 
