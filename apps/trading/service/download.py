@@ -43,6 +43,18 @@ def patch_realtime_data(df, match_price, chart_type):
         last_idx = df.index[-1]
         last_ts = int(df.at[last_idx, 'time'])
         
+        # --- Normalization Logic ---
+        last_close = df.at[last_idx, 'close']
+        if last_close > 0:
+            ratio = match_price / last_close
+            if ratio > 100:
+                # Discrepancy detected (e.g. 30000 vs 30). Normalize match_price.
+                match_price = match_price / 1000
+            elif ratio < 0.01:
+                # Inverse discrepancy (e.g. 30 vs 30000). Highly unlikely but safe to handle.
+                match_price = match_price * 1000
+        # ---------------------------
+        
         if last_ts == current_candle_ts:
             df.at[last_idx, 'close'] = match_price
             df.at[last_idx, 'high'] = max(df.at[last_idx, 'high'], match_price)
