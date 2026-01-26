@@ -44,6 +44,10 @@ for i in range(max_retries):
                 else:
                     print(f"⚠ Redis is not in master mode (role: {role}), forcing master mode...")
                     try:
+                        print(f"DEBUG: Current INFO replication: {info}")
+                    except:
+                        pass
+                    try:
                         r.replicaof()
                     except:
                         pass

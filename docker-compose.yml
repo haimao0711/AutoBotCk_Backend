@@ -66,11 +66,10 @@ services:
     restart: always
     ports:
       - "6379:6379"
-    command: ["sh", "/usr/local/etc/redis/redis-entrypoint.sh"]
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     volumes:
       - redis_data:/data
       - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
-      - ./redis-entrypoint.sh:/usr/local/etc/redis/redis-entrypoint.sh:ro
     networks:
       - backend_net
     healthcheck:
