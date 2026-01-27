@@ -122,9 +122,9 @@ def trading_request_task(self, user_id, stock_id, symbol, request_buy, request_s
         now = datetime.now(timezone).time()
 
         morning_start = time(9, 15)
-        morning_end = time(11, 30)
+        morning_end = time(11, 28)
         afternoon_start = time(13, 0)
-        afternoon_end = time(14, 59)
+        afternoon_end = time(14, 28)
         
         vps_account = AccountService.get_account_by_user(user)
         if not vps_account:

@@ -487,9 +487,6 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     symbol = stock.name        
     asp_net_session = ''
     max_stock_existing = limit_number_stocks
-
-    logger.info(f'Đang process_buy_request cho cổ phiếu: {symbol}')     
-   
     slippage_buy = trading_config.stock_config_slippage_buy
     add_price_buy = trading_config.stock_config_add_price_buy
     level = overview_config.level
