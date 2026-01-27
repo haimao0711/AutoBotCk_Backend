@@ -472,8 +472,6 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     request_url = api.TRADING_URL
     ref_id = f"{user_name}.I.test.{int(time.time() * 1000)}"    
 
-    logger.info(f'check is_use_chart_action {symbol}: {is_use_chart_action}')
-    
     # Lấy dữ liệu đã chuẩn bị  
     trading_candle = prepared["trading_candle"]
     trading_candle_second = prepared["trading_candle_second"]
@@ -486,7 +484,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     trading_config = prepared["trading_config"]       
     overview_config = prepared["overview_config"]
     stock = prepared["stock"]
-    symbol = stock.name        
+    symbol = stock.name
+    
+    logger.info(f'check is_use_chart_action {symbol}: {is_use_chart_action}')        
     asp_net_session = ''
     max_stock_existing = limit_number_stocks
     slippage_buy = trading_config.stock_config_slippage_buy
