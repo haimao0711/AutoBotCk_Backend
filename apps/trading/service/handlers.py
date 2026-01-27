@@ -463,7 +463,7 @@ def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, req
     else:
         logger.info(f'Chua lay duoc danh sach chua khop to cancel sell {symbol}')  
 
-def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool):
+def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool, is_use_chart_action: bool):
     # Các giá trị mặc định
     timezone = pytz.timezone('Asia/Ho_Chi_Minh')
     user_name = vps_account.name
@@ -471,6 +471,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     session = vps_account.vps_session_id
     request_url = api.TRADING_URL
     ref_id = f"{user_name}.I.test.{int(time.time() * 1000)}"    
+
+    logger.info(f'check is_use_chart_action {symbol}: {is_use_chart_action}')
     
     # Lấy dữ liệu đã chuẩn bị  
     trading_candle = prepared["trading_candle"]
@@ -504,8 +506,42 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         logger.error(f'Failed to update is_trading for {symbol}: {update_data}')
     else:
         logger.info(f'Successfully updated is_trading for {symbol} to True')
-    while datetime.now() < end_time:
-        # Kiểm tra is_buy_hand mỗi 5 giây        
+    if not is_use_chart_action:
+        logger.info(f'Xu ly lenh mua ngay {symbol}')
+        # Tải dữ liệu       
+        vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
+            stock=stock,
+            vnindex_stock=vnindex_stock,
+            trading_chart_type=trading_chart_type,
+            following_chart_type=following_chart_type
+        )
+        if stock_data_trading is None:
+            logger.info('Download data không thành công (chart action), bỏ qua!')
+            message_download = f'Không tải được dữ liệu mã {symbol} từ Chart Action, hủy yêu cầu mua tay. Vui lòng thử lại sau ít phút'
+            send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
+            send_message_telegram(user, MessageTypeEnum.ACT, message_download)
+            revert_status_request_trade(user, stock_id)
+            return
+
+        price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close']) / 2
+        status_buy = SignalTelegramEnum.BUY_REQUEST_SUCCESS
+        messages_to_buy = 'Mua ngay'
+        time_now = datetime.now(timezone)
+        start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
+
+        buy_attrs = {
+            "user_account": account,
+            "platform_trading": "Smart One",
+            "stock": stock.name,
+            "level": level,
+            "price": price_to_start,
+            "message": messages_to_buy,
+            "start_time_order": start_time_order,
+        }
+        send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
+
+    while is_use_chart_action and datetime.now() < end_time:
+        # Kiểm tra is_buy_hand mỗi 3 giây        
         configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
         overview_config = configuration.get("overview_config", {})
         is_buy_hand = overview_config.is_buy_hand
@@ -612,7 +648,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 logger.info('Dừng vòng lặp do điều kiện mua thoả mãn.')
                 break
 
-        for _ in range(5):
+        for _ in range(3):
             configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
             overview_config = configuration.get("overview_config", {})
             if not overview_config.is_buy_hand:
@@ -890,7 +926,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     time.sleep(2)
     revert_status_request_trade(user, stock_id)
 
-def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool, volume_sell: str):
+def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool, volume_sell: str, is_use_chart_action: bool):
     # Các giá trị mặc định    
     user_name = vps_account.name
     account = vps_account.account_num
@@ -930,8 +966,43 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     last_buy_check_time = None
     message_stop_sell = 'Hết thời gian của lệnh bán tay'
     price_to_start = None  # Khởi tạo giá trị mặc định để tránh lỗi khi sử dụng sau vòng lặp
-    while datetime.now() < end_time:
-        # Kiểm tra is_sell_hand mỗi 5 giây
+    
+    if not is_use_chart_action:
+        logger.info(f'Xu ly lenh ban ngay {symbol}')
+        # Tải dữ liệu lần 1
+        vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
+            stock=stock, 
+            vnindex_stock=vnindex_stock, 
+            trading_chart_type=trading_chart_type_sell, 
+            following_chart_type=following_chart_type_sell,
+        )
+        if stock_data_trading is None:
+            logger.info('Download data không thành công, bỏ qua!')
+            message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu bán tay. Vui lòng thử lại sau ít phút!'
+            send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
+            send_message_telegram(user, MessageTypeEnum.ACT, message_download)
+            revert_status_request_trade(user, stock_id)
+            return
+        
+        price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
+        status_sell = SignalTelegramEnum.SELL_REQUEST_SUCCESS
+        messages_to_sell = 'Bán ngay'
+        
+        time_now = datetime.now(timezone)
+        start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
+        sell_attrs = {
+            "user_account": account,
+            "platform_trading": "Smart One",
+            "stock": stock.name,
+            "volume": 0,
+            "price": price_to_start,
+            "message": messages_to_sell,
+            "start_time_order": start_time_order,
+        }
+        send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs) 
+
+    while is_use_chart_action and datetime.now() < end_time:
+        # Kiểm tra is_sell_hand mỗi 3 giây
         configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
         overview_config = configuration.get("overview_config", {})
         is_sell_hand = overview_config.is_sell_hand
@@ -1035,7 +1106,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 logger.info('Dừng vòng lặp do  điều kiện bán thỏa mãn.')
                 break 
 
-        for _ in range(5):
+        for _ in range(3):
             configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
             overview_config = configuration.get("overview_config", {})
             if not overview_config.is_sell_hand:
@@ -2299,7 +2370,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
     trading_configurations(user, configurations_handle_trading, vps_account, percent_buy_trade)
 
 
-def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str, request_buy: bool, request_sell: bool, volume_sell: str) -> bool:
+def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str, request_buy: bool, request_sell: bool, volume_sell: str, is_use_chart_action: bool) -> bool:
     logger.info('Job request trading is running...')
 
     vnindex_stock = StockService.get_stock_by_symbol('VNINDEX')
@@ -2359,12 +2430,12 @@ def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str
 
     def run_process_buy():
         process_buy_request(
-            prepared_configs[0], user, vnindex_stock, vps_account, stock_id, limit_number_stocks, request_buy, request_sell
+            prepared_configs[0], user, vnindex_stock, vps_account, stock_id, limit_number_stocks, request_buy, request_sell, is_use_chart_action
         )
 
     def run_process_sell():
         process_sell_request(
-            prepared_configs[0], user, vnindex_stock, vps_account, stock_id, limit_number_stocks, request_buy, request_sell, volume_sell
+            prepared_configs[0], user, vnindex_stock, vps_account, stock_id, limit_number_stocks, request_buy, request_sell, volume_sell, is_use_chart_action
         )
 
     if prepared_configs:

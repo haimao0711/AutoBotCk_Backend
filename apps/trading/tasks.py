@@ -112,7 +112,7 @@ def restart_request_trade_task(self, user_id):
         raise self.retry(exc=exc)
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def trading_request_task(self, user_id, stock_id, symbol, request_buy, request_sell, volume_sell):
+def trading_request_task(self, user_id, stock_id, symbol, request_buy, request_sell, volume_sell, is_use_chart_action):
     """
     Celery task thay thế cho TradingViews.request_trading
     """
@@ -147,7 +147,7 @@ def trading_request_task(self, user_id, stock_id, symbol, request_buy, request_s
                 logger.info(f'Yêu cầu {type_request_trading} mã {symbol} user {user.username} BẮT ĐẦU thực hiện!')
                 
                 # Chạy trading_request trong Celery task
-                result = trading_request(user, vps_account, stock_id, symbol, request_buy, request_sell, volume_sell)
+                result = trading_request(user, vps_account, stock_id, symbol, request_buy, request_sell, volume_sell, is_use_chart_action)
                 return result
                 
         return False

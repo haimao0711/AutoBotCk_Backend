@@ -132,10 +132,10 @@ class TradingViews(APIView):
     
 
     @staticmethod
-    def request_trading(user, stock_id: str, symbol: str, request_buy: bool, request_sell: bool, volume_sell: str):
+    def request_trading(user, stock_id: str, symbol: str, request_buy: bool, request_sell: bool, volume_sell: str, is_use_chart_action: bool):
         # Dispatch Celery task thay vì chạy trực tiếp
         result = trading_request_task.delay(
-            user.id, stock_id, symbol, request_buy, request_sell, volume_sell
+            user.id, stock_id, symbol, request_buy, request_sell, volume_sell, is_use_chart_action
         )
         try:
             return result.get(timeout=30)  # Wait for result with timeout

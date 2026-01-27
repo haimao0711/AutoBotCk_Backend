@@ -101,12 +101,13 @@ class ConfigurationOverviewRequestViews(APIView):
             user = request.user
             symbol = request.data.get('stock_name')
             stock_id = request.data.get('stock_id')
+            is_use_chart_action = request.data.get('is_use_chart_action')
             data_update = {
                 'stock_id': request.data.get('stock_id'),
                 'is_buy_hand': request.data.get('is_buy_hand'),
                 'is_sell_hand': request.data.get('is_sell_hand')
             }       
-            is_trading_request = TradingViews.request_trading(user, stock_id=stock_id, symbol=symbol, request_buy=True, request_sell=False, volume_sell='')
+            is_trading_request = TradingViews.request_trading(user, stock_id=stock_id, symbol=symbol, request_buy=True, request_sell=False, volume_sell='', is_use_chart_action=is_use_chart_action)
             if is_trading_request:
                 status_code, response_data = ConfigurationOverviewServices.update_a_overview_configuration(
                     user=user,
@@ -141,12 +142,13 @@ class ConfigurationOverviewRequestViews(APIView):
             symbol = request.data.get('stock_name')
             stock_id = request.data.get('stock_id')
             volume_sell = request.data.get('volume_sell')
+            is_use_chart_action = request.data.get('is_use_chart_action')
             data_update = {
                 'stock_id': request.data.get('stock_id'),
                 'is_buy_hand': request.data.get('is_buy_hand'),
                 'is_sell_hand': request.data.get('is_sell_hand')
             }
-            is_trading_request = TradingViews.request_trading(user, stock_id=stock_id, symbol=symbol, request_buy=False, request_sell=True, volume_sell=volume_sell)
+            is_trading_request = TradingViews.request_trading(user, stock_id=stock_id, symbol=symbol, request_buy=False, request_sell=True, volume_sell=volume_sell, is_use_chart_action=is_use_chart_action)
             if is_trading_request:
                 status_code, response_data = ConfigurationOverviewServices.update_a_overview_configuration(
                     user=user,
