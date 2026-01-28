@@ -1,5 +1,5 @@
 from django.utils import timezone
-from django.db import connection
+from django.db import connection, close_old_connections
 from datetime import datetime
 import pytz
 
@@ -541,6 +541,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
 
     while is_use_chart_action and datetime.now() < end_time:
+        close_old_connections()
         # Kiểm tra is_buy_hand mỗi 3 giây        
         configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
         overview_config = configuration.get("overview_config", {})
@@ -1002,6 +1003,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs) 
 
     while is_use_chart_action and datetime.now() < end_time:
+        close_old_connections()
         # Kiểm tra is_sell_hand mỗi 3 giây
         configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
         overview_config = configuration.get("overview_config", {})
@@ -1534,7 +1536,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 # Dao động cộng trừ    
                 add_price_buy = trading_config.stock_config_add_price_buy
                 volume_to_buy = overview_config.volume_to_buy                
-                volume_by_balance =  int(volume_to_buy - stock_balance)
+                volume_buy_balance =  int(volume_to_buy - stock_balance)
                 volume = min(((int(volume_to_buy * percent_first_buy) + 99) // 100) * 100,(volume_buy_balance // 100) * 100)
                 if cash_available < volume*start_price:
                     logger.info('roi vao truong hop khong du tien mua theo yeu cau nen mua het so tien con lai')
@@ -2429,11 +2431,13 @@ def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str
     })
 
     def run_process_buy():
+        close_old_connections()
         process_buy_request(
             prepared_configs[0], user, vnindex_stock, vps_account, stock_id, limit_number_stocks, request_buy, request_sell, is_use_chart_action
         )
 
     def run_process_sell():
+        close_old_connections()
         process_sell_request(
             prepared_configs[0], user, vnindex_stock, vps_account, stock_id, limit_number_stocks, request_buy, request_sell, volume_sell, is_use_chart_action
         )
