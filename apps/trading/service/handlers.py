@@ -543,10 +543,16 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     while is_use_chart_action and datetime.now() < end_time:
         close_old_connections()
         # Kiểm tra is_buy_hand mỗi 3 giây        
-        configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
-        overview_config = configuration.get("overview_config", {})
-        is_buy_hand = overview_config.is_buy_hand
-        logger.info(f'check is_buy_hand overview_config {symbol}: {is_buy_hand}')
+        try:
+            configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
+            overview_config = configuration.get("overview_config", {})
+            is_buy_hand = overview_config.is_buy_hand
+            logger.info(f'check is_buy_hand overview_config {symbol}: {is_buy_hand}')
+        except Exception as e:
+            logger.error(f'Lỗi khi lấy lại cấu hình mua tay cho {symbol}: {e}')
+            connection.close()
+            time.sleep(1)
+            continue
 
         if not is_buy_hand:
             logger.info(f'Dừng mua tay cổ phiếu {symbol}: {is_buy_hand}')
@@ -615,6 +621,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         stock = refreshed_stock
             except Exception as e:
                 logger.info(f'Lỗi khi lấy lại cấu hình cho {symbol}: {e}')
+                connection.close()
                 # Tiếp tục dùng config cũ nếu lỗi
 
             is_buy, buy_reason = should_buy_trading(
@@ -1484,8 +1491,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     is_buy = is_buy_vnindex  
 
             logger.info(f'check is_buy {symbol}: {is_buy}')
-            if symbol in ['PC1', 'BVH']:
-                logger.info(f'check buy_reason {symbol}: {buy_reason}')     
+            # if symbol in ['PC1', 'BVH']:
+            #     logger.info(f'check buy_reason {symbol}: {buy_reason}')     
 
             number_order = trading_config.stock_config_number_pid_buy_once_time
             if is_buy:
@@ -1515,8 +1522,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             if is_buy_following and not is_buy:
                 send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
             
-            if symbol in ['PC1', 'BVH']:
-                send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
+            # if symbol in ['PC1', 'BVH']:
+            #     send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_SUCCESS:
                 # logger.info(f'bắt đầu hàm đặt lệnh buy {symbol}')
