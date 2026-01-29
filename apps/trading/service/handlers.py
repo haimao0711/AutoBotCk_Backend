@@ -834,7 +834,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     if is_send_order_buy: 
         limited_times = time_to_buy // sleeping_time_buy
         limited_price_to_buy = start_price - add_price_buy + slippage_buy
-        interval_check = 2  # Kiểm tra mỗi 2 giây
+        interval_check = 5  # Kiểm tra mỗi 5 giây
         should_break_loop = False  # Flag để thoát khỏi vòng for
         for i in range(int(limited_times) - 1):
             if should_break_loop:
@@ -856,6 +856,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             overview_config = refreshed_overview_config
                 except Exception as e:
                     logger.info(f'Lỗi khi lấy lại cấu hình mua tay cho {symbol}: {e}')
+                    connection.close()
                     # Tiếp tục dùng config cũ nếu lỗi
                 
                 is_block_buy_stock = overview_config.is_block_buy
@@ -1012,11 +1013,17 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     while is_use_chart_action and datetime.now() < end_time:
         close_old_connections()
         # Kiểm tra is_sell_hand mỗi 3 giây
-        configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
-        overview_config = configuration.get("overview_config", {})
-        is_sell_hand = overview_config.is_sell_hand
-        logger.info(f'check is_sell_hand overview_config {symbol} : {is_sell_hand}')
-
+        try:
+            configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
+            overview_config = configuration.get("overview_config", {})
+            is_sell_hand = overview_config.is_sell_hand
+            logger.info(f'check is_sell_hand overview_config {symbol} : {is_sell_hand}')
+        except Exception as e:
+            logger.error(f'Lỗi khi lấy lại cấu hình bán tay cho {symbol}: {e}')
+            connection.close()
+            time.sleep(1)
+            continue
+        
         if not is_sell_hand:
             logger.info(f'Dừng bán tay cổ phiếu {symbol} : {is_sell_hand}')
             message_stop_sell = 'Yêu cầu dừng bán tay'
@@ -1084,6 +1091,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                         stock = refreshed_stock
             except Exception as e:
                 logger.info(f'Lỗi khi lấy lại cấu hình cho {symbol}: {e}')
+                connection.close()
                 # Tiếp tục dùng config cũ nếu lỗi
             
             is_sell, sell_reason = should_sell_trading(
@@ -1274,7 +1282,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         limited_times = time_to_sell // sleeping_time_sell
         limited_price_to_sell = start_price + add_price_sell - slippage_sell
         logger.info(f'check limit_price_to_sell {symbol}: {limited_price_to_sell}')
-        interval_check = 2  # Kiểm tra mỗi 2 giây
+        interval_check = 5  # Kiểm tra mỗi 5 giây
         should_break_loop = False  # Flag để thoát khỏi vòng for
         
         for i in range(int(limited_times) - 1):
@@ -1297,6 +1305,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             overview_config = refreshed_overview_config
                 except Exception as e:
                     logger.info(f'Lỗi khi lấy lại cấu hình bán tay cho {symbol}: {e}')
+                    connection.close()
                     # Tiếp tục dùng config cũ nếu lỗi
                 
                 is_block_sell_stock = overview_config.is_block_sell
@@ -1639,7 +1648,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 limited_times = time_to_buy // sleeping_time_buy
                 limited_price_to_buy = start_price - add_price_buy + slippage_buy  
 
-                interval_check = 2  # kiểm tra mỗi 2 giây
+                interval_check = 5  # kiểm tra mỗi 5 giây
                 should_break_loop = False  # Flag để thoát khỏi vòng for
                 for i in range(int(limited_times) - 1):
                     if should_break_loop:
@@ -2127,7 +2136,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
                 limited_times = time_to_sell // sleeping_time_sell
                 limited_price_to_sell = start_price + add_price_sell - slippage_sell
-                interval_check = 2  # kiểm tra mỗi 2 giây
+                interval_check = 5  # kiểm tra mỗi 5 giây
                 should_break_loop = False  # Flag để thoát khỏi vòng for                
                 for i in range(int(limited_times) - 1):
                     if should_break_loop:
@@ -2308,7 +2317,8 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
             # Đóng connections của thread hiện tại
             connection.close()
 
-    # Sử dụng ThreadPoolExecutor với tối đa 100 worker (thread)
+    # Khôi phục 100 worker để đảm bảo chạy đủ mã của user.
+    # Độ ổn định dựa vào logic try/except đóng kết nối ở trên.
     with ThreadPoolExecutor(max_workers=100) as executor:
         futures = []
         for config in prepared_configs:
