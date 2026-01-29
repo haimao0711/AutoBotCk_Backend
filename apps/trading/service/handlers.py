@@ -1644,7 +1644,16 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             
             # Update buy order
             if is_send_order_buy:  
-                ConfigurationServices.update_is_trading_configuration(user, stock_id, True)             
+                try:
+                    ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
+                except Exception as e:
+                     logger.error(f"Lỗi khi update is_trading=True cho {symbol}: {e}")
+                     connection.close()
+                     time.sleep(1)
+                     try:
+                         ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
+                     except Exception as retry_e:
+                         logger.error(f"Retry update is_trading=True thất bại cho {symbol}: {retry_e}")
                 limited_times = time_to_buy // sleeping_time_buy
                 limited_price_to_buy = start_price - add_price_buy + slippage_buy  
 
@@ -1689,6 +1698,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                     stock = refreshed_stock
                         except Exception as e:
                             logger.info(f'Lỗi khi lấy lại cấu hình cho {symbol}: {e}')
+                            connection.close()
                             # Tiếp tục dùng config cũ nếu lỗi
                         is_block_buy_stock = overview_config.is_block_buy
                         if is_block_buy_stock:
