@@ -499,446 +499,446 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         start_time = datetime.now()
         end_time = start_time + timedelta(hours=2)
         status_buy = SignalTelegramEnum.BUY_REQUEST_FAILED
-    last_buy_check_time = None  # Dùng để giới hạn việc kiểm tra mua mỗi 60 giây
-    message_stop_buy = 'Hết thời gian của lệnh mua tay'
-    price_to_start = None  # Khởi tạo giá trị mặc định để tránh lỗi khi sử dụng sau vòng lặp
-    update_status, update_data = ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
+        last_buy_check_time = None  # Dùng để giới hạn việc kiểm tra mua mỗi 60 giây
+        message_stop_buy = 'Hết thời gian của lệnh mua tay'
+        price_to_start = None  # Khởi tạo giá trị mặc định để tránh lỗi khi sử dụng sau vòng lặp
+        update_status, update_data = ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
         if update_status != SuccessType.UPDATED_SUCCESS:
             logger.error(f'Failed to update is_trading for {symbol}: {update_data}')
             message_fail = f'⚠️ Đưa {symbol} vào danh sách đang hoạt động thất bại. Hủy yêu cầu mua tay!'
             send_message_telegram(user, MessageTypeEnum.OVERALL, message_fail)
             send_message_telegram(user, MessageTypeEnum.ACT, message_fail)
             return
-    if not is_use_chart_action:
-        logger.info(f'Xu ly lenh mua ngay {symbol}')
-        # Tải dữ liệu       
-        vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
-            stock=stock,
-            vnindex_stock=vnindex_stock,
-            trading_chart_type=trading_chart_type,
-            following_chart_type=following_chart_type
-        )
-        if stock_data_trading is None:
-            logger.info('Download data không thành công (chart action), bỏ qua!')
-            message_download = f'Không tải được dữ liệu mã {symbol} từ Chart Action, hủy yêu cầu mua tay. Vui lòng thử lại sau ít phút'
-            send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
-            send_message_telegram(user, MessageTypeEnum.ACT, message_download)
-            return
+        if not is_use_chart_action:
+            logger.info(f'Xu ly lenh mua ngay {symbol}')
+            # Tải dữ liệu       
+            vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
+                stock=stock,
+                vnindex_stock=vnindex_stock,
+                trading_chart_type=trading_chart_type,
+                following_chart_type=following_chart_type
+            )
+            if stock_data_trading is None:
+                logger.info('Download data không thành công (chart action), bỏ qua!')
+                message_download = f'Không tải được dữ liệu mã {symbol} từ Chart Action, hủy yêu cầu mua tay. Vui lòng thử lại sau ít phút'
+                send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
+                send_message_telegram(user, MessageTypeEnum.ACT, message_download)
+                return
 
-        price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close']) / 2
-        status_buy = SignalTelegramEnum.BUY_REQUEST_SUCCESS
-        messages_to_buy = 'Mua ngay'
-        time_now = datetime.now(timezone)
-        start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-
-        buy_attrs = {
-            "user_account": account,
-            "platform_trading": "Smart One",
-            "stock": stock.name,
-            "level": level,
-            "price": price_to_start,
-            "message": messages_to_buy,
-            "start_time_order": start_time_order,
-        }
-        send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
-
-        while is_use_chart_action and datetime.now() < end_time:
-            close_old_connections()
-            # Kiểm tra is_buy_hand mỗi 3 giây        
-            try:
-                configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
-                overview_config = configuration.get("overview_config", {})
-                is_buy_hand = overview_config.is_buy_hand
-                logger.info(f'check is_buy_hand overview_config {symbol}: {is_buy_hand}')
-            except Exception as e:
-                logger.error(f'Lỗi khi lấy lại cấu hình mua tay cho {symbol}: {e}')
-                connection.close()  # Close connection before sleep
-                time.sleep(1)
-                continue
-
-            if not is_buy_hand:
-                logger.info(f'Dừng mua tay cổ phiếu {symbol}: {is_buy_hand}')
-                message_stop_buy = 'Đã yêu cầu ngừng mua tay'
-                break  # Thoát khỏi vòng while và tiếp tục đoạn code phía sau
-
-            # Kiểm tra điều kiện mua chỉ mỗi 60 giây một lần
-            now = datetime.now()
-            if last_buy_check_time is None or (now - last_buy_check_time).total_seconds() >= 60:
-                last_buy_check_time = now
-
-                # === XỬ LÝ MUA ===     
-                # Tải dữ liệu lần 1       
-                vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
-                    stock=stock,
-                    vnindex_stock=vnindex_stock,
-                    trading_chart_type=trading_chart_type,
-                    following_chart_type=following_chart_type
-                )
-                # Tải dữ liệu lần 2
-                vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
-                    stock=stock, 
-                    vnindex_stock=vnindex_stock, 
-                    trading_chart_type=trading_chart_type_second, 
-                    following_chart_type=following_chart_type_second
-                )
-                if stock_data_trading is None:
-                    logger.info('Download data không thành công, bỏ qua!')
-                    message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu mua tay. Vui lòng thử lại sau ít phút'
-                    send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
-                    send_message_telegram(user, MessageTypeEnum.ACT, message_download)
-                    return
-
-                price_to_start = (
-                    stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close']) / 2
-
-                # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
-                try:
-                    configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
-                        user=user, 
-                        stock_symbol=symbol
-                    )
-                    if configuration:
-                        refreshed_trading_config = configuration.get("trading_config")
-                        refreshed_following_config = configuration.get("following_config")
-                        refreshed_overview_config = configuration.get("overview_config")
-                        refreshed_stock = configuration.get("stock")
-                    
-                        # Cập nhật các biến config nếu lấy được
-                        if refreshed_trading_config:
-                            trading_config = refreshed_trading_config
-                            trading_candle = getattr(getattr(trading_config, "candle", None), "candle", "M5")
-                            trading_candle_second = getattr(getattr(trading_config, "candle_second", None), "candle", "M5")
-                            trading_chart_type = getattr(CandleEnum, trading_candle, CandleEnum.M5)
-                            trading_chart_type_second = getattr(CandleEnum, trading_candle_second, CandleEnum.M5)
-                        if refreshed_following_config:
-                            following_config = refreshed_following_config
-                            following_candle = getattr(getattr(following_config, "candle", None), "candle", "D1")
-                            following_candle_second = getattr(getattr(following_config, "candle_second", None), "candle", "D1")
-                            following_chart_type = getattr(CandleEnum, following_candle, CandleEnum.D1)
-                            following_chart_type_second = getattr(CandleEnum, following_candle_second, CandleEnum.D1)
-                        if refreshed_overview_config:
-                            overview_config = refreshed_overview_config
-                        if refreshed_stock:
-                            stock = refreshed_stock
-                except Exception as e:
-                    logger.info(f'Lỗi khi lấy lại cấu hình cho {symbol}: {e}')
-                    connection.close()
-                    # Tiếp tục dùng config cũ nếu lỗi
-
-                is_buy, buy_reason = should_buy_trading(
-                    trading_config=trading_config,
-                    data_trading_df=stock_data_trading,
-                    config_type='stock_config',
-                    data_trading_df_second=stock_data_trading_second
-                )
-
-                if is_buy:
-                    status_buy = SignalTelegramEnum.BUY_REQUEST_SUCCESS
-
-                messages_to_buy = render_message(
-                    buy_reason, trading_chart_value=trading_candle, trading_chart_value_second=trading_candle_second, following_chart_type=following_candle, following_chart_type_second=following_candle_second
-                )
-                time_now = datetime.now(timezone)
-                start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-
-                buy_attrs = {
-                    "user_account": account,
-                    "platform_trading": "Smart One",
-                    "stock": stock.name,
-                    "level": level,
-                    "price": price_to_start,
-                    "message": messages_to_buy,
-                    "start_time_order": start_time_order,
-                }
-
-                send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
-
-                if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
-                    logger.info('Dừng vòng lặp do điều kiện mua thoả mãn.')
-                    break
-
-            for _ in range(3):
-                configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
-                overview_config = configuration.get("overview_config", {})
-                if not overview_config.is_buy_hand:
-                    logger.info(f"Phát hiện tắt mua tay trong lúc chờ đợi, thoát vòng lặp.")
-                    break
-                time.sleep(1)
-
-        if status_buy == SignalTelegramEnum.BUY_REQUEST_FAILED:
-            logger.info('Dừng vòng lặp do vượt thời gian hoặc Yêu cầu ngừng mua tay .')        
-            # revert_status_request_trade removed here, handled in finally
+            price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close']) / 2
+            status_buy = SignalTelegramEnum.BUY_REQUEST_SUCCESS
+            messages_to_buy = 'Mua ngay'
             time_now = datetime.now(timezone)
             start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-            # Nếu price_to_start chưa được khởi tạo, download data một lần nữa để lấy giá
-            if price_to_start is None:
-                try:                
-                    _, _, stock_data_trading_temp, _ = download_data(
-                        stock=stock,
-                        vnindex_stock=vnindex_stock,
-                        trading_chart_type=trading_chart_type,
-                        following_chart_type=following_chart_type
-                    )
-                    if stock_data_trading_temp is not None and len(stock_data_trading_temp) > 0:
-                        price_to_start = (stock_data_trading_temp.iloc[-1]['open'] + stock_data_trading_temp.iloc[-1]['close']) / 2
-                    else:
-                        price_to_start = 0  # Giá trị mặc định nếu không lấy được
-                except Exception as e:
-                    logger.error(f"Lỗi khi download data để lấy price_to_start: {e}")
-                    price_to_start = 0  # Giá trị mặc định nếu có lỗi
+
             buy_attrs = {
                 "user_account": account,
                 "platform_trading": "Smart One",
                 "stock": stock.name,
                 "level": level,
-                "price": price_to_start if price_to_start is not None else 0,
-                "message": message_stop_buy,
+                "price": price_to_start,
+                "message": messages_to_buy,
                 "start_time_order": start_time_order,
             }
-            try:
-                send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
-            except Exception as e:
-                logger.info(f"❌ Lỗi khi gửi tin nhắn: {e}") 
+            send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
 
-        is_send_order_buy = False   
-        if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
-            logger.info(f'bắt đầu hàm đặt lệnh mua tay {symbol}')
-            timezone = pytz.timezone('Asia/Ho_Chi_Minh')
-            last_row = stock_data_trading.iloc[-1]
-            open_last_row = last_row['open'] 
-            close_last_row = last_row['close']
-            low_last_row = last_row['low']            
-            high_last_row = last_row['high']
-            step_price = trading_config.stock_config_slippage_volume_buy_per_pid
-            time_to_buy = trading_config.stock_config_time_to_buy
-            time_to_buy = time_to_buy if time_to_buy > 30 else 30
-            sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
-            sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
-            start_price = round_up_to_unit(open_last_row, close_last_row, step_price)       
-            price_current = stock_data_trading.iloc[-1]['close']
-            percent_first_buy = trading_config.stock_config_percent_first_buy
-            logger.info(f'percent_first_buy {symbol}: {percent_first_buy}')
-            number_order = trading_config.stock_config_number_pid_buy_once_time
-            time_now = datetime.now(timezone)
-            start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-            slippage_buy = trading_config.stock_config_slippage_buy
-            # Dao động cộng trừ    
-            add_price_buy = trading_config.stock_config_add_price_buy
-            # Get stock balance to set volume
-            res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
-            stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
-            number_stock_existing = res_stock_balance.get('number_stock_existing', 0) if res_stock_balance else 0
-            cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
-            volume_to_buy = overview_config.volume_to_buy        
-         #Kiểm tra đk số cổ phiếu giới hạn, khối lượng mua còn lại, tiền mặt
-            if number_stock_existing >= max_stock_existing and stock_balance == 0 :
-                logger.info(f'Lệnh mua {symbol} rơi vào trường hợp vượt quá số cổ phiếu tối đa hiện đang là {number_stock_existing}')
-            elif not cash_balance:
-                logger.info(f'không có respon khi lấy số dư tiền mặt {symbol}')
-            else: 
-                volume_buy_balance =  int(volume_to_buy - stock_balance)
-                volume = min(((int(volume_to_buy * percent_first_buy) + 99) // 100) * 100,(volume_buy_balance // 100) * 100)
-                buy_order_overrall_attrs = {
-                    'user_account': account,
-                    'stock': symbol,
-                    'volume_to_buy': int(volume_to_buy),
-                    'volume_set_buy': volume,
-                    'level': level,
-                    'start_price': round(start_price, 2),
-                    "current_price": round(price_current, 2),
-                    'limit_price': round(start_price - add_price_buy + slippage_buy, 2),
-                    'step_price': step_price,
-                    "slippage_buy": slippage_buy,
-                    "add_price_buy": add_price_buy,
-                    "sleeping_time_buy": int(sleeping_time_buy),                     
-                    'number_order': int(number_order),
-                    'start_time_order': start_time_order,
-                    'percent_first_buy': int(percent_first_buy*100)
-                }
-
-                buy_messages = []
-                buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_OVERRAL,
-                                **buy_order_overrall_attrs })  
-                    
-          # Xử lý mua nhạy cảm 
-                if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
-                    sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
-                    logger.info(f'sensitive_percentage {symbol}: {sensitive_percentage}')
-                    volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
-                    logger.info(f'volume_buy_sensitive {symbol}: {volume_buy_sensitive}')
-                    price_set_buy = min(start_price, price_current)
-                    buy_order_attrs_send = {
-                        'stock': symbol,
-                        # 'price': round(float(high_last_row - add_price_buy), 2), # Giá mua tạm thời giảm so với yêu cầu thuật toán, cần sửa lại
-                        'price': round(price_set_buy, 2),
-                        'volume': int(volume_buy_sensitive)
-                    }
-                    logger.info(f'buy_order_attrs_send {symbol}: {buy_order_attrs_send}')
-                    res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
-                    if res_buy:
-                        is_send_order_buy = True
-                        buy_order_sensitive_attrs = {
-                            'stock': res_buy['symbol'],
-                            'price': round(res_buy['price'], 2),
-                            'volume': res_buy['volume'],
-                            'status': res_buy['status'],
-                        }
-                        buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
-                                        **buy_order_sensitive_attrs })
-                        volume -= int(res_buy['volume'])
-                        number_order -= 1
-                    else:
-                        logger.info(f"Error: lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng")
-                else:
-                    logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
-                    logger.info(f'volume_to_buy {symbol}: {volume_to_buy}')
-                    logger.info(f'volume_set_buy {symbol}: {volume}')
-            # Chia đều phần còn lại của volume to buy
-                number_order = min(number_order, volume // 100)
-                if volume >=100:
-                    for i in range(int(number_order)):
-                        divisor = number_order - i
-                        if i != int(number_order) - 1:
-                            volume_buy = round_to_nearest_hundred(volume / divisor)
-                        else:
-                            volume_buy = round_to_nearest_hundred(volume)
-                    #Gửi các lệnh buy
-                        ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                        price = round(start_price - add_price_buy - i*step_price, 2)
-                        if volume_buy >= 100:
-                            res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_buy, ref_id)
-                            if res_buy:
-                                is_send_order_buy = True
-                                buy_order_details_attrs = {
-                                'stock': res_buy['symbol'],
-                                'price': round(res_buy['price'], 2),
-                                'volume': res_buy['volume'],
-                                'status': res_buy['status'],
-                                }                
-                                buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
-                                                **buy_order_details_attrs })                            
-                        else:
-                            logger.info(f"Error: lệnh mua lần thứ {i+1} hàm handle_buy_service  của {symbol} có phản hồi là rỗng") 
-                        volume -= volume_buy
-                else:
-                    logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
-          # Send telegram tổng hợp khi thực hiện đặt xong các lệnh mua
-            if is_send_order_buy:
-                send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
-                send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs)             
-                send_telegram_message_batch(user, MessageTypeEnum.OVERALL, buy_messages)
-                send_telegram_message_batch(user, MessageTypeEnum.ACT, buy_messages)
-        
-            logger.info(f'kết thúc hàm đặt lệnh request buy {symbol}')        
-    
-        # Update buy order
-        if is_send_order_buy: 
-            limited_times = time_to_buy // sleeping_time_buy
-            limited_price_to_buy = start_price - add_price_buy + slippage_buy
-            interval_check = 10  # Kiểm tra mỗi 10 giây
-            should_break_loop = False  # Flag để thoát khỏi vòng for
-            for i in range(int(limited_times) - 1):
-                if should_break_loop:
-                    break
-                start_sleep = time.time()
-                while time.time() - start_sleep < sleeping_time_buy:
+            while is_use_chart_action and datetime.now() < end_time:
+                close_old_connections()
+                # Kiểm tra is_buy_hand mỗi 3 giây        
+                try:
+                    configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
+                    overview_config = configuration.get("overview_config", {})
+                    is_buy_hand = overview_config.is_buy_hand
+                    logger.info(f'check is_buy_hand overview_config {symbol}: {is_buy_hand}')
+                except Exception as e:
+                    logger.error(f'Lỗi khi lấy lại cấu hình mua tay cho {symbol}: {e}')
                     connection.close()  # Close connection before sleep
-                    remaining = sleeping_time_buy - (time.time() - start_sleep)
-                    sleep_time = min(interval_check, remaining)
-                    if sleep_time <= 0:
-                        break
-                    time.sleep(sleep_time)
-                
-                    # 🔄 Lấy lại cấu hình mới mỗi lần lặp để cập nhật cấu hình mới nhất
+                    time.sleep(1)
+                    continue
+
+                if not is_buy_hand:
+                    logger.info(f'Dừng mua tay cổ phiếu {symbol}: {is_buy_hand}')
+                    message_stop_buy = 'Đã yêu cầu ngừng mua tay'
+                    break  # Thoát khỏi vòng while và tiếp tục đoạn code phía sau
+
+                # Kiểm tra điều kiện mua chỉ mỗi 60 giây một lần
+                now = datetime.now()
+                if last_buy_check_time is None or (now - last_buy_check_time).total_seconds() >= 60:
+                    last_buy_check_time = now
+
+                    # === XỬ LÝ MUA ===     
+                    # Tải dữ liệu lần 1       
+                    vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
+                        stock=stock,
+                        vnindex_stock=vnindex_stock,
+                        trading_chart_type=trading_chart_type,
+                        following_chart_type=following_chart_type
+                    )
+                    # Tải dữ liệu lần 2
+                    vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                        stock=stock, 
+                        vnindex_stock=vnindex_stock, 
+                        trading_chart_type=trading_chart_type_second, 
+                        following_chart_type=following_chart_type_second
+                    )
+                    if stock_data_trading is None:
+                        logger.info('Download data không thành công, bỏ qua!')
+                        message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu mua tay. Vui lòng thử lại sau ít phút'
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
+                        send_message_telegram(user, MessageTypeEnum.ACT, message_download)
+                        return
+
+                    price_to_start = (
+                        stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close']) / 2
+
+                    # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
                     try:
                         configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
                             user=user, 
                             stock_symbol=symbol
                         )
                         if configuration:
+                            refreshed_trading_config = configuration.get("trading_config")
+                            refreshed_following_config = configuration.get("following_config")
                             refreshed_overview_config = configuration.get("overview_config")
+                            refreshed_stock = configuration.get("stock")
+                    
+                            # Cập nhật các biến config nếu lấy được
+                            if refreshed_trading_config:
+                                trading_config = refreshed_trading_config
+                                trading_candle = getattr(getattr(trading_config, "candle", None), "candle", "M5")
+                                trading_candle_second = getattr(getattr(trading_config, "candle_second", None), "candle", "M5")
+                                trading_chart_type = getattr(CandleEnum, trading_candle, CandleEnum.M5)
+                                trading_chart_type_second = getattr(CandleEnum, trading_candle_second, CandleEnum.M5)
+                            if refreshed_following_config:
+                                following_config = refreshed_following_config
+                                following_candle = getattr(getattr(following_config, "candle", None), "candle", "D1")
+                                following_candle_second = getattr(getattr(following_config, "candle_second", None), "candle", "D1")
+                                following_chart_type = getattr(CandleEnum, following_candle, CandleEnum.D1)
+                                following_chart_type_second = getattr(CandleEnum, following_candle_second, CandleEnum.D1)
                             if refreshed_overview_config:
                                 overview_config = refreshed_overview_config
+                            if refreshed_stock:
+                                stock = refreshed_stock
                     except Exception as e:
-                        logger.info(f'Lỗi khi lấy lại cấu hình mua tay cho {symbol}: {e}')
+                        logger.info(f'Lỗi khi lấy lại cấu hình cho {symbol}: {e}')
                         connection.close()
                         # Tiếp tục dùng config cũ nếu lỗi
-                
-                    is_block_buy_stock = overview_config.is_block_buy
-                    is_buy_hand = overview_config.is_buy_hand
 
-                    logger.info(f'[{symbol}] Check Loop: is_block_buy={is_block_buy_stock}, is_buy_hand={is_buy_hand}')
-                
-                    if is_block_buy_stock:
-                        logger.info(f'{symbol} đã bị chặn mua, hủy lệnh mua tay {symbol}')
-                        cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn mua', "B")
-                        # revert_status_request_trade removed here, handled in finally
-                        should_break_loop = True
-                        break
-                
-                    if not is_buy_hand:
-                        logger.info(f'{symbol} Đã tắt mua tay, hủy lệnh mua tay {symbol} ngay lập tức.')
-                        cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã tắt mua tay', "B")
-                        # revert_status_request_trade removed here, handled in finally
-                        should_break_loop = True
-                        break
-            
-                status_buy = SignalTelegramEnum.BUY_SUCCESS
-                times_update = i + 1
-                message_update = update_buy_order(user_name, account, symbol, request_url, session, asp_net_session, "B", 
-                                                  step_price, limited_price_to_buy, times_update)
-                if message_update:
-                    send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
-                    send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
-                else:
-                    logger.info(f"Sửa lệnh thất bại ở lần thứ {times_update}, sẽ huỷ lệnh.")                
-                    cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Sửa lệnh mua không thành công', "B")
-                    # revert_status_request_trade removed here, handled in finally
-                    break
+                    is_buy, buy_reason = should_buy_trading(
+                        trading_config=trading_config,
+                        data_trading_df=stock_data_trading,
+                        config_type='stock_config',
+                        data_trading_df_second=stock_data_trading_second
+                    )
 
-         #Tổng kết các lệnh đã khớp theo symbol để send telegram
-            try:
-                time.sleep(2)  # đợi backend cập nhật
-                res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
-                if res_matcheds:
+                    if is_buy:
+                        status_buy = SignalTelegramEnum.BUY_REQUEST_SUCCESS
+
+                    messages_to_buy = render_message(
+                        buy_reason, trading_chart_value=trading_candle, trading_chart_value_second=trading_candle_second, following_chart_type=following_candle, following_chart_type_second=following_candle_second
+                    )
                     time_now = datetime.now(timezone)
                     start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-                    message_buy_matched = []
-                    buy_matched_overrall_attrs = {
+
+                    buy_attrs = {
+                        "user_account": account,
+                        "platform_trading": "Smart One",
+                        "stock": stock.name,
+                        "level": level,
+                        "price": price_to_start,
+                        "message": messages_to_buy,
+                        "start_time_order": start_time_order,
+                    }
+
+                    send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
+
+                    if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
+                        logger.info('Dừng vòng lặp do điều kiện mua thoả mãn.')
+                        break
+
+                for _ in range(3):
+                    configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
+                    overview_config = configuration.get("overview_config", {})
+                    if not overview_config.is_buy_hand:
+                        logger.info(f"Phát hiện tắt mua tay trong lúc chờ đợi, thoát vòng lặp.")
+                        break
+                    time.sleep(1)
+
+            if status_buy == SignalTelegramEnum.BUY_REQUEST_FAILED:
+                logger.info('Dừng vòng lặp do vượt thời gian hoặc Yêu cầu ngừng mua tay .')        
+                # revert_status_request_trade removed here, handled in finally
+                time_now = datetime.now(timezone)
+                start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
+                # Nếu price_to_start chưa được khởi tạo, download data một lần nữa để lấy giá
+                if price_to_start is None:
+                    try:                
+                        _, _, stock_data_trading_temp, _ = download_data(
+                            stock=stock,
+                            vnindex_stock=vnindex_stock,
+                            trading_chart_type=trading_chart_type,
+                            following_chart_type=following_chart_type
+                        )
+                        if stock_data_trading_temp is not None and len(stock_data_trading_temp) > 0:
+                            price_to_start = (stock_data_trading_temp.iloc[-1]['open'] + stock_data_trading_temp.iloc[-1]['close']) / 2
+                        else:
+                            price_to_start = 0  # Giá trị mặc định nếu không lấy được
+                    except Exception as e:
+                        logger.error(f"Lỗi khi download data để lấy price_to_start: {e}")
+                        price_to_start = 0  # Giá trị mặc định nếu có lỗi
+                buy_attrs = {
+                    "user_account": account,
+                    "platform_trading": "Smart One",
+                    "stock": stock.name,
+                    "level": level,
+                    "price": price_to_start if price_to_start is not None else 0,
+                    "message": message_stop_buy,
+                    "start_time_order": start_time_order,
+                }
+                try:
+                    send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
+                except Exception as e:
+                    logger.info(f"❌ Lỗi khi gửi tin nhắn: {e}") 
+
+            is_send_order_buy = False   
+            if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
+                logger.info(f'bắt đầu hàm đặt lệnh mua tay {symbol}')
+                timezone = pytz.timezone('Asia/Ho_Chi_Minh')
+                last_row = stock_data_trading.iloc[-1]
+                open_last_row = last_row['open'] 
+                close_last_row = last_row['close']
+                low_last_row = last_row['low']            
+                high_last_row = last_row['high']
+                step_price = trading_config.stock_config_slippage_volume_buy_per_pid
+                time_to_buy = trading_config.stock_config_time_to_buy
+                time_to_buy = time_to_buy if time_to_buy > 30 else 30
+                sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
+                sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
+                start_price = round_up_to_unit(open_last_row, close_last_row, step_price)       
+                price_current = stock_data_trading.iloc[-1]['close']
+                percent_first_buy = trading_config.stock_config_percent_first_buy
+                logger.info(f'percent_first_buy {symbol}: {percent_first_buy}')
+                number_order = trading_config.stock_config_number_pid_buy_once_time
+                time_now = datetime.now(timezone)
+                start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
+                slippage_buy = trading_config.stock_config_slippage_buy
+                # Dao động cộng trừ    
+                add_price_buy = trading_config.stock_config_add_price_buy
+                # Get stock balance to set volume
+                res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
+                stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
+                number_stock_existing = res_stock_balance.get('number_stock_existing', 0) if res_stock_balance else 0
+                cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
+                volume_to_buy = overview_config.volume_to_buy        
+             #Kiểm tra đk số cổ phiếu giới hạn, khối lượng mua còn lại, tiền mặt
+                if number_stock_existing >= max_stock_existing and stock_balance == 0 :
+                    logger.info(f'Lệnh mua {symbol} rơi vào trường hợp vượt quá số cổ phiếu tối đa hiện đang là {number_stock_existing}')
+                elif not cash_balance:
+                    logger.info(f'không có respon khi lấy số dư tiền mặt {symbol}')
+                else: 
+                    volume_buy_balance =  int(volume_to_buy - stock_balance)
+                    volume = min(((int(volume_to_buy * percent_first_buy) + 99) // 100) * 100,(volume_buy_balance // 100) * 100)
+                    buy_order_overrall_attrs = {
                         'user_account': account,
                         'stock': symbol,
-                        'number_order': len(res_matcheds),
+                        'volume_to_buy': int(volume_to_buy),
+                        'volume_set_buy': volume,
+                        'level': level,
+                        'start_price': round(start_price, 2),
+                        "current_price": round(price_current, 2),
+                        'limit_price': round(start_price - add_price_buy + slippage_buy, 2),
+                        'step_price': step_price,
+                        "slippage_buy": slippage_buy,
+                        "add_price_buy": add_price_buy,
+                        "sleeping_time_buy": int(sleeping_time_buy),                     
+                        'number_order': int(number_order),
                         'start_time_order': start_time_order,
-                        } 
-                    message_buy_matched.append({
-                        'status_signal': SignalTelegramEnum.BUY_MATCHED_OVERRAL,
-                        **buy_matched_overrall_attrs
-                        })
-                    for order in res_matcheds:
-                        buy_matched_details_attrs = {
-                            'stock': order['symbol'],
-                            'price': order['showPrice'],
-                            'volume': order['volume'],
-                            'status': order['status']
+                        'percent_first_buy': int(percent_first_buy*100)
+                    }
+
+                    buy_messages = []
+                    buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_OVERRAL,
+                                    **buy_order_overrall_attrs })  
+                    
+              # Xử lý mua nhạy cảm 
+                    if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
+                        sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
+                        logger.info(f'sensitive_percentage {symbol}: {sensitive_percentage}')
+                        volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
+                        logger.info(f'volume_buy_sensitive {symbol}: {volume_buy_sensitive}')
+                        price_set_buy = min(start_price, price_current)
+                        buy_order_attrs_send = {
+                            'stock': symbol,
+                            # 'price': round(float(high_last_row - add_price_buy), 2), # Giá mua tạm thời giảm so với yêu cầu thuật toán, cần sửa lại
+                            'price': round(price_set_buy, 2),
+                            'volume': int(volume_buy_sensitive)
+                        }
+                        logger.info(f'buy_order_attrs_send {symbol}: {buy_order_attrs_send}')
+                        res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
+                        if res_buy:
+                            is_send_order_buy = True
+                            buy_order_sensitive_attrs = {
+                                'stock': res_buy['symbol'],
+                                'price': round(res_buy['price'], 2),
+                                'volume': res_buy['volume'],
+                                'status': res_buy['status'],
                             }
+                            buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
+                                            **buy_order_sensitive_attrs })
+                            volume -= int(res_buy['volume'])
+                            number_order -= 1
+                        else:
+                            logger.info(f"Error: lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng")
+                    else:
+                        logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
+                        logger.info(f'volume_to_buy {symbol}: {volume_to_buy}')
+                        logger.info(f'volume_set_buy {symbol}: {volume}')
+                # Chia đều phần còn lại của volume to buy
+                    number_order = min(number_order, volume // 100)
+                    if volume >=100:
+                        for i in range(int(number_order)):
+                            divisor = number_order - i
+                            if i != int(number_order) - 1:
+                                volume_buy = round_to_nearest_hundred(volume / divisor)
+                            else:
+                                volume_buy = round_to_nearest_hundred(volume)
+                        #Gửi các lệnh buy
+                            ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
+                            price = round(start_price - add_price_buy - i*step_price, 2)
+                            if volume_buy >= 100:
+                                res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_buy, ref_id)
+                                if res_buy:
+                                    is_send_order_buy = True
+                                    buy_order_details_attrs = {
+                                    'stock': res_buy['symbol'],
+                                    'price': round(res_buy['price'], 2),
+                                    'volume': res_buy['volume'],
+                                    'status': res_buy['status'],
+                                    }                
+                                    buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
+                                                    **buy_order_details_attrs })                            
+                            else:
+                                logger.info(f"Error: lệnh mua lần thứ {i+1} hàm handle_buy_service  của {symbol} có phản hồi là rỗng") 
+                            volume -= volume_buy
+                    else:
+                        logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
+              # Send telegram tổng hợp khi thực hiện đặt xong các lệnh mua
+                if is_send_order_buy:
+                    send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
+                    send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs)             
+                    send_telegram_message_batch(user, MessageTypeEnum.OVERALL, buy_messages)
+                    send_telegram_message_batch(user, MessageTypeEnum.ACT, buy_messages)
+        
+                logger.info(f'kết thúc hàm đặt lệnh request buy {symbol}')        
+    
+            # Update buy order
+            if is_send_order_buy: 
+                limited_times = time_to_buy // sleeping_time_buy
+                limited_price_to_buy = start_price - add_price_buy + slippage_buy
+                interval_check = 10  # Kiểm tra mỗi 10 giây
+                should_break_loop = False  # Flag để thoát khỏi vòng for
+                for i in range(int(limited_times) - 1):
+                    if should_break_loop:
+                        break
+                    start_sleep = time.time()
+                    while time.time() - start_sleep < sleeping_time_buy:
+                        connection.close()  # Close connection before sleep
+                        remaining = sleeping_time_buy - (time.time() - start_sleep)
+                        sleep_time = min(interval_check, remaining)
+                        if sleep_time <= 0:
+                            break
+                        time.sleep(sleep_time)
+                
+                        # 🔄 Lấy lại cấu hình mới mỗi lần lặp để cập nhật cấu hình mới nhất
+                        try:
+                            configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
+                                user=user, 
+                                stock_symbol=symbol
+                            )
+                            if configuration:
+                                refreshed_overview_config = configuration.get("overview_config")
+                                if refreshed_overview_config:
+                                    overview_config = refreshed_overview_config
+                        except Exception as e:
+                            logger.info(f'Lỗi khi lấy lại cấu hình mua tay cho {symbol}: {e}')
+                            connection.close()
+                            # Tiếp tục dùng config cũ nếu lỗi
+                
+                        is_block_buy_stock = overview_config.is_block_buy
+                        is_buy_hand = overview_config.is_buy_hand
+
+                        logger.info(f'[{symbol}] Check Loop: is_block_buy={is_block_buy_stock}, is_buy_hand={is_buy_hand}')
+                
+                        if is_block_buy_stock:
+                            logger.info(f'{symbol} đã bị chặn mua, hủy lệnh mua tay {symbol}')
+                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn mua', "B")
+                            # revert_status_request_trade removed here, handled in finally
+                            should_break_loop = True
+                            break
+                
+                        if not is_buy_hand:
+                            logger.info(f'{symbol} Đã tắt mua tay, hủy lệnh mua tay {symbol} ngay lập tức.')
+                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã tắt mua tay', "B")
+                            # revert_status_request_trade removed here, handled in finally
+                            should_break_loop = True
+                            break
+            
+                    status_buy = SignalTelegramEnum.BUY_SUCCESS
+                    times_update = i + 1
+                    message_update = update_buy_order(user_name, account, symbol, request_url, session, asp_net_session, "B", 
+                                                      step_price, limited_price_to_buy, times_update)
+                    if message_update:
+                        send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
+                        send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
+                    else:
+                        logger.info(f"Sửa lệnh thất bại ở lần thứ {times_update}, sẽ huỷ lệnh.")                
+                        cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Sửa lệnh mua không thành công', "B")
+                        # revert_status_request_trade removed here, handled in finally
+                        break
+
+             #Tổng kết các lệnh đã khớp theo symbol để send telegram
+                try:
+                    time.sleep(2)  # đợi backend cập nhật
+                    res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
+                    if res_matcheds:
+                        time_now = datetime.now(timezone)
+                        start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
+                        message_buy_matched = []
+                        buy_matched_overrall_attrs = {
+                            'user_account': account,
+                            'stock': symbol,
+                            'number_order': len(res_matcheds),
+                            'start_time_order': start_time_order,
+                            } 
                         message_buy_matched.append({
-                            'status_signal': SignalTelegramEnum.BUY_MATCHED_DETAIL,
-                            **buy_matched_details_attrs
+                            'status_signal': SignalTelegramEnum.BUY_MATCHED_OVERRAL,
+                            **buy_matched_overrall_attrs
                             })
-                    if message_buy_matched:
-                        send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_buy_matched)
-                        send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_matched)
-                else:
-                    logger.info(f'Không lấy được danh sách các lệnh đã khớp symbol: {symbol}')
-            except Exception as e:
-                logger.info(f"Lỗi khi xử lý matched orders: {e}")
-                message = f'Không lấy được thông tin các lệnh mua tay đã khớp mã {symbol}'
-                send_message_telegram(user, MessageTypeEnum.OVERALL, message)
-                send_message_telegram(user, MessageTypeEnum.ACT, message)
-        #Hủy tất cả các lệnh nếu còn đặt
-            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Hủy các lệnh mua còn sót lại', "B")
-        finally:
-            logger.info(f'Finalizing process_buy_request for {symbol}')
+                        for order in res_matcheds:
+                            buy_matched_details_attrs = {
+                                'stock': order['symbol'],
+                                'price': order['showPrice'],
+                                'volume': order['volume'],
+                                'status': order['status']
+                                }
+                            message_buy_matched.append({
+                                'status_signal': SignalTelegramEnum.BUY_MATCHED_DETAIL,
+                                **buy_matched_details_attrs
+                                })
+                        if message_buy_matched:
+                            send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_buy_matched)
+                            send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_matched)
+                    else:
+                        logger.info(f'Không lấy được danh sách các lệnh đã khớp symbol: {symbol}')
+                except Exception as e:
+                    logger.info(f"Lỗi khi xử lý matched orders: {e}")
+                    message = f'Không lấy được thông tin các lệnh mua tay đã khớp mã {symbol}'
+                    send_message_telegram(user, MessageTypeEnum.OVERALL, message)
+                    send_message_telegram(user, MessageTypeEnum.ACT, message)
+            #Hủy tất cả các lệnh nếu còn đặt
+                cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Hủy các lệnh mua còn sót lại', "B")
+    finally:
+        logger.info(f'Finalizing process_buy_request for {symbol}')
         revert_status_request_trade(user, stock_id)
 
 def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool, volume_sell: str, is_use_chart_action: bool):
