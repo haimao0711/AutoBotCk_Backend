@@ -262,8 +262,6 @@ def get_stock_balance(user_account: str, trade_account: str, url: str, session: 
 
     try:
         response = requests.post(url, headers=headers, data=payload)
-        # print('Mã trạng thái phản hồi get_stock_balance:', response.status_code)
-        # print('Nội dung phản hồi get_stock_balance:', response.text)
         return response
     except requests.exceptions.RequestException as e:
         print('Đã xảy ra lỗi khi gửi yêu cầu get_stock_balance:', e)
@@ -292,8 +290,6 @@ def get_account_status(user_account: str, trade_account: str, url: str, session:
 
     try:
         response = requests.post(url, headers=headers, data=payload)
-        # print('Mã trạng thái phản hồi get_account_status:', response.status_code)
-        # print('Nội dung phản hồi get_account_status:', response.text)
         return response
     except requests.exceptions.RequestException as e:
         print('Đã xảy ra lỗi khi gửi yêu cầu get_account_status:', e)

@@ -1,4 +1,4 @@
-# Báo cáo Phân tích Rủi ro hàm `process_trading`
+ # Báo cáo Phân tích Rủi ro hàm `process_trading`
 
 Dưới đây là các nguy cơ tiềm ẩn gây treo luồng (thread hanging) và treo trạng thái (stuck state) được phát hiện trong hàm `process_trading` tại file `apps/trading/service/handlers.py`.
 

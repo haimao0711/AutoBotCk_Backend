@@ -840,11 +840,14 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             for i in range(int(limited_times) - 1):
                 if should_break_loop:
                     break
-                elapsed = 0
-                while elapsed < sleeping_time_buy:
+                start_sleep = time.time()
+                while time.time() - start_sleep < sleeping_time_buy:
                     connection.close()  # Close connection before sleep
-                    time.sleep(interval_check)
-                    elapsed += interval_check
+                    remaining = sleeping_time_buy - (time.time() - start_sleep)
+                    sleep_time = min(interval_check, remaining)
+                    if sleep_time <= 0:
+                        break
+                    time.sleep(sleep_time)
                 
                     # 🔄 Lấy lại cấu hình mới mỗi lần lặp để cập nhật cấu hình mới nhất
                     try:
@@ -1298,11 +1301,14 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             for i in range(int(limited_times) - 1):
                 if should_break_loop:
                     break
-                elapsed = 0
-                while elapsed < sleeping_time_sell:
+                start_sleep = time.time()
+                while time.time() - start_sleep < sleeping_time_sell:
                     connection.close()  # Close connection before sleep
-                    time.sleep(interval_check)
-                    elapsed += interval_check
+                    remaining = sleeping_time_sell - (time.time() - start_sleep)
+                    sleep_time = min(interval_check, remaining)
+                    if sleep_time <= 0:
+                        break
+                    time.sleep(sleep_time)
                 
                     # 🔄 Lấy lại cấu hình mới mỗi lần lặp để cập nhật cấu hình mới nhất
                     try:
@@ -1676,16 +1682,22 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             if is_send_order_buy:                  
                 limited_times = time_to_buy // sleeping_time_buy
                 limited_price_to_buy = start_price - add_price_buy + slippage_buy  
-                interval_check = 15  # kiểm tra mỗi 15 giây
+                interval_check = 10  # kiểm tra mỗi 10 giây
                 should_break_loop = False  # Flag để thoát khỏi vòng for
                 for i in range(int(limited_times) - 1):
                     if should_break_loop:
                         break
-                    elapsed = 0
-                    while elapsed < sleeping_time_buy:
+                    start_sleep = time.time()
+                    while time.time() - start_sleep < sleeping_time_buy:
                         connection.close()
-                        time.sleep(interval_check)
-                        elapsed += interval_check
+
+                        remaining = sleeping_time_buy - (time.time() - start_sleep)
+                        sleep_time = min(interval_check, remaining)
+
+                        if sleep_time <= 0:
+                            break
+                        
+                        time.sleep(sleep_time)
                         
                         # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
                         try:
@@ -2174,16 +2186,22 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             if is_send_order_sell:
                 limited_times = time_to_sell // sleeping_time_sell
                 limited_price_to_sell = start_price + add_price_sell - slippage_sell
-                interval_check = 15  # kiểm tra mỗi 15 giây
+                interval_check = 10  # kiểm tra mỗi 10 giây
                 should_break_loop = False  # Flag để thoát khỏi vòng for                
                 for i in range(int(limited_times) - 1):
                     if should_break_loop:
                         break
-                    elapsed = 0
-                    while elapsed < sleeping_time_sell:
+                    start_sleep = time.time()
+                    while time.time() - start_sleep < sleeping_time_sell:
                         connection.close()
-                        time.sleep(interval_check)
-                        elapsed += interval_check                        
+                        
+                        remaining = sleeping_time_sell - (time.time() - start_sleep)
+                        sleep_time = min(interval_check, remaining)
+                        
+                        if sleep_time <= 0:
+                            break
+                            
+                        time.sleep(sleep_time)                        
                         # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
                         try:
                             configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
