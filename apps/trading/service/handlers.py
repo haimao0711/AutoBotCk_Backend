@@ -545,7 +545,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
 
         while is_use_chart_action and datetime.now() < end_time:
+            logger.info(f'Xu ly lenh mua ngay {symbol} trước close_old_connections')
             close_old_connections()
+            logger.info(f'Xu ly lenh mua ngay {symbol} sau close_old_connections')
             # Kiểm tra is_buy_hand mỗi 3 giây        
             try:
                 configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
