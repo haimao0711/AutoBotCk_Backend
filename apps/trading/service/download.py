@@ -173,6 +173,7 @@ def download_sales_volume(symbol: str, max_retries: int = 3, timeout_per_request
                 return None
 
         except requests.exceptions.RequestException as e:
+            print(f"Attempt {attempt+1} failed for {symbol}: {e}")
             if attempt < max_retries - 1:
                 time.sleep(1)
                 continue
