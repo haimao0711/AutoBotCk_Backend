@@ -7,12 +7,7 @@ echo ""
 
 # 1. Xem PgBouncer stats
 echo "📊 PgBouncer Stats:"
-docker-compose exec pgbouncer psql -h localhost -p 6432 -U postgres -d pgbouncer -c "
-SELECT 
-    'Client Connections' as metric,
-    current_connections as value
-FROM pg_stat_pooler;
-"
+docker-compose exec stock-predict-postgres psql -h pgbouncer -p 6432 -U postgres -d pgbouncer -c "SHOW POOLS;"
 
 echo ""
 echo "📈 Database Connections:"

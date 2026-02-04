@@ -542,6 +542,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             }
             send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
 
+            logger.info(f"Before while loop line 545, is_use_chart_action={is_use_chart_action}")
             while is_use_chart_action and datetime.now() < end_time:
                 close_old_connections()
                 # Kiểm tra is_buy_hand mỗi 3 giây        
@@ -937,6 +938,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     send_message_telegram(user, MessageTypeEnum.ACT, message)
             #Hủy tất cả các lệnh nếu còn đặt
                 cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Hủy các lệnh mua còn sót lại', "B")
+    except Exception as e:
+        logger.error(f'FATAL ERROR in process_buy_request {symbol}: {e}', exc_info=True)
     finally:
         logger.info(f'Finalizing process_buy_request for {symbol}')
         revert_status_request_trade(user, stock_id)
@@ -1743,6 +1746,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         symbols_existing = res_stock.get('symbols_existing', []) if res_stock else []
                         if number_stock_existing >= vps_account.limit_number_stocks and symbol not in symbols_existing:
                             logger.info(f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh {symbol}')
+                            message_cancel = f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}'
+                            send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
+                            send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)                            
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn cổ phiếu tối đa', "B")
                             should_break_loop = True
                             break
