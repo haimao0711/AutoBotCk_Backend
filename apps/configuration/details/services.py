@@ -531,7 +531,64 @@ class ConfigurationServices:
                 return ErrorType.UPDATE_FAILED, {'errors': {'message': str(errors)}}
         except Exception as error:
             return ErrorType.UPDATE_FAILED, {'errors': {'message': str(error)}}
-    
+
+    @staticmethod
+    def update_all_take_profit_flags_true(user, stock_id):
+        """
+        Hàm update cùng lúc 5 flag thành True:
+        - stock_config_use_bolinger_a_part_to_take_profit
+        - stock_config_use_stoch_rsi_to_take_profit
+        - stock_config_use_take_profit_first_part
+        - stock_config_use_take_profit_first_part_two
+        - stock_config_use_rsi_decrease_to_take_profit
+        """
+        # Bước 1: Lấy config_type 'trading'
+        config_type = ConfigurationTypeEnum.TRADING.value
+        template, check, config_template = None, True, None
+
+        # Lấy template theo config_type
+        if config_type == ConfigurationTypeEnum.TRADING.value:
+            template = ConfigurationTypeServices.get_trading()
+            check, config_template = ConfigurationServices.get_details_configutation_by_config_type(
+                user=user, config_type=template.id, stock=stock_id)
+        else:
+            return ErrorType.UPDATE_FAILED, {}
+
+        if not check or not config_template:
+            return ErrorType.UPDATE_FAILED, {}
+
+        # Bước 2: Tạo dữ liệu cập nhật cho 5 trường cùng lúc
+        update_config_type_data = {
+            'config_type': template.id,
+            'user': user.id,
+            'stock': stock_id,
+            'stock_config_use_bolinger_a_part_to_take_profit': True,
+            'stock_config_use_stoch_rsi_to_take_profit': True,
+            'stock_config_use_rsi_decrease_to_take_profit': True,
+            'stock_config_use_take_profit_first_part': True,
+            'stock_config_use_take_profit_first_part_two': True
+        }
+
+        try:
+            # Cập nhật qua serializer
+            template_serializer = ConfigurationSerializers(
+                config_template, data=update_config_type_data, partial=True)
+
+            if template_serializer.is_valid():
+                data = template_serializer.save()
+
+                # Chuyển đổi dữ liệu trả về nếu cần thiết
+                return_data = ConfigurationServices.convert_data_template(
+                    ConfigurationSerializers(data).data)
+                return_data['stock_id'] = stock_id
+                return_data['chart_type'] = config_type
+                return SuccessType.UPDATED_SUCCESS, return_data
+            else:
+                errors = template_serializer.errors
+                return ErrorType.UPDATE_FAILED, {'errors': {'message': str(errors)}}
+        except Exception as error:
+            return ErrorType.UPDATE_FAILED, {'errors': {'message': str(error)}}
+
     @staticmethod
     def update_is_trading_configuration(user, stock_id, is_trading):
 

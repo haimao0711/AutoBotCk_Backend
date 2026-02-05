@@ -662,7 +662,11 @@ class Configuration(models.Model):
         default=False, null=True)
     stock_config_time_start_buy = models.TextField(
         default='09:30', validators=[validate_time_format], null=True)
+    stock_config_time_start_buy_second = models.TextField(
+        default='09:30', validators=[validate_time_format], null=True)
     stock_config_time_end_buy = models.TextField(
+        default='15:30', validators=[validate_time_format], null=True)
+    stock_config_time_end_buy_second = models.TextField(
         default='15:30', validators=[validate_time_format], null=True)
     stock_config_days_buy= models.CharField(
         default='12345',max_length=7, blank=True, null=True)
