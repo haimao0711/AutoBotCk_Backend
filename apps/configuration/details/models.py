@@ -675,7 +675,11 @@ class Configuration(models.Model):
         default=False, null=True)
     stock_config_time_start_sell = models.TextField(
         default='09:30', validators=[validate_time_format], null=True)
+    stock_config_time_start_sell_second = models.TextField(
+        default='09:30', validators=[validate_time_format], null=True)
     stock_config_time_end_sell = models.TextField(
+        default='15:30', validators=[validate_time_format], null=True)
+    stock_config_time_end_sell_second = models.TextField(
         default='15:30', validators=[validate_time_format], null=True)
     stock_config_days_sell= models.CharField(
         default='12345',max_length=7, blank=True, null=True)
