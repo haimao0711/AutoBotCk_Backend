@@ -27,8 +27,8 @@ def user_trading_task(self, user_id):
         timezone = pytz.timezone('Asia/Ho_Chi_Minh')
         now = datetime.now(timezone).time()
 
-        morning_start = time(9, 15)
-        morning_end = time(11, 28)
+        morning_start = time(9, 0)
+        morning_end = time(14, 59)
         afternoon_start = time(13, 0)
         afternoon_end = time(14, 59)
         
@@ -121,8 +121,8 @@ def trading_request_task(self, user_id, stock_id, symbol, request_buy, request_s
         timezone = pytz.timezone('Asia/Ho_Chi_Minh')
         now = datetime.now(timezone).time()
 
-        morning_start = time(9, 15)
-        morning_end = time(11, 28)
+        morning_start = time(9, 0)
+        morning_end = time(14, 59)
         afternoon_start = time(13, 0)
         afternoon_end = time(14, 28)
         

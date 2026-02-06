@@ -171,10 +171,12 @@ def is_valid_time_to_buy(config: Configuration):
 
     # Kiểm tra giờ mua
     is_use_time_to_buy = config.stock_config_is_use_time_to_buy
+    is_use_time_to_buy_first = config.stock_config_is_use_time_to_buy_first
+    is_use_time_to_buy_second = config.stock_config_is_use_time_to_buy_second
     if config.stock_config_is_use_time_to_buy:        
         start_time, end_time = config.stock_config_time_start_buy or "9:30", config.stock_config_time_end_buy or "14:30"
         start_time_second, end_time_second = config.stock_config_time_start_buy_second or "9:30", config.stock_config_time_end_buy_second or "14:30"
-        return is_within_time_range(start_time, end_time, now_time) or is_within_time_range(start_time_second, end_time_second, now_time)
+        return (is_use_time_to_buy_first and is_within_time_range(start_time, end_time, now_time)) or (is_use_time_to_buy_second and is_within_time_range(start_time_second, end_time_second, now_time))
     else:
         return True
 
@@ -190,10 +192,12 @@ def is_valid_time_to_sell(config: Configuration):
 
     # Kiểm tra giờ 
     is_use_time_to_sell = config.stock_config_is_use_time_to_sell
+    is_use_time_to_sell_first = config.stock_config_is_use_time_to_sell_first
+    is_use_time_to_sell_second = config.stock_config_is_use_time_to_sell_second
     if is_use_time_to_sell:
         start_time, end_time = config.stock_config_time_start_sell or "9:30", config.stock_config_time_end_sell or "14:30"
         start_time_second, end_time_second = config.stock_config_time_start_sell_second or "9:30", config.stock_config_time_end_sell_second or "14:30"
-        return is_within_time_range(start_time, end_time, now_time) or is_within_time_range(start_time_second, end_time_second, now_time)
+        return (is_use_time_to_sell_first and is_within_time_range(start_time, end_time, now_time)) or (is_use_time_to_sell_second and is_within_time_range(start_time_second, end_time_second, now_time))
     else:
         return True
 

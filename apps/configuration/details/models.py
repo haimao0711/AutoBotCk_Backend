@@ -660,6 +660,10 @@ class Configuration(models.Model):
     # advance mode
     stock_config_is_use_time_to_buy = models.BooleanField(
         default=False, null=True)
+    stock_config_is_use_time_to_buy_first = models.BooleanField(
+        default=True, null=True)
+    stock_config_is_use_time_to_buy_second = models.BooleanField(
+        default=True, null=True)
     stock_config_time_start_buy = models.TextField(
         default='09:30', validators=[validate_time_format], null=True)
     stock_config_time_start_buy_second = models.TextField(
@@ -673,6 +677,10 @@ class Configuration(models.Model):
 
     stock_config_is_use_time_to_sell = models.BooleanField(
         default=False, null=True)
+    stock_config_is_use_time_to_sell_first = models.BooleanField(
+        default=True, null=True)
+    stock_config_is_use_time_to_sell_second = models.BooleanField(
+        default=True, null=True)
     stock_config_time_start_sell = models.TextField(
         default='09:30', validators=[validate_time_format], null=True)
     stock_config_time_start_sell_second = models.TextField(
