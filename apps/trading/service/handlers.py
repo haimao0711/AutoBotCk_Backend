@@ -493,9 +493,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     slippage_buy = trading_config.stock_config_slippage_buy
     add_price_buy = trading_config.stock_config_add_price_buy
     level = overview_config.level
-    is_valid_time_to_buy = is_valid_time_to_buy(following_config)
+    is_time_valid_to_buy = is_valid_time_to_buy(following_config)
     #HANDLE BUY
-    if is_valid_time_to_buy:
+    if is_time_valid_to_buy:
         try:
             # Xác định thời gian bắt đầu và thời gian kết thúc (sau 1 tiếng)
             start_time = datetime.now()
@@ -886,8 +886,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             # revert_status_request_trade removed here, handled in finally
                             should_break_loop = True
                             break
-                        is_valid_time_to_buy = is_valid_time_to_buy(following_config)
-                        if not is_valid_time_to_buy:
+                        is_time_valid_to_buy = is_valid_time_to_buy(following_config)
+                        if not is_time_valid_to_buy:
                             logger.info(f'{symbol} Vượt khung giờ mua, hủy lệnh mua tay {symbol} ngay lập tức.')
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã vượt khung giờ mua', "B")
                             # revert_status_request_trade removed here, handled in finally
@@ -988,9 +988,9 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
 
     slippage_sell = trading_config.stock_config_slippage_sell
     add_price_sell = trading_config.stock_config_add_price_sell
-    is_valid_time_to_sell = is_valid_time_to_sell(following_config)
+    is_time_valid_to_sell = is_valid_time_to_sell(following_config)
     #HANDLE SELL
-    if is_valid_time_to_sell:
+    if is_time_valid_to_sell:
         try:
             update_status, update_data = ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
             if update_status != SuccessType.UPDATED_SUCCESS:
@@ -1358,8 +1358,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã tắt bán tay', "S")
                             should_break_loop = True
                             break
-                        is_valid_time_to_sell = is_valid_time_to_sell(following_config)
-                        if not is_valid_time_to_sell:
+                        is_time_valid_to_sell  = is_valid_time_to_sell(following_config)
+                        if not is_time_valid_to_sell :
                             logger.info(f'{symbol} Đã vượt khung giờ bán, hủy lệnh bán tay {symbol} ngay lập tức.')
                             cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã vượt khung giờ bán', "S")
                             should_break_loop = True
@@ -1472,8 +1472,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
         cash_available = cash_balance['cash_available']        
     #HANDLE BUY
-        is_valid_time_to_buy = is_valid_time_to_buy(following_config)
-        if not is_block_buy_stock and is_valid_time_to_buy:
+        is_time_valid_to_buy = is_valid_time_to_buy(following_config)
+        if not is_block_buy_stock and is_time_valid_to_buy:
             # Tải dữ liệu lần 1
             vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
                 stock=stock, 
@@ -1767,8 +1767,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn mua', "B")
                             should_break_loop = True
                             break
-                        is_valid_time_to_buy = is_valid_time_to_buy(following_config)
-                        if not is_valid_time_to_buy:
+                        is_time_valid_to_buy = is_valid_time_to_buy(following_config)
+                        if not is_time_valid_to_buy:
                             logger.info(f'{symbol} đã vượt khung giờ mua, hủy lệnh mua {symbol}')
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã vượt khung giờ mua', "B")
                             should_break_loop = True
@@ -1908,8 +1908,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
 
     #HANDLE SELL
-        is_valid_time_to_sell = is_valid_time_to_sell(following_config)
-        if not is_block_sell_stock and is_valid_time_to_sell and symbol in symbols_existing and volume_balance_trade > 0:
+        is_time_valid_to_sell  = is_valid_time_to_sell(following_config)
+        if not is_block_sell_stock and is_time_valid_to_sell  and symbol in symbols_existing and volume_balance_trade > 0:
             logger.info(f'bắt đầu hàm kiểm tra thực hiện sell {symbol}')
             # Handle take profit
             volume_balance = (volume_balance_trade // 100) * 100
@@ -2262,8 +2262,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn bán', "S")
                             should_break_loop = True
                             break
-                        is_valid_time_to_sell = is_valid_time_to_sell(following_config)
-                        if not is_valid_time_to_sell:
+                        is_time_valid_to_sell  = is_valid_time_to_sell(following_config)
+                        if not is_time_valid_to_sell:
                             logger.info(f'{symbol} đã vượt khung giờ bán, hủy lệnh bán {symbol}')
                             cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã vượt khung giờ bán', "S")
                             should_break_loop = True
