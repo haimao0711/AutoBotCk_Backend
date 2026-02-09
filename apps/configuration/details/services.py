@@ -594,46 +594,44 @@ class ConfigurationServices:
 
         # Bước 1: Lấy config_type 'trading'
         config_type = ConfigurationTypeEnum.TRADING.value
-        template, check, config_template = None, True, None
-
-        # Lấy template theo config_type
-        if config_type == ConfigurationTypeEnum.TRADING.value:
-            template = ConfigurationTypeServices.get_trading()
-            check, config_template = ConfigurationServices.get_details_configutation_by_config_type(
-                user=user, config_type=template.id, stock=stock_id)
-        else:
-            return ErrorType.UPDATE_FAILED, {}
+        template = ConfigurationTypeServices.get_trading()
+        
+        # Kiểm tra nhanh xem config có tồn tại không (tùy chọn, để giữ tương thích logic cũ)
+        check, config_template = ConfigurationServices.get_details_configutation_by_config_type(
+            user=user, config_type=template.id, stock=stock_id)
 
         if not check or not config_template:
             return ErrorType.UPDATE_FAILED, {}
 
-        # Bước 2: Tạo dữ liệu cập nhật chỉ cho trường is_trading
-        update_config_type_data = {
-            'config_type': template.id,
-            'user': user.id,
-            'stock': stock_id,
-            'is_trading': is_trading  # Chỉ cập nhật trường này
-        }
-
         try:
-            # Cập nhật qua serializer
-            template_serializer = ConfigurationSerializers(
-                config_template, data=update_config_type_data, partial=True)
-
-            if template_serializer.is_valid():
-                data = template_serializer.save()
-
-                # Chuyển đổi dữ liệu trả về nếu cần thiết
-                return_data = ConfigurationServices.convert_data_template(
-                    ConfigurationSerializers(data).data)
-                return_data['stock_id'] = stock_id
-                return_data['chart_type'] = config_type
-
-                return SuccessType.UPDATED_SUCCESS, return_data
+            if is_trading:
+                # Locking: update is_trading=True WHERE is_trading=False
+                # Chú ý: filter theo cả user, config_type, stock để chính xác record
+                rows_updated = Configuration.objects.filter(
+                    user=user, 
+                    config_type=template.id, 
+                    stock=stock_id,
+                    is_trading=False
+                ).update(is_trading=True)
+                
+                if rows_updated == 0:
+                    # Nếu không update được row nào, có thể do is_trading đã là True
+                    # Hoặc record không tồn tại (nhưng đã check ở trên rồi)
+                    logger.warning(f"Failed to acquire lock for {stock_id}: is_trading is likely already True.")
+                    return ErrorType.UPDATE_FAILED, {'errors': {'message': 'Configuration is already locked (is_trading=True).'}}
             else:
-                errors = template_serializer.errors
-                return ErrorType.UPDATE_FAILED, {'errors': {'message': str(errors)}}
+                # Unlocking: Force update is_trading=False
+                Configuration.objects.filter(
+                    user=user, 
+                    config_type=template.id, 
+                    stock=stock_id
+                ).update(is_trading=False)
+            
+            # Trả về thành công
+            return SuccessType.UPDATED_SUCCESS, {'stock_id': stock_id}
+
         except Exception as error:
+            logger.error(f"Error in atomic update_is_trading_configuration: {error}")
             return ErrorType.UPDATE_FAILED, {'errors': {'message': str(error)}}
 
     

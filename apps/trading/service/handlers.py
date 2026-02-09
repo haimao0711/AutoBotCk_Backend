@@ -1470,7 +1470,16 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         ceil_price = res_stock_balance.get('stock_balance', {}).get('ceil_price', 0) if res_stock_balance else 0
         symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
         cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
-        cash_available = cash_balance['cash_available']        
+        cash_available = cash_balance['cash_available']
+
+        # === EARLY LOCKING ===
+        # Cố gắng acquire lock ngay từ đầu để tránh race condition và tính toán vô ích
+        lock_status, lock_data = ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
+        if lock_status != SuccessType.UPDATED_SUCCESS:
+            logger.warning(f"⚠️ Không thể chiếm quyền giao dịch (lock) cho {symbol}. Có thể tiến trình khác đang chạy hoặc đã bị khóa.")
+            # Không làm gì thêm, return để kết thúc task này
+            return
+
     #HANDLE BUY
         is_time_valid_to_buy = is_valid_time_to_buy(following_config)
         if not is_block_buy_stock and is_time_valid_to_buy:
@@ -1579,25 +1588,18 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             #     send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_SUCCESS:
-                logger.info(f'bắt đầu hàm đặt lệnh buy {symbol}')                
-                is_update_success = False
-                try:
-                    ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
-                    is_update_success = True
-                except Exception as e:
-                     logger.error(f"⚠️Lỗi khi update is_trading=True cho {symbol} trước khi mua: {e}")
-                     close_old_connections()
-                     time.sleep(1)
-                     try:
-                         ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
-                         is_update_success = True
-                     except Exception as retry_e:
-                         logger.error(f"⚠️ Retry update is_trading=True thất bại cho {symbol} trước khi mua: {retry_e}")
+                logger.info(f'bắt đầu hàm đặt lệnh buy {symbol} (Đã có lock từ đầu)')                
+                
+                # Vì đã lock từ đầu hàm, nên ở đây ta coi như update success
+                is_update_success = True
+                
+                # (Đã xóa đoạn code update_is_trading_configuration cũ ở đây để tránh dư thừa/lỗi)
                 
                 if not is_update_success:
-                    logger.error(f"⛔ Không đặt lệnh mua {symbol} vì chuyển  {symbol} vào danh sách đang hoạt động không thành công.")
-                    message_fail = f"⚠️ Không đặt lệnh mua {symbol} vì chuyển  {symbol} vào danh sách đang hoạt động không thành công."
-                    send_message_telegram(user, MessageTypeEnum.OVERALL, message_fail)
+                    # Logic cũ (giữ lại 1 phần cấu trúc nếu cần, nhưng thực tế is_update_success luôn True ở đây)
+                    logger.error(f"⛔ Logic Error: is_update_success should be True.")
+                    send_message_telegram(user, MessageTypeEnum.OVERALL, "Internal Error in Locking Logic")
+
                     send_message_telegram(user, MessageTypeEnum.ACT, message_fail)
                     is_send_order_buy = False # Skip the buying part
                 else: 
@@ -2093,133 +2095,114 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             is_send_order_sell = False   
 
             if status_sell in [SignalTelegramEnum.SELL_SUCCESS, SignalTelegramEnum.TAKEPROFIT]:
-                logger.info(f'bắt đầu đặt lệnh sell {symbol}')                
-                is_update_success = False
-                try:
-                    ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
-                    is_update_success = True
-                except Exception as e:
-                     logger.error(f"⚠️Lỗi khi update is_trading=True cho {symbol} trước khi bán: {e}")
-                     close_old_connections()
-                     time.sleep(1)
-                     try:
-                         ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
-                         is_update_success = True
-                     except Exception as retry_e:
-                         logger.error(f"⚠️ Retry update is_trading=True thất bại cho {symbol} trước khi bán: {retry_e}")
+                logger.info(f'bắt đầu đặt lệnh sell {symbol} (Đã có lock từ đầu)')
                 
-                if not is_update_success:
-                    logger.error(f"⛔ Không đặt lệnh bán {symbol} vì chuyển  {symbol} vào danh sách đang hoạt động không thành công.")
-                    message_fail = f"⚠️ Không đặt lệnh bán {symbol} vì chuyển  {symbol} vào danh sách đang hoạt động không thành công."
-                    send_message_telegram(user, MessageTypeEnum.OVERALL, message_fail)
-                    send_message_telegram(user, MessageTypeEnum.ACT, message_fail)
-                    is_send_order_sell = False # Skip the selling part
-                else:
-                    timezone = pytz.timezone('Asia/Ho_Chi_Minh')
-                    last_row = stock_data_trading.iloc[-1]
-                    open_last_row = last_row['open']
-                    close_last_row = last_row['close']
-                    low_last_row = last_row['low']
-                    high_last_row = last_row['high']
-                    step_price = trading_config.stock_config_slippage_volume_sell_per_pid
-                    sleeping_time_sell= trading_config.stock_config_time_update_pid_sell
-                    sleeping_time_sell = sleeping_time_sell if sleeping_time_sell > 5 else 5
-                    time_to_sell = trading_config.stock_config_time_to_sell
-                    time_to_sell = time_to_sell if time_to_sell >= 30 else 30   
-                    start_price = round_up_to_unit(open_last_row, close_last_row, step_price)  
-                    number_order = trading_config.stock_config_number_pid_sell_once_time
-                    time_now = datetime.now(timezone)
-                    start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-                    slippage_sell = trading_config.stock_config_slippage_sell
-                   # Dao động cộng trừ     
-                    add_price_sell = trading_config.stock_config_add_price_sell
+                # Vì đã lock từ đầu hàm, nên ở đây ta coi như update success (Logic check cũ đã được xóa)
+                timezone = pytz.timezone('Asia/Ho_Chi_Minh')
+                last_row = stock_data_trading.iloc[-1]
+                open_last_row = last_row['open']
+                close_last_row = last_row['close']
+                low_last_row = last_row['low']
+                high_last_row = last_row['high']
+                step_price = trading_config.stock_config_slippage_volume_sell_per_pid
+                sleeping_time_sell= trading_config.stock_config_time_update_pid_sell
+                sleeping_time_sell = sleeping_time_sell if sleeping_time_sell > 5 else 5
+                time_to_sell = trading_config.stock_config_time_to_sell
+                time_to_sell = time_to_sell if time_to_sell >= 30 else 30   
+                start_price = round_up_to_unit(open_last_row, close_last_row, step_price)  
+                number_order = trading_config.stock_config_number_pid_sell_once_time
+                time_now = datetime.now(timezone)
+                start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
+                slippage_sell = trading_config.stock_config_slippage_sell
+               # Dao động cộng trừ     
+                add_price_sell = trading_config.stock_config_add_price_sell
     
-                    # Get stock balance to set volume
-                    volume = volume_take_profit if is_take_profit else int(volume_balance)
-                    sell_order_overrall_attrs = {
-                        'user_account': account,
-                        'stock': symbol,
-                        'volume': int(volume),
-                        'start_price': round(start_price, 2),
-                        'limit_price': round(start_price + add_price_sell - slippage_sell, 2),
-                        "current_price": round(price_current, 2),
-                        'step_price': step_price,
-                        "slippage_sell": slippage_sell,
-                        "add_price_sell": add_price_sell,
-                        "sleeping_time_sell": int(sleeping_time_sell), 
-                        'number_order': int(number_order),
-                        'start_time_order': start_time_order
-                    }
-                    sell_messages = []
-                    sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_OVERRAL,
-                                        **sell_order_overrall_attrs })
+                # Get stock balance to set volume
+                volume = volume_take_profit if is_take_profit else int(volume_balance)
+                sell_order_overrall_attrs = {
+                    'user_account': account,
+                    'stock': symbol,
+                    'volume': int(volume),
+                    'start_price': round(start_price, 2),
+                    'limit_price': round(start_price + add_price_sell - slippage_sell, 2),
+                    "current_price": round(price_current, 2),
+                    'step_price': step_price,
+                    "slippage_sell": slippage_sell,
+                    "add_price_sell": add_price_sell,
+                    "sleeping_time_sell": int(sleeping_time_sell), 
+                    'number_order': int(number_order),
+                    'start_time_order': start_time_order
+                }
+                sell_messages = []
+                sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_OVERRAL,
+                                    **sell_order_overrall_attrs })
                 
                 if volume >= 100:
-                    # Xử lý bán nhạy cảm 
-                    if trading_config.stock_config_is_mode_sensitive_sell:
-                        sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
-                        volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
-                        volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100
-                        price_set_sell = max(start_price, price_current)
-                        sell_order_attrs_send = {
-                            'stock': symbol,
-                            # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
-                            'price': round(price_set_sell, 2), 
-                            'volume': int(volume_sell_sensitive)
+                # Xử lý bán nhạy cảm 
+                if trading_config.stock_config_is_mode_sensitive_sell:
+                    sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
+                    volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
+                    volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100
+                    price_set_sell = max(start_price, price_current)
+                    sell_order_attrs_send = {
+                        'stock': symbol,
+                        # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
+                        'price': round(price_set_sell, 2), 
+                        'volume': int(volume_sell_sensitive)
+                    }
+                    res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
+                    if res_sell:
+                        is_send_order_sell = True
+                        sell_order_sensitive_attrs = {
+                            'stock': res_sell['symbol'],
+                            'price': round(res_sell['price'], 2),
+                            'volume': res_sell['volume'],
+                            'status': res_sell['status'],
                         }
-                        res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
-                        if res_sell:
-                            is_send_order_sell = True
-                            sell_order_sensitive_attrs = {
-                                'stock': res_sell['symbol'],
-                                'price': round(res_sell['price'], 2),
-                                'volume': res_sell['volume'],
-                                'status': res_sell['status'],
-                            }
-                            sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
-                                                **sell_order_sensitive_attrs })
-                            volume -= int(res_sell['volume'])
-                            number_order -= 1
+                        sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
+                                            **sell_order_sensitive_attrs })
+                        volume -= int(res_sell['volume'])
+                        number_order -= 1
+                    else:
+                        logger.info(f"Error: lệnh bán nhạy cảm handle_sell_service  của {symbol} phản hồi là rỗng") 
+                # Chia đều phần còn lại của volume to sell
+                if volume >= 100:
+                    number_order = min(number_order, volume // 100)
+                    for i in range(int(number_order)):
+                        divisor = number_order - i
+                        if i != int(number_order) - 1:
+                            volume_sell = round_to_nearest_hundred(volume / divisor)
                         else:
-                            logger.info(f"Error: lệnh bán nhạy cảm handle_sell_service  của {symbol} phản hồi là rỗng") 
-                    # Chia đều phần còn lại của volume to sell
-                    if volume >= 100:
-                        number_order = min(number_order, volume // 100)
-                        for i in range(int(number_order)):
-                            divisor = number_order - i
-                            if i != int(number_order) - 1:
-                                volume_sell = round_to_nearest_hundred(volume / divisor)
-                            else:
-                                volume_sell = round_to_nearest_hundred(volume / divisor) if volume % 100 != 0 else int(volume)
-                            volume -= volume_sell
-                            #Gửi các lệnh sell
-                            ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                            price = round(start_price + add_price_sell + i*step_price, 2) if round(start_price + add_price_sell + i*step_price, 2) < ceil_price else round(ceil_price, 2)
-                            if volume_sell >= 100:
-                                res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_sell, ref_id)
-                                if res_sell:
-                                    is_send_order_sell = True
-                                    sell_order_details_attrs = {
-                                        'stock': res_sell['symbol'],
-                                        'price': round(res_sell['price'], 2),
-                                        'volume': res_sell['volume'],
-                                        'status': res_sell['status'],
-                                    }                
-                                    sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
-                                                        **sell_order_details_attrs })
-                            else:
-                                logger.info(f"Error: lệnh bán lần thứ {i+1} hàm handle_sell_service  của {symbol} có phản hồi là rỗng") 
-                    # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
-                    if is_send_order_sell:
-                        if status_sell == SignalTelegramEnum.TAKEPROFIT: 
-                            send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_take_profit) 
-                            send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_sell, **sell_take_profit) 
-                        else: 
-                            send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)
-                            send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_sell, **sell_attrs)
+                            volume_sell = round_to_nearest_hundred(volume / divisor) if volume % 100 != 0 else int(volume)
+                        volume -= volume_sell
+                        #Gửi các lệnh sell
+                        ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
+                        price = round(start_price + add_price_sell + i*step_price, 2) if round(start_price + add_price_sell + i*step_price, 2) < ceil_price else round(ceil_price, 2)
+                        if volume_sell >= 100:
+                            res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_sell, ref_id)
+                            if res_sell:
+                                is_send_order_sell = True
+                                sell_order_details_attrs = {
+                                    'stock': res_sell['symbol'],
+                                    'price': round(res_sell['price'], 2),
+                                    'volume': res_sell['volume'],
+                                    'status': res_sell['status'],
+                                }                
+                                sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
+                                                    **sell_order_details_attrs })
+                        else:
+                            logger.info(f"Error: lệnh bán lần thứ {i+1} hàm handle_sell_service  của {symbol} có phản hồi là rỗng") 
+                # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
+                if is_send_order_sell:
+                    if status_sell == SignalTelegramEnum.TAKEPROFIT: 
+                        send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_take_profit) 
+                        send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_sell, **sell_take_profit) 
+                    else: 
+                        send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)
+                        send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_sell, **sell_attrs)
 
-                        send_telegram_message_batch(user, MessageTypeEnum.OVERALL, sell_messages)
-                        send_telegram_message_batch(user, MessageTypeEnum.ACT, sell_messages) 
+                    send_telegram_message_batch(user, MessageTypeEnum.OVERALL, sell_messages)
+                    send_telegram_message_batch(user, MessageTypeEnum.ACT, sell_messages) 
                 logger.info('kết thúc hàm đặt lệnh sell')
                
             # Xử lý sửa lệnh
