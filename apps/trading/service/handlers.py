@@ -2095,9 +2095,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             is_send_order_sell = False   
 
             if status_sell in [SignalTelegramEnum.SELL_SUCCESS, SignalTelegramEnum.TAKEPROFIT]:
-                logger.info(f'bắt đầu đặt lệnh sell {symbol} (Đã có lock từ đầu)')
-                
-                # Vì đã lock từ đầu hàm, nên ở đây ta coi như update success (Logic check cũ đã được xóa)
+                logger.info(f'bắt đầu đặt lệnh sell {symbol} (Đã có lock từ đầu)')                
                 timezone = pytz.timezone('Asia/Ho_Chi_Minh')
                 last_row = stock_data_trading.iloc[-1]
                 open_last_row = last_row['open']
@@ -2138,33 +2136,33 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                     **sell_order_overrall_attrs })
                 
                 if volume >= 100:
-                # Xử lý bán nhạy cảm 
-                if trading_config.stock_config_is_mode_sensitive_sell:
-                    sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
-                    volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
-                    volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100
-                    price_set_sell = max(start_price, price_current)
-                    sell_order_attrs_send = {
-                        'stock': symbol,
-                        # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
-                        'price': round(price_set_sell, 2), 
-                        'volume': int(volume_sell_sensitive)
-                    }
-                    res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
-                    if res_sell:
-                        is_send_order_sell = True
-                        sell_order_sensitive_attrs = {
-                            'stock': res_sell['symbol'],
-                            'price': round(res_sell['price'], 2),
-                            'volume': res_sell['volume'],
-                            'status': res_sell['status'],
+                    # Xử lý bán nhạy cảm 
+                    if trading_config.stock_config_is_mode_sensitive_sell:
+                        sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
+                        volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
+                        volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100
+                        price_set_sell = max(start_price, price_current)
+                        sell_order_attrs_send = {
+                            'stock': symbol,
+                            # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
+                            'price': round(price_set_sell, 2), 
+                            'volume': int(volume_sell_sensitive)
                         }
-                        sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
-                                            **sell_order_sensitive_attrs })
-                        volume -= int(res_sell['volume'])
-                        number_order -= 1
-                    else:
-                        logger.info(f"Error: lệnh bán nhạy cảm handle_sell_service  của {symbol} phản hồi là rỗng") 
+                        res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
+                        if res_sell:
+                            is_send_order_sell = True
+                            sell_order_sensitive_attrs = {
+                                'stock': res_sell['symbol'],
+                                'price': round(res_sell['price'], 2),
+                                'volume': res_sell['volume'],
+                                'status': res_sell['status'],
+                            }
+                            sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
+                                                **sell_order_sensitive_attrs })
+                            volume -= int(res_sell['volume'])
+                            number_order -= 1
+                        else:
+                            logger.info(f"Error: lệnh bán nhạy cảm handle_sell_service  của {symbol} phản hồi là rỗng") 
                 # Chia đều phần còn lại của volume to sell
                 if volume >= 100:
                     number_order = min(number_order, volume // 100)
