@@ -954,7 +954,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             logger.info(f'Finalizing process_buy_request for {symbol}')
             revert_status_request_trade(user, stock_id)
     else:
-        message_cancel = f'Vượt khung giờ mua mã {symbol}, hủy yêu cầu mua tay.'
+        message_cancel = f'Ngoài khung giờ mua mã {symbol}, hủy yêu cầu mua tay.'
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
         revert_status_request_trade(user, stock_id)
 
@@ -1416,7 +1416,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             logger.info(f'Finalizing process_sell_request for {symbol}')
             revert_status_request_trade(user, stock_id)
     else:
-        message_cancel = f'Vượt khung giờ bán mã {symbol}, hủy yêu cầu bán tay.'
+        message_cancel = f'Ngoài khung giờ bán mã {symbol}, hủy yêu cầu bán tay.'
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
         revert_status_request_trade(user, stock_id)
 
