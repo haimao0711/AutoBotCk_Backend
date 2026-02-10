@@ -955,7 +955,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             revert_status_request_trade(user, stock_id)
     else:
         message_cancel = f'Vượt khung giờ mua mã {symbol}, hủy yêu cầu mua tay.'
-        send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
+        send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
         revert_status_request_trade(user, stock_id)
 
 def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool, volume_sell: str, is_use_chart_action: bool):
@@ -1417,7 +1417,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             revert_status_request_trade(user, stock_id)
     else:
         message_cancel = f'Vượt khung giờ bán mã {symbol}, hủy yêu cầu bán tay.'
-        send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
+        send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
         revert_status_request_trade(user, stock_id)
 
 def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, percent_buy_trade: float):
