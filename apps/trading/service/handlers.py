@@ -662,13 +662,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         logger.info('Dừng vòng lặp do điều kiện mua thoả mãn.')
                         break
 
-                for _ in range(3):
-                    configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
-                    overview_config = configuration.get("overview_config", {})
-                    if not overview_config.is_buy_hand:
-                        logger.info(f"Phát hiện tắt mua tay trong lúc chờ đợi, thoát vòng lặp.")
-                        break
-                    time.sleep(1)
+                time.sleep(3)
 
             if status_buy == SignalTelegramEnum.BUY_REQUEST_FAILED:
                 logger.info('Dừng vòng lặp do vượt thời gian hoặc Yêu cầu ngừng mua tay .')        
@@ -956,6 +950,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     else:
         message_cancel = f'Ngoài khung giờ mua mã {symbol}, hủy yêu cầu mua tay.'
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
+        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
         revert_status_request_trade(user, stock_id)
 
 def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool, volume_sell: str, is_use_chart_action: bool):
@@ -1154,13 +1149,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                         logger.info('Dừng vòng lặp do  điều kiện bán thỏa mãn.')
                         break 
 
-                for _ in range(3):
-                    configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
-                    overview_config = configuration.get("overview_config", {})
-                    if not overview_config.is_sell_hand:
-                        logger.info(f"Phát hiện tắt bán tay trong lúc chờ đợi, thoát vòng lặp.")
-                        break
-                    time.sleep(1) 
+                time.sleep(3) 
 
             if status_sell == SignalTelegramEnum.SELL_REQUEST_FAILED:
                 logger.info('Dừng vòng lặp do vượt thời gian hoặc yêu cầu ngừng bán tay.')
@@ -1418,6 +1407,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     else:
         message_cancel = f'Ngoài khung giờ bán mã {symbol}, hủy yêu cầu bán tay.'
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
+        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
         revert_status_request_trade(user, stock_id)
 
 def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, percent_buy_trade: float):
