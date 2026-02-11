@@ -4,7 +4,7 @@ BUY_PERMISSION = '''
         Cấu hình dành cho mua chưa được thiết kế! ❌'''
 
 NOT_VALID_TIME_TO_BUY = '''
-        Chưa đến thời gian bắt đầu mua! ❌'''
+        Nằm ngoài khung giờ mua! ❌'''
 
 
 VNINDEX_CONFIG_MAX_VnIndex_BUY_SUFFICIENT_CONDITION = '''

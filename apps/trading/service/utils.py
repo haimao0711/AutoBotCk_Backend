@@ -200,7 +200,7 @@ def round_up_to_unit(val1: float, val2: float, unit: float) -> float:
 
     return rounded_up
 
-def revert_status_request_trade(user, stock_id):
+def revert_status_request_trade(user, stock_id, reset_is_trading=True):
     from apps.configuration.details.overview.views import ConfigurationOverviewRequestViews
     from django.db import connection
     import time
@@ -210,7 +210,8 @@ def revert_status_request_trade(user, stock_id):
     try:
         view_instance = ConfigurationOverviewRequestViews()
         view_instance.stop_request_trade(user, stock_id)
-        ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
+        if reset_is_trading:
+            ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
     except Exception as e:
         logger.error(f"Lỗi khi revert status request trade (Lần 1): {e}")
         connection.close()
@@ -219,6 +220,7 @@ def revert_status_request_trade(user, stock_id):
             # Retry lần 2 sau khi reset connection
             view_instance = ConfigurationOverviewRequestViews()
             view_instance.stop_request_trade(user, stock_id)
-            ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
+            if reset_is_trading:
+                ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
         except Exception as retry_e:
              logger.error(f"Lỗi khi revert status request trade (Lần 2 - Thất bại): {retry_e}")

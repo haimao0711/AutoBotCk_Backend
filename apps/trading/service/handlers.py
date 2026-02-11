@@ -504,15 +504,22 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             last_buy_check_time = None  # Dùng để giới hạn việc kiểm tra mua mỗi 60 giây
             message_stop_buy = 'Hết thời gian của lệnh mua tay'
             price_to_start = None  # Khởi tạo giá trị mặc định để tránh lỗi khi sử dụng sau vòng lặp
+            is_update_success = False # Flag để kiểm tra xem đã lock thành công chưa
+            
             logger.info(f"DEBUG: Entering process_buy_request try block for {symbol}")
             update_status, update_data = ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
             logger.info(f"DEBUG: update_status={update_status}, expected={SuccessType.UPDATED_SUCCESS}")
+            
             if update_status != SuccessType.UPDATED_SUCCESS:
                 logger.error(f'Failed to update is_trading for {symbol}: {update_data}')
                 message_fail = f'⚠️ Đưa {symbol} vào danh sách đang hoạt động thất bại. Hủy yêu cầu mua tay!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_fail)
                 send_message_telegram(user, MessageTypeEnum.ACT, message_fail)
                 return
+            
+            # Đã lock thành công
+            is_update_success = True
+
             if not is_use_chart_action:
                 logger.info(f'Xu ly lenh mua ngay {symbol}')
                 # Tải dữ liệu       
@@ -698,6 +705,23 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
                 except Exception as e:
                     logger.info(f"❌ Lỗi khi gửi tin nhắn: {e}") 
+            
+            # ... (Rest of the buy logic remains similar, ensuring indentation fits if needed, but here we cover the beginning block fully)
+            
+            is_send_order_buy = False   
+            if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
+                 # Logic mua (đã có trong file, chỉ cần đảm bảo block này nằm trong try)
+                 pass # Placeholder to signify continuation of existing logic in file, the tool will replace the block specified by StartLine/EndLine
+
+            # Logic mua thực tế nằm dài phía dưới, ta sẽ replace block đầu và cuối thôi hoặc replace cả block lớn.
+            # Vì tool replace_file_content thay thế chính xác block, hãy cẩn thận.
+            # Tốt nhất là replace từ đầu try đến hết finally của hàm process_buy_request, nhưng file quá dài.
+            # Tool guide: "Use this tool ONLY when you are making a SINGLE CONTIGUOUS block of edits"
+            
+            # Tôi sẽ replace đoạn đầu hàm try block trước.
+            # Nhưng wait, tôi cần sửa finally block ở cuối nữa.
+            # Vậy dùng multi_replace_file_content là tốt nhất.
+ 
 
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
@@ -946,12 +970,12 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             logger.error(f'FATAL ERROR in process_buy_request {symbol}: {e}', exc_info=True)
         finally:
             logger.info(f'Finalizing process_buy_request for {symbol}')
-            revert_status_request_trade(user, stock_id)
+            revert_status_request_trade(user, stock_id, reset_is_trading=is_update_success)
     else:
         message_cancel = f'Ngoài khung giờ mua mã {symbol}, hủy yêu cầu mua tay.'
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
         send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
-        revert_status_request_trade(user, stock_id)
+        revert_status_request_trade(user, stock_id, reset_is_trading=False)
 
 def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool, volume_sell: str, is_use_chart_action: bool):
     # Các giá trị mặc định    
@@ -986,6 +1010,13 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
     is_time_valid_to_sell = is_valid_time_to_sell(following_config)
     #HANDLE SELL
     if is_time_valid_to_sell:
+        start_time = datetime.now()
+        end_time = start_time + timedelta(hours=2)
+        status_sell = SignalTelegramEnum.SELL_REQUEST_FAILED
+        last_sell_check_time = None  # Dùng để giới hạn việc kiểm tra bán mỗi 60 giây
+        message_stop_sell = 'Hết thời gian của lệnh bán tay'
+        price_to_start = None  # Khởi tạo giá trị mặc định
+        is_update_success = False # Flag để kiểm tra xem đã lock thành công chưa
         try:
             update_status, update_data = ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
             if update_status != SuccessType.UPDATED_SUCCESS:
@@ -994,13 +1025,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_fail)
                 send_message_telegram(user, MessageTypeEnum.ACT, message_fail)
                 return
-            # Xác định thời gian bắt đầu và thời gian kết thúc (sau 1 tiếng)
-            start_time = datetime.now()
-            end_time = start_time + timedelta(hours=2)
-            status_sell = SignalTelegramEnum.SELL_REQUEST_FAILED
-            last_buy_check_time = None
-            message_stop_sell = 'Hết thời gian của lệnh bán tay'
-            price_to_start = None  # Khởi tạo giá trị mặc định để tránh lỗi khi sử dụng sau vòng lặp
+            
+            is_update_success = True
             
             if not is_use_chart_action:
                 logger.info(f'Xu ly lenh ban ngay {symbol}')
@@ -1011,15 +1037,14 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                     trading_chart_type=trading_chart_type_sell, 
                     following_chart_type=following_chart_type_sell,
                 )
-            if stock_data_trading is None:
-                logger.info('Download data không thành công, bỏ qua!')
-                message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu bán tay. Vui lòng thử lại sau ít phút!'
-                send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
-                send_message_telegram(user, MessageTypeEnum.ACT, message_download)
-                revert_status_request_trade(user, stock_id)
-                return
-            
-            price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
+                if stock_data_trading is None:
+                    logger.info('Download data không thành công, bỏ qua!')
+                    message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu bán tay. Vui lòng thử lại sau ít phút!'
+                    send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
+                    send_message_telegram(user, MessageTypeEnum.ACT, message_download)
+                    return
+                
+                price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
             status_sell = SignalTelegramEnum.SELL_REQUEST_SUCCESS
             messages_to_sell = 'Bán ngay'
             
@@ -1080,7 +1105,6 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                         message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu bán tay. Vui lòng thử lại sau ít phút!'
                         send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
                         send_message_telegram(user, MessageTypeEnum.ACT, message_download)
-                        revert_status_request_trade(user, stock_id)
                         return
                     logger.info('Download data thành công!')
                     price_to_start = (
@@ -1153,7 +1177,6 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
 
             if status_sell == SignalTelegramEnum.SELL_REQUEST_FAILED:
                 logger.info('Dừng vòng lặp do vượt thời gian hoặc yêu cầu ngừng bán tay.')
-                revert_status_request_trade(user, stock_id)
                 # Nếu price_to_start chưa được khởi tạo, download data một lần nữa để lấy giá
                 if price_to_start is None:
                     try:
@@ -1403,12 +1426,12 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Hết thời gian đặt lệnh bán tay', "S")
         finally:
             logger.info(f'Finalizing process_sell_request for {symbol}')
-            revert_status_request_trade(user, stock_id)
+            revert_status_request_trade(user, stock_id, reset_is_trading=is_update_success)
     else:
         message_cancel = f'Ngoài khung giờ bán mã {symbol}, hủy yêu cầu bán tay.'
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
         send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
-        revert_status_request_trade(user, stock_id)
+        revert_status_request_trade(user, stock_id, reset_is_trading=False)
 
 def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, percent_buy_trade: float):
     # Khởi tạo stock_id = None để tránh lỗi nếu exception xảy ra trước khi khởi tạo
