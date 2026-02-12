@@ -2315,21 +2315,31 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         logger.info(f"Error in {current_thread_name}: {str(e)}")
     finally:
         if stock_id:
-             try:
-                is_manual_final = False
-                config_final = ConfigurationServices.get_user_configuration_by_stock_symbol(user, symbol)
-                if config_final:
-                    overview_final = config_final.get("overview_config")
-                    if overview_final and (overview_final.is_buy_hand or overview_final.is_sell_hand):
-                         is_manual_final = True
-                
-                if not is_manual_final:
-                     ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
-                     logger.info(f"Đã reset is_trading cho {symbol} trong finally block")
-                else:
-                     logger.info(f"Giữ is_trading=True cho {symbol} trong finally block vì đang Mua/Bán Tay")
-             except Exception as e_final:
-                logger.error(f"Lỗi khi reset is_trading trong finally cho {symbol}: {e_final}")
+             # Retry 3 lần nếu có lỗi khi reset trạng thái
+             for retry_attempt in range(3):
+                 try:
+                    # Đóng kết nối cũ để đảm bảo có kết nối mới sạch sẽ cho việc reset trạng thái
+                    close_old_connections()
+                    
+                    is_manual_final = False
+                    config_final = ConfigurationServices.get_user_configuration_by_stock_symbol(user, symbol)
+                    if config_final:
+                        overview_final = config_final.get("overview_config")
+                        if overview_final and (overview_final.is_buy_hand or overview_final.is_sell_hand):
+                             is_manual_final = True
+                    
+                    if not is_manual_final:
+                         ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
+                         logger.info(f"Đã reset is_trading cho {symbol} trong finally block")
+                    else:
+                         logger.info(f"Giữ is_trading=True cho {symbol} trong finally block vì đang Mua/Bán Tay")
+                    
+                    # Nếu thành công thì thoát vòng lặp retry
+                    break
+                 except Exception as e_final:
+                    logger.error(f"Lỗi khi reset is_trading trong finally cho {symbol} (Lần {retry_attempt+1}/3): {e_final}")
+                    if retry_attempt < 2:
+                        time.sleep(1)
 
         # Đóng connection của thread hiện tại
         connection.close()
