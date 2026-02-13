@@ -4,16 +4,16 @@ services:
     restart: always
     environment:
       POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_PASSWORD: ngominhnguyen@1985
       POSTGRES_DB: stockdb
       POSTGRES_INITDB_ARGS: "--auth-host=md5"
       TZ: Asia/Ho_Chi_Minh
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U myuser -d stockdb"]
+      test: [ "CMD-SHELL", "pg_isready -U myuser -d stockdb" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,7 +27,7 @@ services:
       DATABASES_HOST: stock-predict-postgres
       DATABASES_PORT: 5432
       DATABASES_USER: myuser
-      DATABASES_PASSWORD: mypassword
+      DATABASES_PASSWORD: ngominhnguyen@1985
       DATABASES_DBNAME: stockdb
       POOL_MODE: session
       MAX_CLIENT_CONN: 2000
@@ -47,7 +47,7 @@ services:
     build: .
     environment:
       POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_PASSWORD: ngominhnguyen@1985
       POSTGRES_DB: stockdb
       POSTGRES_HOST: pgbouncer
       POSTGRES_PORT: 6432
@@ -66,14 +66,14 @@ services:
     restart: always
     ports:
       - "6379:6379"
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
     volumes:
       - redis_data:/data
       - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - backend_net
     healthcheck:
-      test: ["CMD", "sh", "-c", "redis-cli ping && redis-cli INFO replication | grep -q 'role:master'"]
+      test: [ "CMD", "sh", "-c", "redis-cli ping && redis-cli INFO replication | grep -q 'role:master'" ]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -83,7 +83,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_PASSWORD: ngominhnguyen@1985
       POSTGRES_DB: stockdb
       POSTGRES_HOST: pgbouncer
       POSTGRES_PORT: 6432
@@ -95,7 +95,7 @@ services:
         condition: service_healthy
       pgbouncer:
         condition: service_started
-    command: ["sh", "/app/celery-worker-entrypoint.sh"]
+    command: [ "sh", "/app/celery-worker-entrypoint.sh" ]
     volumes:
       - .:/app
     networks:
@@ -108,7 +108,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_PASSWORD: ngominhnguyen@1985
       POSTGRES_DB: stockdb
       POSTGRES_HOST: pgbouncer
       POSTGRES_PORT: 6432
@@ -140,6 +140,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+
 
 networks:
   backend_net:
