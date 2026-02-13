@@ -19,6 +19,11 @@ services:
       retries: 5
     networks:
       - backend_net
+    logging: &logging
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   pgbouncer:
     image: pgbouncer/pgbouncer:latest
@@ -36,12 +41,13 @@ services:
       IGNORE_STARTUP_PARAMETERS: extra_float_digits
       AUTH_TYPE: any
     ports:
-      - "6432:6432"
+      - "127.0.0.1:6432:6432"
     depends_on:
       stock-predict-postgres:
         condition: service_healthy
     networks:
       - backend_net
+    logging: *logging
 
   stock-predict-api:
     build: .
@@ -54,18 +60,19 @@ services:
     depends_on:
       - pgbouncer
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     command: >
       bash -c "sleep 30 &&
                gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 120"
     networks:
       - backend_net
+    logging: *logging
 
   redis:
     image: redis:7-alpine
     restart: always
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
     volumes:
       - redis_data:/data
@@ -77,6 +84,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    logging: *logging
 
   celery-worker:
     build: .
@@ -102,6 +110,7 @@ services:
       - backend_net
     deploy:
       replicas: 2
+    logging: *logging
 
   celery-beat:
     build: .
@@ -123,6 +132,7 @@ services:
       - .:/app
     networks:
       - backend_net
+    logging: *logging
 
   celery-flower:
     build: .
@@ -133,9 +143,10 @@ services:
       - redis
     command: celery -A config flower --port=5555
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     networks:
       - backend_net
+    logging: *logging
 
 volumes:
   postgres_data:
