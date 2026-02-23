@@ -637,6 +637,24 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         connection.close()
                         # Tiếp tục dùng config cũ nếu lỗi
 
+                    percent_buy_trade = getattr(overview_config, 'percent_buy_trade', 10.0)
+                    sales_data = download_sales_volume(symbol=symbol)
+                    value_buy_foreign = 0
+                    if sales_data:
+                        buyForeignQtty = int(sales_data.get('buyForeignQtty', 0))
+                        sellForeignQtty = int(sales_data.get('sellForeignQtty', 0))
+                        total_foreign = buyForeignQtty + sellForeignQtty
+                        if total_foreign > 0:
+                            value_buy_foreign = round((buyForeignQtty / total_foreign) * 100, 2)
+                    
+                    stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign
+                    stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
+                    stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign
+                    stock_data_following_second.loc[stock_data_following_second.index[-3:], 'volume_trade'] = percent_buy_trade
+                    
+                    stock_data_trading.loc[stock_data_trading.index[-3:], 'volume_trade'] = percent_buy_trade
+                    stock_data_trading_second.loc[stock_data_trading_second.index[-3:], 'volume_trade'] = percent_buy_trade
+
                     is_buy, buy_reason = should_buy_trading(
                         trading_config=trading_config,
                         data_trading_df=stock_data_trading,
@@ -1144,6 +1162,14 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                         connection.close()
                         # Tiếp tục dùng config cũ nếu lỗi
                 
+                    percent_buy_trade = getattr(overview_config, 'percent_buy_trade', 10.0)
+                    
+                    stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
+                    stock_data_following_second.loc[stock_data_following_second.index[-3:], 'volume_trade'] = percent_buy_trade
+                    
+                    stock_data_trading.loc[stock_data_trading.index[-3:], 'volume_trade'] = percent_buy_trade
+                    stock_data_trading_second.loc[stock_data_trading_second.index[-3:], 'volume_trade'] = percent_buy_trade
+
                     is_sell, sell_reason = should_sell_trading(
                         trading_config=trading_config,
                         data_trading_df=stock_data_trading,
@@ -1538,7 +1564,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             # Gán cho 3 dòng cuối
             stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign          
             stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
-            stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign          
+            stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign
+            stock_data_following_second.loc[stock_data_following_second.index[-3:], 'volume_trade'] = percent_buy_trade
+            
+            stock_data_trading.loc[stock_data_trading.index[-3:], 'volume_trade'] = percent_buy_trade
+            stock_data_trading_second.loc[stock_data_trading_second.index[-3:], 'volume_trade'] = percent_buy_trade
             is_use_vnindex_following = following_config.is_use_vnindex_config
             logger.info(f'bắt đầu hàm should buy {symbol}')            
             is_buy_following, is_buy, buy_reason = should_buy(
@@ -1833,6 +1863,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign
                         stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
                         stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign
+                        stock_data_following_second.loc[stock_data_following_second.index[-3:], 'volume_trade'] = percent_buy_trade
+                        
+                        stock_data_trading.loc[stock_data_trading.index[-3:], 'volume_trade'] = percent_buy_trade
+                        stock_data_trading_second.loc[stock_data_trading_second.index[-3:], 'volume_trade'] = percent_buy_trade
                         is_use_vnindex_following = following_config.is_use_vnindex_config
                         is_buy, reason_buy = should_buy_following(following_config, stock_data_following, 'stock_config', stock_data_following_second) 
                         messages_to_cancel_update = render_message(
