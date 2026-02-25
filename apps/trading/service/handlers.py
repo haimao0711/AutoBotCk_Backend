@@ -1596,6 +1596,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     is_buy = is_buy_vnindex  
 
             logger.info(f'check is_buy {symbol}: {is_buy}')
+            logger.info(f'check buy_reason {symbol}: {buy_reason}') 
             # if symbol in ['PC1', 'BVH']:
             #     logger.info(f'check buy_reason {symbol}: {buy_reason}')     
 
