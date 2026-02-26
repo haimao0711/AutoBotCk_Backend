@@ -1031,7 +1031,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         start_time = datetime.now()
         end_time = start_time + timedelta(hours=2)
         status_sell = SignalTelegramEnum.SELL_REQUEST_FAILED
-        last_sell_check_time = None  # Dùng để giới hạn việc kiểm tra bán mỗi 60 giây
+        last_buy_check_time = None  # Dùng để giới hạn việc kiểm tra bán mỗi 60 giây
         message_stop_sell = 'Hết thời gian của lệnh bán tay'
         price_to_start = None  # Khởi tạo giá trị mặc định
         is_update_success = False # Flag để kiểm tra xem đã lock thành công chưa
@@ -1098,7 +1098,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                     message_stop_sell = 'Yêu cầu dừng bán tay'
                     break  # Thoát khỏi vòng while và tiếp tục đoạn code phía sau
             
-                # Kiểm tra điều kiện mua chỉ mỗi 60 giây một lần
+                # Kiểm tra điều kiện bán chỉ mỗi 60 giây một lần
                 now = datetime.now()
                 if last_buy_check_time is None or (now - last_buy_check_time).total_seconds() >= 60:
                     last_buy_check_time = now
@@ -1596,7 +1596,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     is_buy = is_buy_vnindex  
 
             logger.info(f'check is_buy {symbol}: {is_buy}')
-            logger.info(f'check buy_reason {symbol}: {buy_reason}') 
             # if symbol in ['PC1', 'BVH']:
             #     logger.info(f'check buy_reason {symbol}: {buy_reason}')     
 
