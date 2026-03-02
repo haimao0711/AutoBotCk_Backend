@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.utils import model_meta
 
 from .models import Configuration
 
@@ -6,6 +7,29 @@ class ConfigurationSerializers(serializers.ModelSerializer):
     class Meta:
         model = Configuration
         fields = '__all__'
+
+    def update(self, instance, validated_data):
+        info = model_meta.get_field_info(instance)
+        m2m_fields = []
+        update_fields = set()
+        
+        for attr, value in validated_data.items():
+            if attr in info.relations and info.relations[attr].to_many:
+                m2m_fields.append((attr, value))
+            else:
+                setattr(instance, attr, value)
+                update_fields.add(attr)
+
+        if update_fields:
+            instance.save(update_fields=list(update_fields))
+        else:
+            instance.save()
+
+        for attr, value in m2m_fields:
+            field = getattr(instance, attr)
+            field.set(value)
+
+        return instance
 
 class TradeHandleSerializers(serializers.ModelSerializer):
     class Meta:
@@ -21,3 +45,26 @@ class TradeHandleSerializers(serializers.ModelSerializer):
         if not any(field in data for field in self.fields):
             raise serializers.ValidationError("Phải có ít nhất một trường được truyền vào.")
         return data
+
+    def update(self, instance, validated_data):
+        info = model_meta.get_field_info(instance)
+        m2m_fields = []
+        update_fields = set()
+        
+        for attr, value in validated_data.items():
+            if attr in info.relations and info.relations[attr].to_many:
+                m2m_fields.append((attr, value))
+            else:
+                setattr(instance, attr, value)
+                update_fields.add(attr)
+
+        if update_fields:
+            instance.save(update_fields=list(update_fields))
+        else:
+            instance.save()
+
+        for attr, value in m2m_fields:
+            field = getattr(instance, attr)
+            field.set(value)
+
+        return instance
