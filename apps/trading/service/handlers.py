@@ -982,6 +982,10 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     message = f'Không lấy được thông tin các lệnh mua tay đã khớp mã {symbol}'
                     send_message_telegram(user, MessageTypeEnum.OVERALL, message)
                     send_message_telegram(user, MessageTypeEnum.ACT, message)
+                    
+                # Mở chốt lãi lần 1 và lần 2
+                logger.info('Tiến hành mở chốt lãi lần 1 và lần 2') 
+                ConfigurationServices.update_all_take_profit_flags_true(user, stock_id)
             #Hủy tất cả các lệnh nếu còn đặt
                 cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Hủy các lệnh mua còn sót lại', "B")
         except Exception as e:
