@@ -723,41 +723,36 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
                 except Exception as e:
                     logger.info(f"❌ Lỗi khi gửi tin nhắn: {e}") 
-            
-            # ... (Rest of the buy logic remains similar, ensuring indentation fits if needed, but here we cover the beginning block fully)
-            
+                        
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
-                 # Logic mua (đã có trong file, chỉ cần đảm bảo block này nằm trong try)
-                 pass # Placeholder to signify continuation of existing logic in file, the tool will replace the block specified by StartLine/EndLine
-
-            # Logic mua thực tế nằm dài phía dưới, ta sẽ replace block đầu và cuối thôi hoặc replace cả block lớn.
-            # Vì tool replace_file_content thay thế chính xác block, hãy cẩn thận.
-            # Tốt nhất là replace từ đầu try đến hết finally của hàm process_buy_request, nhưng file quá dài.
-            # Tool guide: "Use this tool ONLY when you are making a SINGLE CONTIGUOUS block of edits"
-            
-            # Tôi sẽ replace đoạn đầu hàm try block trước.
-            # Nhưng wait, tôi cần sửa finally block ở cuối nữa.
-            # Vậy dùng multi_replace_file_content là tốt nhất.
- 
-
+                 pass 
+                
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
                 logger.info(f'bắt đầu hàm đặt lệnh mua tay {symbol}')
                 timezone = pytz.timezone('Asia/Ho_Chi_Minh')
+                if stock_data_trading is None or stock_data_trading.empty:
+                    logger.info('Không có dữ liệu trading để xác định giá, hủy lệnh mua tay.')
+                    send_message_telegram(user, MessageTypeEnum.OVERALL, f'Không tải được dữ liệu giá từ API cho {symbol}. Hủy yêu cầu mua tay.')
+                    return
+
                 last_row = stock_data_trading.iloc[-1]
-                open_last_row = last_row['open'] 
-                close_last_row = last_row['close']
-                low_last_row = last_row['low']            
-                high_last_row = last_row['high']
+                open_last_row = last_row.get('open', 0)
+                close_last_row = last_row.get('close', 0)
+                low_last_row = last_row.get('low', 0)
+                high_last_row = last_row.get('high', 0)
+
                 step_price = trading_config.stock_config_slippage_volume_buy_per_pid
                 time_to_buy = trading_config.stock_config_time_to_buy
                 time_to_buy = time_to_buy if time_to_buy > 30 else 30
                 sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
                 sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
-                start_price = round_up_to_unit(open_last_row, close_last_row, step_price)       
-                price_current = stock_data_trading.iloc[-1]['close']
-                percent_first_buy = trading_config.stock_config_percent_first_buy
+                
+                start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
+                price_current = close_last_row
+                price_set_buy = min(start_price, price_current)
+                percent_first_buy = trading_config.stock_config_percent_first_buy                
                 logger.info(f'percent_first_buy {symbol}: {percent_first_buy}')
                 number_order = trading_config.stock_config_number_pid_buy_once_time
                 time_now = datetime.now(timezone)
@@ -807,10 +802,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         logger.info(f'sensitive_percentage {symbol}: {sensitive_percentage}')
                         volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
                         logger.info(f'volume_buy_sensitive {symbol}: {volume_buy_sensitive}')
-                        price_set_buy = min(start_price, price_current)
+                        
                         buy_order_attrs_send = {
                             'stock': symbol,
-                            # 'price': round(float(high_last_row - add_price_buy), 2), # Giá mua tạm thời giảm so với yêu cầu thuật toán, cần sửa lại
                             'price': round(price_set_buy, 2),
                             'volume': int(volume_buy_sensitive)
                         }
@@ -845,7 +839,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                 volume_buy = round_to_nearest_hundred(volume)
                         #Gửi các lệnh buy
                             ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                            price = round(start_price - add_price_buy - i*step_price, 2)
+                            price = round(price_set_buy - add_price_buy - i*step_price, 2)
                             if volume_buy >= 100:
                                 res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_buy, ref_id)
                                 if res_buy:
@@ -922,13 +916,30 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             # revert_status_request_trade removed here, handled in finally
                             should_break_loop = True
                             break
-                        is_time_valid_to_buy = is_valid_time_to_buy(following_config)
                         if not is_time_valid_to_buy:
                             logger.info(f'{symbol} Vượt khung giờ mua, hủy lệnh mua tay {symbol} ngay lập tức.')
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã vượt khung giờ mua', "B")
-                            # revert_status_request_trade removed here, handled in finally
                             should_break_loop = True
                             break
+
+                        vnindex_data_trading_tmp, vnindex_data_following_tmp, stock_data_trading_tmp, stock_data_following_tmp = download_data(
+                            stock=stock,
+                            vnindex_stock=vnindex_stock,
+                            trading_chart_type=trading_chart_type,
+                            following_chart_type=following_chart_type
+                        )
+                        
+                        if stock_data_trading_tmp is not None and not stock_data_trading_tmp.empty:
+                            last_row_tmp = stock_data_trading_tmp.iloc[-1]
+                            close_last_row_tmp = last_row_tmp.get('close', 0)
+                            open_last_row_tmp = last_row_tmp.get('open', 0)
+                            
+                            start_price = round_up_to_unit(open_last_row_tmp, close_last_row_tmp, step_price)
+                            price_current = close_last_row_tmp
+                            
+                            limited_price_to_buy = start_price - add_price_buy + slippage_buy
+                        else:
+                            logger.info(f"Không lấy được dữ liệu mới để tính lại giá cho {symbol}. Tiếp tục sử dụng giá cũ.")
             
                     status_buy = SignalTelegramEnum.BUY_SUCCESS
                     times_update = i + 1
@@ -982,11 +993,11 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     message = f'Không lấy được thông tin các lệnh mua tay đã khớp mã {symbol}'
                     send_message_telegram(user, MessageTypeEnum.OVERALL, message)
                     send_message_telegram(user, MessageTypeEnum.ACT, message)
-                    
+
                 # Mở chốt lãi lần 1 và lần 2
                 logger.info('Tiến hành mở chốt lãi lần 1 và lần 2') 
                 ConfigurationServices.update_all_take_profit_flags_true(user, stock_id)
-            #Hủy tất cả các lệnh nếu còn đặt
+             #Hủy tất cả các lệnh nếu còn đặt
                 cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Hủy các lệnh mua còn sót lại', "B")
         except Exception as e:
             logger.error(f'FATAL ERROR in process_buy_request {symbol}: {e}', exc_info=True)
@@ -1242,20 +1253,27 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             if status_sell == SignalTelegramEnum.SELL_REQUEST_SUCCESS:
                 logger.info(f'bắt đầu đặt lệnh sell request {symbol}')        
                 timezone = pytz.timezone('Asia/Ho_Chi_Minh')
+                if stock_data_trading is None or stock_data_trading.empty:
+                    logger.info('Không có dữ liệu trading để xác định giá, hủy lệnh bán tay.')
+                    send_message_telegram(user, MessageTypeEnum.OVERALL, f'Không tải được dữ liệu giá từ API cho {symbol}. Hủy yêu cầu bán tay.')
+                    return
+
                 last_row = stock_data_trading.iloc[-1]
-                open_last_row = last_row['open']
-                close_last_row = last_row['close']
-                low_last_row = last_row['low']
-                high_last_row = last_row['high']
+                open_last_row = last_row.get('open', 0)
+                close_last_row = last_row.get('close', 0)
+                low_last_row = last_row.get('low', 0)
+                high_last_row = last_row.get('high', 0)
+                
                 step_price = trading_config.stock_config_slippage_volume_sell_per_pid
-                # logger.info(f'check step_price stock {symbol}: ', step_price)
                 sleeping_time_sell= trading_config.stock_config_time_update_pid_sell
             
                 sleeping_time_sell = sleeping_time_sell if sleeping_time_sell > 5 else 5
                 time_to_sell = trading_config.stock_config_time_to_sell
                 time_to_sell = time_to_sell if time_to_sell >= 30 else 30
+                
                 start_price = round_up_to_unit(open_last_row, close_last_row, step_price)       
-                price_current = stock_data_trading.iloc[-1]['close']
+                price_current = close_last_row
+                price_set_sell = max(start_price, price_current)
                 number_order = trading_config.stock_config_number_pid_sell_once_time 
                 start_time_order = datetime.now(timezone).strftime("%H:%M:%S ngày %d-%m-%Y")
                 slippage_sell = trading_config.stock_config_slippage_sell
@@ -1293,8 +1311,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                     if trading_config.stock_config_is_mode_sensitive_sell:
                         sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
                         volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
-                        volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100
-                        price_set_sell = max(start_price, price_current)
+                        volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100                        
                         sell_order_attrs_send = {
                             'stock': symbol,
                             # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
@@ -1328,7 +1345,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             volume -= volume_sell
                             #Gửi các lệnh sell
                             ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                            price = round(start_price + add_price_sell + i*step_price, 2) if round(start_price + add_price_sell + i*step_price, 2) < ceil_price else round(ceil_price, 2)
+                            price = round(price_set_sell + add_price_sell + i*step_price, 2) if round(price_set_sell + add_price_sell + i*step_price, 2) < ceil_price else round(ceil_price, 2)
                             if volume_sell >= 100:
                                 res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_sell, ref_id)
                                 if res_sell:
@@ -1400,12 +1417,30 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã tắt bán tay', "S")
                             should_break_loop = True
                             break
-                        is_time_valid_to_sell  = is_valid_time_to_sell(following_config)
                         if not is_time_valid_to_sell :
                             logger.info(f'{symbol} Đã vượt khung giờ bán, hủy lệnh bán tay {symbol} ngay lập tức.')
                             cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã vượt khung giờ bán', "S")
                             should_break_loop = True
                             break
+                        
+                        vnindex_data_trading_tmp, vnindex_data_following_tmp, stock_data_trading_tmp, stock_data_following_tmp = download_data(
+                            stock=stock, 
+                            vnindex_stock=vnindex_stock, 
+                            trading_chart_type=trading_chart_type, 
+                            following_chart_type=following_chart_type
+                        )
+                        
+                        if stock_data_trading_tmp is not None and not stock_data_trading_tmp.empty:
+                            last_row_tmp = stock_data_trading_tmp.iloc[-1]
+                            close_last_row_tmp = last_row_tmp.get('close', 0)
+                            open_last_row_tmp = last_row_tmp.get('open', 0)
+                            
+                            start_price = round_up_to_unit(open_last_row_tmp, close_last_row_tmp, step_price)
+                            price_current = close_last_row_tmp
+                            
+                            limited_price_to_sell = start_price + add_price_sell - slippage_sell
+                        else:
+                            logger.info(f"Không lấy được dữ liệu mới để tính lại giá cho {symbol}. Tiếp tục sử dụng giá cũ.")
                 
                     status_sell = SignalTelegramEnum.SELL_SUCCESS
                     times_update = i + 1
@@ -1611,8 +1646,16 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             messages_to_buy = render_message(
                 buy_reason, trading_chart_value=trading_candle, trading_chart_value_second=trading_candle_second, following_chart_type=following_candle, following_chart_type_second=following_candle_second)
            
-            price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
-            price_current = stock_data_trading.iloc[-1]['close']   
+            if stock_data_trading is None or stock_data_trading.empty:
+                logger.info('Không có dữ liệu trading để xác định giá, hủy lệnh mua ở process_trading.')
+                status_buy = SignalTelegramEnum.BUY_FAILED
+                price_to_start = 0
+                price_current = 0
+            else:
+                last_trading_row = stock_data_trading.iloc[-1]
+                price_to_start = (last_trading_row.get('open', 0) + last_trading_row.get('close', 0)) / 2
+                price_current = last_trading_row.get('close', 0)
+            
             level = overview_config.level         
             time_now = datetime.now(timezone)
             start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
@@ -1651,16 +1694,18 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     is_send_order_buy = False # Skip the buying part
                 else: 
                     last_row = stock_data_trading.iloc[-1]
-                    open_last_row = last_row['open'] 
-                    close_last_row = last_row['close']
-                    low_last_row = last_row['low']            
-                    high_last_row = last_row['high']
+                    open_last_row = last_row.get('open', 0)
+                    close_last_row = last_row.get('close', 0)
+                    low_last_row = last_row.get('low', 0)
+                    high_last_row = last_row.get('high', 0)
                     step_price = trading_config.stock_config_slippage_volume_buy_per_pid
                     time_to_buy = trading_config.stock_config_time_to_buy
                     time_to_buy = time_to_buy if time_to_buy > 30 else 30
                     sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
                     sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
                     start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
+                    price_current = close_last_row
+                    price_set_buy = min(start_price, price_current)
                     number_order = trading_config.stock_config_number_pid_buy_once_time
                     slippage_buy = trading_config.stock_config_slippage_buy
                     # Dao động cộng trừ    
@@ -1696,8 +1741,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     # Xử lý mua nhạy cảm 
                     if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
                         sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
-                        volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
-                        price_set_buy = min(start_price, price_current)
+                        volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)                        
                         buy_order_attrs_send = {
                             'stock': symbol,
                             # 'price': round(float(high_last_row - add_price_buy), 2) if round(float(high_last_row - add_price_buy), 2) > floor_price else round(floor_price, 2),
@@ -1730,7 +1774,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                 volume_buy = round_to_nearest_hundred(volume)
                         #Gửi các lệnh buy
                             ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                            price = round(start_price - add_price_buy - i*step_price, 2) if round(start_price - add_price_buy - i*step_price, 2) > floor_price else round(floor_price, 2)
+                            price = round(price_set_buy - add_price_buy - i*step_price, 2) if round(start_price - add_price_buy - i*step_price, 2) > floor_price else round(floor_price, 2)
                             if volume_buy >= 100:
                                 res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_buy, ref_id)
                                 if res_buy:
@@ -1851,6 +1895,18 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         if sales_data is None or stock_data_following is None:
                             logger.info(f'❌ Không tải được dữ liệu cho {symbol}, bỏ qua vòng này.')
                             continue
+                        
+                        if stock_data_trading is not None and not stock_data_trading.empty:
+                            last_row_tmp = stock_data_trading.iloc[-1]
+                            close_last_row_tmp = last_row_tmp.get('close', 0)
+                            open_last_row_tmp = last_row_tmp.get('open', 0)
+                            
+                            start_price = round_up_to_unit(open_last_row_tmp, close_last_row_tmp, step_price)
+                            price_current = close_last_row_tmp
+                            
+                            limited_price_to_buy = start_price - add_price_buy + slippage_buy
+                        else:
+                            logger.info(f"Không lấy được dữ liệu mới để tính lại giá cho {symbol}. Tiếp tục sử dụng giá cũ.")
                         
                         def safe_int(val):
                             try:
@@ -1999,12 +2055,12 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 trading_chart_type=trading_chart_type_sell_second, 
                 following_chart_type=following_chart_type_sell_second
             )
-            if stock_data_trading is None or stock_data_trading_second is None:
-                logger.info('Download data không thành công, bỏ qua!')
-                message_download_sell = f'Download data symbol {symbol } to sell không thành công. Bỏ qua lượt trade này!'
+            if stock_data_trading is None or stock_data_trading_second is None or stock_data_trading.empty or stock_data_trading_second.empty:
+                logger.info('Download data không thành công hoặc dữ liệu rỗng, bỏ qua!')
+                message_download_sell = f'Download data symbol {symbol } to sell không thành công hoặc dữ liệu rỗng. Bỏ qua lượt trade này!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_download_sell)                 
                 return
-            price_current = stock_data_trading.iloc[-1]['close']    
+            price_current = stock_data_trading.iloc[-1].get('close', 0)
             upper_bolinger = stock_data_following.iloc[-1]['upper_bolinger']
             latest_stoch_rsi_following  = stock_data_following.iloc[-1]['stoch_rsi']
             current_rsi_following  = stock_data_following.iloc[-1]['rsi']
@@ -2121,9 +2177,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             #Tiến hành các bước kế tiếp            
             messages_to_sell = render_message(
                 sell_reason, trading_chart_value=trading_candle_sell, following_chart_type=following_candle_sell, trading_chart_value_second=trading_candle_sell_second, following_chart_type_second=following_candle_sell_second)
-            price_to_start = (
-                stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
-            price_current = stock_data_trading.iloc[-1]['close']
+            price_to_start = (stock_data_trading.iloc[-1].get('open', 0) + stock_data_trading.iloc[-1].get('close', 0))/2           
             sell_attrs = {
                 "user_account": account,
                 "platform_trading": "Smart One",
@@ -2148,17 +2202,26 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             if status_sell in [SignalTelegramEnum.SELL_SUCCESS, SignalTelegramEnum.TAKEPROFIT]:
                 logger.info(f'bắt đầu đặt lệnh sell {symbol} (Đã có lock từ đầu)')                
                 timezone = pytz.timezone('Asia/Ho_Chi_Minh')
+                if stock_data_trading is None or stock_data_trading.empty:
+                    logger.info('Không có dữ liệu trading để xác định giá, hủy lệnh bán ở process_trading.')
+                    send_message_telegram(user, MessageTypeEnum.OVERALL, f'Không tải được dữ liệu giá từ API cho {symbol}. Hủy yêu cầu bán tự động.')
+                    return
+
                 last_row = stock_data_trading.iloc[-1]
-                open_last_row = last_row['open']
-                close_last_row = last_row['close']
-                low_last_row = last_row['low']
-                high_last_row = last_row['high']
+                open_last_row = last_row.get('open', 0)
+                close_last_row = last_row.get('close', 0)
+                low_last_row = last_row.get('low', 0)
+                high_last_row = last_row.get('high', 0)
+                
                 step_price = trading_config.stock_config_slippage_volume_sell_per_pid
                 sleeping_time_sell= trading_config.stock_config_time_update_pid_sell
                 sleeping_time_sell = sleeping_time_sell if sleeping_time_sell > 5 else 5
                 time_to_sell = trading_config.stock_config_time_to_sell
                 time_to_sell = time_to_sell if time_to_sell >= 30 else 30   
-                start_price = round_up_to_unit(open_last_row, close_last_row, step_price)  
+                
+                start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
+                price_current = close_last_row
+                price_set_sell = max(start_price, price_current)  
                 number_order = trading_config.stock_config_number_pid_sell_once_time
                 time_now = datetime.now(timezone)
                 start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
@@ -2191,8 +2254,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     if trading_config.stock_config_is_mode_sensitive_sell:
                         sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
                         volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
-                        volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100
-                        price_set_sell = max(start_price, price_current)
+                        volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100                        
                         sell_order_attrs_send = {
                             'stock': symbol,
                             # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
@@ -2226,7 +2288,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         volume -= volume_sell
                         #Gửi các lệnh sell
                         ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                        price = round(start_price + add_price_sell + i*step_price, 2) if round(start_price + add_price_sell + i*step_price, 2) < ceil_price else round(ceil_price, 2)
+                        price = round(price_set_sell + add_price_sell + i*step_price, 2) if round(price_set_sell + add_price_sell + i*step_price, 2) < ceil_price else round(ceil_price, 2)
                         if volume_sell >= 100:
                             res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_sell, ref_id)
                             if res_sell:
