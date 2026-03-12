@@ -1680,147 +1680,205 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             if status_buy == SignalTelegramEnum.BUY_SUCCESS:
                 logger.info(f'bắt đầu hàm đặt lệnh buy {symbol} (Đã có lock từ đầu)')                
                 
-                # Vì đã lock từ đầu hàm, nên ở đây ta coi như update success
-                is_update_success = True
+                import redis
+                redis_client = redis.StrictRedis.from_url('redis://redis:6379/0')
+                lock_name = f"buy_lock_{account}"
+                redis_lock = redis_client.lock(lock_name, timeout=10, blocking_timeout=15)
                 
-                # (Đã xóa đoạn code update_is_trading_configuration cũ ở đây để tránh dư thừa/lỗi)
-                
-                if not is_update_success:
-                    # Logic cũ (giữ lại 1 phần cấu trúc nếu cần, nhưng thực tế is_update_success luôn True ở đây)
-                    logger.error(f"⛔ Logic Error: is_update_success should be True.")
-                    send_message_telegram(user, MessageTypeEnum.OVERALL, "Internal Error in Locking Logic")
+                try:
+                    acquired = redis_lock.acquire(blocking=True)
+                    if not acquired:
+                        logger.warning(f"⚠️ Quá giờ chờ Lock để mua {symbol}. Bỏ qua lượt này.")
+                        return
+                    
+                    # 1. ĐÃ VÀO TRONG LOCK DÀNH RIÊNG CHO ACCOUNT -> Lấy lại Số dư Cổ Phiếu Mới Nhất từ VPS
+                    res_stock_check = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
+                    current_stock_count = res_stock_check.get('number_stock_existing', 0) if res_stock_check else 0
+                    current_symbols = res_stock_check.get('symbols_existing', []) if res_stock_check else []
+                    
+                    # 2. Kiểm Tra Cửa Vào Cuối Cùng
+                    if current_stock_count >= vps_account.limit_number_stocks and symbol not in current_symbols:
+                        logger.info(f"🚫 Mã {symbol} rớt đài vì luồng khác vừa chiếm slots. Account đã đạt limit ({current_stock_count}/{vps_account.limit_number_stocks})!")
+                        message_cancel = f'Vượt giới hạn cổ phiếu tối đa vào phút chót, hủy lệnh mua {symbol}'
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
+                        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
+                        # Trả lại lock và rời đi, không mua gì cả
+                        redis_lock.release()
+                        return
 
-                    send_message_telegram(user, MessageTypeEnum.ACT, message_fail)
-                    is_send_order_buy = False # Skip the buying part
-                else: 
-                    last_row = stock_data_trading.iloc[-1]
-                    open_last_row = last_row.get('open', 0)
-                    close_last_row = last_row.get('close', 0)
-                    low_last_row = last_row.get('low', 0)
-                    high_last_row = last_row.get('high', 0)
-                    step_price = trading_config.stock_config_slippage_volume_buy_per_pid
-                    time_to_buy = trading_config.stock_config_time_to_buy
-                    time_to_buy = time_to_buy if time_to_buy > 30 else 30
-                    sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
-                    sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
-                    start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
-                    price_current = close_last_row
-                    price_set_buy = min(start_price, price_current)
-                    number_order = trading_config.stock_config_number_pid_buy_once_time
-                    slippage_buy = trading_config.stock_config_slippage_buy
-                    # Dao động cộng trừ    
-                    add_price_buy = trading_config.stock_config_add_price_buy
-                    volume_to_buy = overview_config.volume_to_buy                
-                    volume_buy_balance =  int(volume_to_buy - stock_balance)
-                    volume = min(((int(volume_to_buy * percent_first_buy) + 99) // 100) * 100,(volume_buy_balance // 100) * 100)
-                    if cash_available < volume*start_price:
-                        logger.info('roi vao truong hop khong du tien mua theo yeu cau nen mua het so tien con lai')
-                        volume = cash_available/start_price
-                        volume = int(volume // 100 * 100)
-                    buy_order_overrall_attrs = {
-                        'user_account': account,
-                        'stock': symbol,
-                        'volume_to_buy': int(volume_to_buy),
-                        'volume_set_buy': int(volume),
-                        'level': level,
-                        'start_price': round(start_price, 2),
-                        'limit_price': round(start_price - add_price_buy + slippage_buy, 2),
-                        "current_price": round(price_current, 2),
-                        'step_price': step_price,
-                        "slippage_buy": slippage_buy,
-                        "add_price_buy": add_price_buy, 
-                        "sleeping_time_buy": int(sleeping_time_buy),                   
-                        'number_order': int(number_order),
-                        'start_time_order': start_time_order,
-                        'percent_first_buy': int(percent_first_buy*100)
-                    }
-                    buy_messages = []
-                    buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_OVERRAL,
-                                    **buy_order_overrall_attrs })  
-                            
-                    # Xử lý mua nhạy cảm 
-                    if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
-                        sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
-                        volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)                        
-                        buy_order_attrs_send = {
+                    # Nếu hợp lệ -> Tiến hành Mua
+                    # Vì đã lock từ đầu hàm, nên ở đây ta coi như update success
+                    is_update_success = True
+                    
+                    # (Đã xóa đoạn code update_is_trading_configuration cũ ở đây để tránh dư thừa/lỗi)
+                    
+                    if not is_update_success:
+                        # Logic cũ (giữ lại 1 phần cấu trúc nếu cần, nhưng thực tế is_update_success luôn True ở đây)
+                        logger.error(f"⛔ Logic Error: is_update_success should be True.")
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, "Internal Error in Locking Logic")
+
+                        send_message_telegram(user, MessageTypeEnum.ACT, message_fail)
+                        is_send_order_buy = False # Skip the buying part
+                    else: 
+                        last_row = stock_data_trading.iloc[-1]
+                        open_last_row = last_row.get('open', 0)
+                        close_last_row = last_row.get('close', 0)
+                        low_last_row = last_row.get('low', 0)
+                        high_last_row = last_row.get('high', 0)
+                        step_price = trading_config.stock_config_slippage_volume_buy_per_pid
+                        time_to_buy = trading_config.stock_config_time_to_buy
+                        time_to_buy = time_to_buy if time_to_buy > 30 else 30
+                        sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
+                        sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
+                        start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
+                        price_current = close_last_row
+                        price_set_buy = min(start_price, price_current)
+                        number_order = trading_config.stock_config_number_pid_buy_once_time
+                        slippage_buy = trading_config.stock_config_slippage_buy
+                        # Dao động cộng trừ    
+                        add_price_buy = trading_config.stock_config_add_price_buy
+                        volume_to_buy = overview_config.volume_to_buy                
+                        volume_buy_balance =  int(volume_to_buy - stock_balance)
+                        volume = min(((int(volume_to_buy * percent_first_buy) + 99) // 100) * 100,(volume_buy_balance // 100) * 100)
+                        if cash_available < volume*start_price:
+                            logger.info('roi vao truong hop khong du tien mua theo yeu cau nen mua het so tien con lai')
+                            volume = cash_available/start_price
+                            volume = int(volume // 100 * 100)
+                        buy_order_overrall_attrs = {
+                            'user_account': account,
                             'stock': symbol,
-                            # 'price': round(float(high_last_row - add_price_buy), 2) if round(float(high_last_row - add_price_buy), 2) > floor_price else round(floor_price, 2),
-                            'price': round(price_set_buy, 2),
-                            'volume': int(volume_buy_sensitive)
+                            'volume_to_buy': int(volume_to_buy),
+                            'volume_set_buy': int(volume),
+                            'level': level,
+                            'start_price': round(start_price, 2),
+                            'limit_price': round(start_price - add_price_buy + slippage_buy, 2),
+                            "current_price": round(price_current, 2),
+                            'step_price': step_price,
+                            "slippage_buy": slippage_buy,
+                            "add_price_buy": add_price_buy, 
+                            "sleeping_time_buy": int(sleeping_time_buy),                   
+                            'number_order': int(number_order),
+                            'start_time_order': start_time_order,
+                            'percent_first_buy': int(percent_first_buy*100)
                         }
-                        res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
-                        if res_buy:
-                            is_send_order_buy = True
-                            buy_order_sensitive_attrs = {
-                                'stock': res_buy['symbol'],
-                                'price': round(res_buy['price'], 2),
-                                'volume': res_buy['volume'],
-                                'status': res_buy['status'],
+                        buy_messages = []
+                        buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_OVERRAL,
+                                        **buy_order_overrall_attrs })  
+                                
+                        # Xử lý mua nhạy cảm 
+                        if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
+                            sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
+                            volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)                        
+                            buy_order_attrs_send = {
+                                'stock': symbol,
+                                # 'price': round(float(high_last_row - add_price_buy), 2) if round(float(high_last_row - add_price_buy), 2) > floor_price else round(floor_price, 2),
+                                'price': round(price_set_buy, 2),
+                                'volume': int(volume_buy_sensitive)
                             }
-                            buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
-                                            **buy_order_sensitive_attrs })
-                            volume -= int(res_buy['volume'])
-                            number_order -= 1
-                        else:
-                            logger.info(f"Lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng") 
-                    # Chia đều phần còn lại của volume to buy
-                    number_order = min(number_order, volume // 100)
-                    if volume >=100:
-                        for i in range(int(number_order)):
-                            divisor = number_order - i
-                            if i != int(number_order) - 1:
-                                volume_buy = round_to_nearest_hundred(volume / divisor)
-                            else:
-                                volume_buy = round_to_nearest_hundred(volume)
-                        #Gửi các lệnh buy
-                            ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                            price = round(price_set_buy - add_price_buy - i*step_price, 2) if round(start_price - add_price_buy - i*step_price, 2) > floor_price else round(floor_price, 2)
-                            if volume_buy >= 100:
-                                res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_buy, ref_id)
-                                if res_buy:
-                                    is_send_order_buy = True
-                                    buy_order_details_attrs = {
+                            res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
+                            if res_buy:
+                                is_send_order_buy = True
+                                buy_order_sensitive_attrs = {
                                     'stock': res_buy['symbol'],
                                     'price': round(res_buy['price'], 2),
                                     'volume': res_buy['volume'],
                                     'status': res_buy['status'],
-                                    }                
-                                    buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
-                                                    **buy_order_details_attrs })                            
+                                }
+                                buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
+                                                **buy_order_sensitive_attrs })
+                                volume -= int(res_buy['volume'])
+                                number_order -= 1
                             else:
-                                logger.info(f"Error: lệnh mua lần thứ {i+1} hàm handle_buy_service  của {symbol} có phản hồi là rỗng") 
-                            volume -= volume_buy  
-            
-                    # Send telegram tổng hợp khi thực hiện đặt xong các lệnh mua
-                    if is_send_order_buy:                    
-                        send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)              
-                        send_telegram_message_batch(user, MessageTypeEnum.OVERALL, buy_messages)
-                    # Send telegram hành động
-                        send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs)              
-                        send_telegram_message_batch(user, MessageTypeEnum.ACT, buy_messages)
-                    # logger.info(f'kết thúc hàm đặt lệnh buy {symbol}')          
+                                logger.info(f"Lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng") 
+                        # Chia đều phần còn lại của volume to buy
+                        number_order = min(number_order, volume // 100)
+                        if volume >=100:
+                            for i in range(int(number_order)):
+                                divisor = number_order - i
+                                if i != int(number_order) - 1:
+                                    volume_buy = round_to_nearest_hundred(volume / divisor)
+                                else:
+                                    volume_buy = round_to_nearest_hundred(volume)
+                            #Gửi các lệnh buy
+                                ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
+                                price = round(price_set_buy - add_price_buy - i*step_price, 2) if round(start_price - add_price_buy - i*step_price, 2) > floor_price else round(floor_price, 2)
+                                if volume_buy >= 100:
+                                    res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_buy, ref_id)
+                                    if res_buy:
+                                        is_send_order_buy = True
+                                        buy_order_details_attrs = {
+                                        'stock': res_buy['symbol'],
+                                        'price': round(res_buy['price'], 2),
+                                        'volume': res_buy['volume'],
+                                        'status': res_buy['status'],
+                                        }                
+                                        buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
+                                                        **buy_order_details_attrs })                            
+                                else:
+                                    logger.info(f"Error: lệnh mua lần thứ {i+1} hàm handle_buy_service  của {symbol} có phản hồi là rỗng") 
+                                volume -= volume_buy  
+                
+                        # Send telegram tổng hợp khi thực hiện đặt xong các lệnh mua
+                        if is_send_order_buy:                    
+                            send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)              
+                            send_telegram_message_batch(user, MessageTypeEnum.OVERALL, buy_messages)
+                        # Send telegram hành động
+                            send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_buy, **buy_attrs)              
+                            send_telegram_message_batch(user, MessageTypeEnum.ACT, buy_messages)
+                        # logger.info(f'kết thúc hàm đặt lệnh buy {symbol}')
+
+                        # Sleep 2s before releasing lock so VPS has time to register new stock positions!
+                        time.sleep(2)
+                
+                except redis.exceptions.LockError as le:
+                    logger.error(f"Redis Lock Error for {symbol}: {le}")
+                finally:
+                    # Trả lại Khóa Cho Mã Tiếp Theo (Hoặc Xong Việc Mình)
+                    if redis_lock.owned():
+                        redis_lock.release()
+          
             
             # Update buy order
             if is_send_order_buy:                  
                 limited_times = time_to_buy // sleeping_time_buy
                 limited_price_to_buy = start_price - add_price_buy + slippage_buy  
                 interval_check = 10  # kiểm tra mỗi 10 giây
+                interval_stock_check = 2  # kiểm tra cổ phiếu mỗi 2 giây
                 should_break_loop = False  # Flag để thoát khỏi vòng for
                 for i in range(int(limited_times) - 1):
                     if should_break_loop:
                         break
                     start_sleep = time.time()
+                    last_general_check = time.time()
                     while time.time() - start_sleep < sleeping_time_buy:
                         connection.close()
 
                         remaining = sleeping_time_buy - (time.time() - start_sleep)
-                        sleep_time = min(interval_check, remaining)
+                        sleep_time = min(interval_stock_check, remaining)
 
                         if sleep_time <= 0:
                             break
                         
                         time.sleep(sleep_time)
+
+                        res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
+                        number_stock_existing = res_stock.get('number_stock_existing', 0) if res_stock else 0
+                        symbols_existing = res_stock.get('symbols_existing', []) if res_stock else []
+                        if number_stock_existing >= vps_account.limit_number_stocks and symbol not in symbols_existing:
+                            logger.info(f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh {symbol}')
+                            message_cancel = f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}'
+                            send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
+                            send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)                            
+                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn cổ phiếu tối đa', "B")
+                            should_break_loop = True
+                            break
                         
+                        current_time = time.time()
+                        if current_time - last_general_check < interval_check:
+                            continue
+                        
+                        last_general_check = current_time
+
                         # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
                         try:
                             configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
@@ -1864,17 +1922,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         if not is_time_valid_to_buy:
                             logger.info(f'{symbol} đã vượt khung giờ mua, hủy lệnh mua {symbol}')
                             cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã vượt khung giờ mua', "B")
-                            should_break_loop = True
-                            break
-                        res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
-                        number_stock_existing = res_stock.get('number_stock_existing', 0) if res_stock else 0
-                        symbols_existing = res_stock.get('symbols_existing', []) if res_stock else []
-                        if number_stock_existing >= vps_account.limit_number_stocks and symbol not in symbols_existing:
-                            logger.info(f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh {symbol}')
-                            message_cancel = f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}'
-                            send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
-                            send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)                            
-                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn cổ phiếu tối đa', "B")
                             should_break_loop = True
                             break
                         # --- Tải dữ liệu lần 1 ---
