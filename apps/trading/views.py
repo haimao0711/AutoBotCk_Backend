@@ -215,7 +215,7 @@ class TradingViewsIsTrading(APIView):
                     "total_market_value": financial_data.get("total_market_value", 0),
                     "cash_available": financial_data.get("cash_available", 0),
                     "limit_number_stocks": limit_number_stocks,
-                    "limit_total_market_value": financial_data.get("limit_total_market_value", 0),
+                    "limit_total_market_value": limit_total_market_value,
                 })
             else:
                 return Response({
