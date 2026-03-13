@@ -31,7 +31,7 @@ from apps.telegram.enum.enums import MessageTypeEnum
 from typing import List
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from common.api.smartone.handler import (handle_buy_service, handle_sell_service, handle_update_order_service, handle_cancel_order_service,
-                                         handle_orders_not_matched, handle_orders_matched, handle_stock_balance_service, handle_transaction_service, handle_cash_balance_service)
+                                         handle_orders_not_matched, handle_orders_matched, handle_stock_balance_service, handle_transaction_service, handle_cash_balance_service, validate_session)
 from apps.configuration.details.services import ConfigurationServices
 from apps.stock.services import DownloadService
 from apps.account.detail.services import AccountService
@@ -463,7 +463,7 @@ def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, req
     else:
         logger.info(f'Chua lay duoc danh sach chua khop to cancel sell {symbol}')  
 
-def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool, is_use_chart_action: bool):
+def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, limit_total_market_value: int, request_buy: bool, request_sell: bool, is_use_chart_action: bool):
     # Các giá trị mặc định
     timezone = pytz.timezone('Asia/Ho_Chi_Minh')
     user_name = vps_account.name
@@ -490,6 +490,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     logger.info(f'check is_use_chart_action {symbol}: {is_use_chart_action}')        
     asp_net_session = ''
     max_stock_existing = limit_number_stocks
+    max_total_market_value = vps_account.limit_total_market_value
     slippage_buy = trading_config.stock_config_slippage_buy
     add_price_buy = trading_config.stock_config_add_price_buy
     level = overview_config.level
@@ -764,11 +765,18 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                 stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
                 number_stock_existing = res_stock_balance.get('number_stock_existing', 0) if res_stock_balance else 0
+                
+                # Fetch total_market_value
+                is_valid_session, session_result = validate_session(user_name, account, request_url, session, asp_net_session)
+                current_total_market_value = session_result.get("total_market_value", 0) if is_valid_session else 0
+                
                 cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
                 volume_to_buy = overview_config.volume_to_buy        
-                #Kiểm tra đk số cổ phiếu giới hạn, khối lượng mua còn lại, tiền mặt
-                if number_stock_existing >= max_stock_existing and stock_balance == 0 :
-                    logger.info(f'Lệnh mua {symbol} rơi vào trường hợp vượt quá số cổ phiếu tối đa hiện đang là {number_stock_existing}')
+                #Kiểm tra đk số cổ phiếu giới hạn, khối lượng mua còn lại, tiền mặt, và tổng giá trị thị trường
+                if current_total_market_value >= max_total_market_value:
+                    logger.info(f'Lệnh mua tay {symbol} rơi vào trường hợp vượt quá tổng giá trị thị trường tối đa hiện đang là {current_total_market_value}/{max_total_market_value}')
+                elif number_stock_existing >= max_stock_existing and stock_balance == 0:
+                    logger.info(f'Lệnh mua tay {symbol} rơi vào trường hợp vượt quá số cổ phiếu tối đa hiện đang là {number_stock_existing}/{max_stock_existing}')
                 elif not cash_balance:
                     logger.info(f'không có respon khi lấy số dư tiền mặt {symbol}')
                 else: 
@@ -1010,7 +1018,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
         send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
         revert_status_request_trade(user, stock_id, reset_is_trading=False)
 
-def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, request_buy: bool, request_sell: bool, volume_sell: str, is_use_chart_action: bool):
+def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, limit_total_market_value: int, request_buy: bool, request_sell: bool, volume_sell: str, is_use_chart_action: bool):
     # Các giá trị mặc định    
     user_name = vps_account.name
     account = vps_account.account_num
@@ -1549,6 +1557,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
         cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
         cash_available = cash_balance['cash_available']
+        
+        # Lấy total_market_value từ validate_session
+        is_valid_session, session_result = validate_session(user_name, account, request_url, session, asp_net_session)
+        current_total_market_value = session_result.get("total_market_value", 0) if is_valid_session else 0
+
 
         # === EARLY LOCKING ===
         # Cố gắng acquire lock ngay từ đầu để tránh race condition và tính toán vô ích
@@ -1696,8 +1709,20 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     current_stock_count = res_stock_check.get('number_stock_existing', 0) if res_stock_check else 0
                     current_symbols = res_stock_check.get('symbols_existing', []) if res_stock_check else []
                     
+                    # 🚀 BỔ SUNG: Lấy lại giá trị thị trường NGAY LÚC NÀY để số liệu Real-time
+                    is_valid_session_latest, session_result_latest = validate_session(user_name, account, request_url, session, asp_net_session)
+                    current_total_market_value = session_result_latest.get("total_market_value", 0) if is_valid_session_latest else current_total_market_value
+                    
                     # 2. Kiểm Tra Cửa Vào Cuối Cùng
-                    if current_stock_count >= vps_account.limit_number_stocks and symbol not in current_symbols:
+                    if current_total_market_value >= vps_account.limit_total_market_value:
+                        logger.info(f"🚫 Mã {symbol} rớt đài vì vượt Limit Total Market Value ({current_total_market_value}/{vps_account.limit_total_market_value})!")
+                        message_cancel = f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh mua {symbol}'
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
+                        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
+                        # Trả lại lock và rời đi, không mua gì cả
+                        redis_lock.release()
+                        return
+                    elif current_stock_count >= vps_account.limit_number_stocks and symbol not in current_symbols:
                         logger.info(f"🚫 Mã {symbol} rớt đài vì luồng khác vừa chiếm slots. Account đã đạt limit ({current_stock_count}/{vps_account.limit_number_stocks})!")
                         message_cancel = f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}'
                         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
@@ -1864,7 +1889,20 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                         number_stock_existing = res_stock.get('number_stock_existing', 0) if res_stock else 0
                         symbols_existing = res_stock.get('symbols_existing', []) if res_stock else []
-                        if number_stock_existing >= vps_account.limit_number_stocks and symbol not in symbols_existing:
+                        
+                        # 🚀 BỔ SUNG: Cập nhật lại giá trị thị trường mỗi vòng lặp check
+                        is_valid_loop, session_result_loop = validate_session(user_name, account, request_url, session, asp_net_session)
+                        loop_total_market_value = session_result_loop.get("total_market_value", 0) if is_valid_loop else 0
+                        
+                        if loop_total_market_value >= vps_account.limit_total_market_value:
+                            logger.info(f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh {symbol}')
+                            message_cancel = f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh mua {symbol}'
+                            send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
+                            send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)                            
+                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn giá trị cổ phiếu tối đa', "B")
+                            should_break_loop = True
+                            break
+                        elif number_stock_existing >= vps_account.limit_number_stocks and symbol not in symbols_existing:
                             logger.info(f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh {symbol}')
                             message_cancel = f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}'
                             send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
@@ -2498,6 +2536,7 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
     # Lấy dữ liệu cần thiết
     vnindex_stock = StockService.get_stock_by_symbol('VNINDEX')
     limit_number_stocks = vps_account.limit_number_stocks
+    limit_total_market_value = vps_account.limit_total_market_value
 
     # Chuẩn bị dữ liệu cấu hình cho từng cổ phiếu
     prepared_configs = []
@@ -2597,6 +2636,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
     account_num = vps_account.account_num
     session_id = vps_account.vps_session_id
     limit_number_stocks = vps_account.limit_number_stocks
+    limit_total_market_value = vps_account.limit_total_market_value
     #Lấy ds symbol đang trading
     request_url = api.TRADING_URL
     configurations_is_trading = [
@@ -2626,7 +2666,13 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
     percent_buy_trade = res_stock_balance.get('percent_buy_trade', 0) if res_stock_balance else 0
     symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
    
-    if number_stock_existing >= limit_number_stocks:
+    is_valid_session, session_result = validate_session(account_name, account_num, request_url, session_id, '')
+    current_total_market_value = session_result.get("total_market_value", 0) if is_valid_session else 0
+
+    if current_total_market_value >= limit_total_market_value:
+        logger.info(f"Tổng giá trị thị trường {current_total_market_value} đã vượt quá giới hạn {limit_total_market_value}. Dừng xét duyệt cho tất cả các mã đang không giao dịch.")
+        configurations_handle_trading = []
+    elif number_stock_existing >= limit_number_stocks:
         configurations_handle_trading = [
             config for config in configurations_handle_trading
             if (stock := config.get("stock")) and stock.name in symbols_existing ]
@@ -2645,6 +2691,7 @@ def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str
 
     vnindex_stock = StockService.get_stock_by_symbol('VNINDEX')
     limit_number_stocks = vps_account.limit_number_stocks
+    limit_total_market_value = vps_account.limit_total_market_value
     prepared_configs = []
 
     configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
@@ -2701,13 +2748,13 @@ def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str
     def run_process_buy():
         close_old_connections()
         process_buy_request(
-            prepared_configs[0], user, vnindex_stock, vps_account, stock_id, limit_number_stocks, request_buy, request_sell, is_use_chart_action
+            prepared_configs[0], user, vnindex_stock, vps_account, stock_id, limit_number_stocks, limit_total_market_value, request_buy, request_sell, is_use_chart_action
         )
 
     def run_process_sell():
         close_old_connections()
         process_sell_request(
-            prepared_configs[0], user, vnindex_stock, vps_account, stock_id, limit_number_stocks, request_buy, request_sell, volume_sell, is_use_chart_action
+            prepared_configs[0], user, vnindex_stock, vps_account, stock_id, limit_number_stocks, limit_total_market_value, request_buy, request_sell, volume_sell, is_use_chart_action
         )
 
     if prepared_configs:

@@ -185,7 +185,6 @@ class UserProfileView(APIView):
     def post(self, request):
         try:
             user = request.user
-            print('check user:', user)
             body = json.loads(request.body.decode('utf-8')) if request.body else {}
 
             # Kiểm tra dữ liệu hợp lệ
@@ -199,9 +198,10 @@ class UserProfileView(APIView):
 
             # Lấy dữ liệu từ body
             limit_number_stocks = body.get("limit_number_stocks")
+            limit_total_market_value = body.get("limit_total_market_value")
             account_password = body.get("account_password")
             # Kiểm tra xem tất cả các trường trong body có rỗng không
-            if not any([limit_number_stocks, account_password]):
+            if not any([limit_number_stocks, limit_total_market_value, account_password]):
                 return Response({"error": "No fields provided to update"}, status=status.HTTP_400_BAD_REQUEST)
 
             # Tạo dictionary với các dữ liệu cần cập nhật
@@ -214,6 +214,12 @@ class UserProfileView(APIView):
                     vps_data_update["limit_number_stocks"] = limit_number_stocks
                 except ValueError:
                     return Response({"error": "Invalid value for limit_number_stocks, it must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+            if limit_total_market_value is not None and limit_total_market_value != 'null':  # Kiểm tra null string và None
+                try:
+                    limit_total_market_value = int(limit_total_market_value)  # Chuyển đổi sang integer nếu có thể
+                    vps_data_update["limit_total_market_value"] = limit_total_market_value
+                except ValueError:
+                    return Response({"error": "Invalid value for limit_total_market_value, it must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
             # if account_password and account_password.strip().lower() != 'null':
             if account_password and account_password.strip() != 'd41d8cd98f00b204e9800998ecf8427e':
                 vps_data_update["password"] = account_password
@@ -233,6 +239,7 @@ class UserProfileView(APIView):
                     "account_name": vps_account.name,
                     "account_num": vps_account.account_num,
                     "limit_number_stocks": limit_number_stocks,
+                    "limit_total_market_value": limit_total_market_value,
                 }
             }, status=status.HTTP_200_OK)
 

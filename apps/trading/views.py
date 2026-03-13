@@ -198,6 +198,7 @@ class TradingViewsIsTrading(APIView):
             account_num = vps_account.account_num
             session_id = vps_account.vps_session_id
             limit_number_stocks = vps_account.limit_number_stocks
+            limit_total_market_value = vps_account.limit_total_market_value
             status_scheduler = user.scheduler_status
             url = api.TRADING_URL
 
@@ -214,6 +215,7 @@ class TradingViewsIsTrading(APIView):
                     "total_market_value": financial_data.get("total_market_value", 0),
                     "cash_available": financial_data.get("cash_available", 0),
                     "limit_number_stocks": limit_number_stocks,
+                    "limit_total_market_value": financial_data.get("limit_total_market_value", 0),
                 })
             else:
                 return Response({
@@ -225,6 +227,7 @@ class TradingViewsIsTrading(APIView):
                     "total_market_value": 0,
                     "cash_available": 0,
                     "limit_number_stocks": limit_number_stocks,
+                    "limit_total_market_value": limit_total_market_value,
                 })
         except Exception as e:
             print(f"Lỗi không mong muốn: {e}")
