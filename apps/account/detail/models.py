@@ -37,6 +37,7 @@ class Account(models.Model):
     is_block_buy = models.BooleanField(default=False)
     is_block_sell = models.BooleanField(default=False)
     limit_number_stocks = models.IntegerField(default=10)
+    limit_total_market_value = models.IntegerField(default=500000000)
     def __str__(self):
         return f"Account:\nName: {self.name}\nAlias name: {self.alias}\nStatus: {self.status}\nLogin_status: {self.login_status}"
 
