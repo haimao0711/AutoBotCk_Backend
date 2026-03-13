@@ -1699,7 +1699,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     # 2. Kiểm Tra Cửa Vào Cuối Cùng
                     if current_stock_count >= vps_account.limit_number_stocks and symbol not in current_symbols:
                         logger.info(f"🚫 Mã {symbol} rớt đài vì luồng khác vừa chiếm slots. Account đã đạt limit ({current_stock_count}/{vps_account.limit_number_stocks})!")
-                        message_cancel = f'Vượt giới hạn cổ phiếu tối đa vào phút chót, hủy lệnh mua {symbol}'
+                        message_cancel = f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}'
                         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
                         send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
                         # Trả lại lock và rời đi, không mua gì cả
@@ -2152,7 +2152,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 send_message_telegram(user, MessageTypeEnum.OVERALL, messages_take_profit)
                 send_message_telegram(user, MessageTypeEnum.ACT, messages_take_profit)
                 start_time = datetime.now()
-                end_time = start_time + timedelta(minutes=15)
+                end_time = start_time + timedelta(hours=1)
                 status_sell = SignalTelegramEnum.TAKE_PROFIT_FAILED
                 while datetime.now() < end_time:
                     # Tải dữ liệu lần 1
@@ -2200,7 +2200,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     time.sleep(30)
                 
                 if not is_trading_take_profit:
-                    message_timeout_take_profit = f'Đã hết thời gian chờ chốt lời (15 phút) cho {symbol}. Hủy theo dõi chốt lời đợt này.'
+                    message_timeout_take_profit = f'Đã hết thời gian chờ chốt lời (1 tiếng) cho {symbol}. Hủy theo dõi chốt lời đợt này.'
                     send_message_telegram(user, MessageTypeEnum.OVERALL, message_timeout_take_profit)
                     send_message_telegram(user, MessageTypeEnum.ACT, message_timeout_take_profit)  
             else:
