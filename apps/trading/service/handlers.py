@@ -392,9 +392,9 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
                 
                 if res_cancel_order:
                     sell_cancel_details_attrs = {
-                        'stock': res_cancel_order['symbol'],
-                        'price': res_cancel_order['showPrice'],
-                        'volume': res_cancel_order['volume'],
+                        'stock': order['symbol'],
+                        'price': order['showPrice'],
+                        'volume': order['volume'],
                         'status': 'Đã hủy'
                         }
                     message_sell_update.append({
