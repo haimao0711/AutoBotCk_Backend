@@ -1890,7 +1890,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         # 🚀 BỔ SUNG: Cập nhật lại giá trị thị trường mỗi vòng lặp check
                         is_valid_loop, session_result_loop = validate_session(user_name, account, request_url, session, asp_net_session)
                         loop_total_market_value = session_result_loop.get("total_market_value", 0) if is_valid_loop else 0
-                        
+                        logger.info(f'Giá trị cổ phiếu tối đa cấu hình: {vps_account.limit_total_market_value}')
+                        logger.info(f'Giá trị cổ phiếu hiện tại khi mua {symbol}: {loop_total_market_value}')
                         if loop_total_market_value >= vps_account.limit_total_market_value:
                             logger.info(f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh {symbol}')
                             message_cancel = f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh mua {symbol}'
