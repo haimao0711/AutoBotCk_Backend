@@ -724,11 +724,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
                 except Exception as e:
                     logger.info(f"❌ Lỗi khi gửi tin nhắn: {e}") 
-                        
-            is_send_order_buy = False   
-            if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
-                 pass 
-                
+  
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
                 logger.info(f'bắt đầu hàm đặt lệnh mua tay {symbol}')
@@ -765,6 +761,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                 stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
                 number_stock_existing = res_stock_balance.get('number_stock_existing', 0) if res_stock_balance else 0
+                floor_price = res_stock_balance.get('stock_balance', {}).get('floor_price', 0) if res_stock_balance else 0
                 
                 # Fetch total_market_value
                 is_valid_session, session_result = validate_session(user_name, account, request_url, session, asp_net_session)
@@ -847,7 +844,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                 volume_buy = round_to_nearest_hundred(volume)
                         #Gửi các lệnh buy
                             ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                            price = round(price_set_buy - add_price_buy - i*step_price, 2)
+                            price = round(price_set_buy - add_price_buy - i*step_price, 2) if round(start_price - add_price_buy - i*step_price, 2) > floor_price else round(floor_price, 2)
                             if volume_buy >= 100:
                                 res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_buy, ref_id)
                                 if res_buy:
@@ -1554,6 +1551,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
         volume_balance_trade = res_stock_balance.get('stock_balance', {}).get('available_vol', 0) if res_stock_balance else 0
         ceil_price = res_stock_balance.get('stock_balance', {}).get('ceil_price', 0) if res_stock_balance else 0
+        floor_price = res_stock_balance.get('stock_balance', {}).get('floor_price', 0) if res_stock_balance else 0
         symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
         cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
         cash_available = cash_balance['cash_available']
@@ -1604,7 +1602,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     return int(val) if val is not None else 0
                 except (ValueError, TypeError):
                     return 0   
-            floor_price = sales_data.get('floor_price')
             buyForeignQtty = safe_int(sales_data.get('buyForeignQtty'))
             sellForeignQtty = safe_int(sales_data.get('sellForeignQtty'))
             total_foreign = buyForeignQtty + sellForeignQtty
@@ -1998,8 +1995,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                 return int(val) if val is not None else 0
                             except (ValueError, TypeError):
                                 return 0   
-                        
-                        floor_price = sales_data.get('floor_price')
                         buyForeignQtty = safe_int(sales_data.get('buyForeignQtty'))
                         sellForeignQtty = safe_int(sales_data.get('sellForeignQtty'))
                         total_foreign = buyForeignQtty + sellForeignQtty
