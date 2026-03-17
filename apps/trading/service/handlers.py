@@ -1431,8 +1431,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                         vnindex_data_trading_tmp, vnindex_data_following_tmp, stock_data_trading_tmp, stock_data_following_tmp = download_data(
                             stock=stock, 
                             vnindex_stock=vnindex_stock, 
-                            trading_chart_type=trading_chart_type, 
-                            following_chart_type=following_chart_type
+                            trading_chart_type=trading_chart_type_sell, 
+                            following_chart_type=following_chart_type_sell
                         )
                         
                         if stock_data_trading_tmp is not None and not stock_data_trading_tmp.empty:
@@ -1891,7 +1891,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         is_valid_loop, session_result_loop = validate_session(user_name, account, request_url, session, asp_net_session)
                         loop_total_market_value = session_result_loop.get("total_market_value", 0) if is_valid_loop else 0
                         logger.info(f'Giá trị cổ phiếu tối đa cấu hình: {vps_account.limit_total_market_value}')
-                        logger.info(f'Giá trị cổ phiếu hiện tại khi mua {symbol}: {loop_total_market_value}')
+                        logger.info(f'Giá trị cổ phiếu hiện tại khi sửa lệnh mua {symbol}: {loop_total_market_value}')
                         if loop_total_market_value >= vps_account.limit_total_market_value:
                             logger.info(f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh {symbol}')
                             message_cancel = f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh mua {symbol}'
