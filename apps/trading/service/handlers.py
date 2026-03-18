@@ -2665,10 +2665,7 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
     is_valid_session, session_result = validate_session(account_name, account_num, request_url, session_id, '')
     current_total_market_value = session_result.get("total_market_value", 0) if is_valid_session else 0
 
-    if current_total_market_value >= limit_total_market_value:
-        logger.info(f"Tổng giá trị thị trường {current_total_market_value} đã vượt quá giới hạn {limit_total_market_value}. Dừng xét duyệt cho tất cả các mã đang không giao dịch.")
-        configurations_handle_trading = []
-    elif number_stock_existing >= limit_number_stocks:
+    if number_stock_existing >= limit_number_stocks:
         configurations_handle_trading = [
             config for config in configurations_handle_trading
             if (stock := config.get("stock")) and stock.name in symbols_existing ]
