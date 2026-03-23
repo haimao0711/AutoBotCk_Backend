@@ -41,7 +41,7 @@ def trade_stock_smart_one(user_account: str, trade_account: str, url: str, symbo
     }
  
     try:
-        response = requests.request("POST", url, headers=headers, data=payload)
+        response = requests.request("POST", url, headers=headers, data=payload, timeout=10)
         # print(f'Mã trạng thái phản hồi trade_stock_smart_one {side} stock {symbol}:', response.status_code)
         # print(f'Nội dung phản hồi trade_stock_smart_one {side} stock {symbol}:', response.text)
         return response
@@ -95,7 +95,7 @@ def update_order_smart_one(user_account: str, trade_account: str, url: str, symb
     }
 
     try:
-        response = requests.request("POST", url, headers=headers, data=payload)
+        response = requests.request("POST", url, headers=headers, data=payload, timeout=10)
         # print(f'Mã trạng thái phản hồi update {symbol} :', response.status_code)
         # print(f'Nội dung phản hồi update {symbol}:', response.text)
         return response
@@ -132,7 +132,7 @@ def cancel_order_smart_one(user_account: str, url: str, session: str, asp_net_se
 
     # response = requests.request("POST", url, headers=headers, data=payload)
     try:
-        response = requests.request("POST", url, headers=headers, data=payload)
+        response = requests.request("POST", url, headers=headers, data=payload, timeout=10)
         print(f'Mã trạng thái phản hồi cancel_order_smart_one :', response.status_code)
         print(f'Nội dung phản hồi cancel_order_smart_one:', response.text)
         return response
@@ -198,7 +198,7 @@ def get_transaction(user_account: str, trade_account: str, url: str, session: st
 
     # response = requests.request("POST", url, headers=headers, data=payload)
     try:
-        response = requests.post(url, headers=headers, data=payload)
+        response = requests.post(url, headers=headers, data=payload, timeout=10)
         # print('Mã trạng thái phản hồi get_transaction:', response.status_code)
         # print('Nội dung phản hồi get_transaction:', response.text)
         return response
@@ -231,7 +231,7 @@ def get_cash_balance(user_account: str, trade_account: str, url: str, session: s
 
     # response = requests.request("POST", url, headers=headers, data=payload)
     try:
-        response = requests.post(url, headers=headers, data=payload)
+        response = requests.post(url, headers=headers, data=payload, timeout=10)
         # print('Mã trạng thái phản hồi get_cash_balance:', response.status_code)
         # print('Nội dung phản hồi get_cash_balance:', response.text)
         return response
@@ -261,7 +261,7 @@ def get_stock_balance(user_account: str, trade_account: str, url: str, session: 
     }
 
     try:
-        response = requests.post(url, headers=headers, data=payload)
+        response = requests.post(url, headers=headers, data=payload, timeout=10)
         return response
     except requests.exceptions.RequestException as e:
         print('Đã xảy ra lỗi khi gửi yêu cầu get_stock_balance:', e)
@@ -289,7 +289,7 @@ def get_account_status(user_account: str, trade_account: str, url: str, session:
     }
 
     try:
-        response = requests.post(url, headers=headers, data=payload)
+        response = requests.post(url, headers=headers, data=payload, timeout=10)
         return response
     except requests.exceptions.RequestException as e:
         print('Đã xảy ra lỗi khi gửi yêu cầu get_account_status:', e)

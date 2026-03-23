@@ -498,7 +498,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     #HANDLE BUY
     if is_time_valid_to_buy:
         try:
-            # Xác định thời gian bắt đầu và thời gian kết thúc (sau 1 tiếng)
+            # Xác định thời gian bắt đầu và thời gian kết thúc (sau 2 tiếng)
             start_time = datetime.now()
             end_time = start_time + timedelta(hours=2)
             status_buy = SignalTelegramEnum.BUY_REQUEST_FAILED
@@ -743,6 +743,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 step_price = trading_config.stock_config_slippage_volume_buy_per_pid
                 time_to_buy = trading_config.stock_config_time_to_buy
                 time_to_buy = time_to_buy if time_to_buy > 30 else 30
+                logger.info(f'time_to_buy {symbol}: {time_to_buy}')
                 sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
                 sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
                 
@@ -877,7 +878,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 limited_price_to_buy = start_price - add_price_buy + slippage_buy
                 interval_check = 10  # Kiểm tra mỗi 10 giây
                 should_break_loop = False  # Flag để thoát khỏi vòng for
-                for i in range(int(limited_times) - 1):
+                for i in range(int(limited_times)):
                     if should_break_loop:
                         break
                     start_sleep = time.time()
@@ -888,63 +889,93 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         if sleep_time <= 0:
                             break
                         time.sleep(sleep_time)
-                
-                        # 🔄 Lấy lại cấu hình mới mỗi lần lặp để cập nhật cấu hình mới nhất
+
                         try:
-                            configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
-                                user=user, 
-                                stock_symbol=symbol
+                            res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
+                            number_stock_existing = res_stock.get('number_stock_existing', 0) if res_stock else 0
+                            symbols_existing = res_stock.get('symbols_existing', []) if res_stock else []
+    
+                            # 🚀 BỔ SUNG: Cập nhật lại giá trị thị trường mỗi vòng lặp check
+                            is_valid_loop, session_result_loop = validate_session(user_name, account, request_url, session, asp_net_session)
+                            loop_total_market_value = session_result_loop.get("total_market_value", 0) if is_valid_loop else 0
+                            logger.info(f'Giá trị cổ phiếu tối đa cấu hình: {max_total_market_value}')
+                            logger.info(f'Giá trị cổ phiếu hiện tại khi sửa lệnh mua {symbol} (tay): {loop_total_market_value}')
+                            if loop_total_market_value >= max_total_market_value:
+                                logger.info(f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh {symbol}')
+                                message_cancel = f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh mua {symbol}'
+                                send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
+                                send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)                            
+                                cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn giá trị cổ phiếu tối đa', "B")
+                                should_break_loop = True
+                                break
+                            elif number_stock_existing >= max_stock_existing and symbol not in symbols_existing:
+                                logger.info(f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh {symbol}')
+                                message_cancel = f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}'
+                                send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
+                                send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)                            
+                                cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn cổ phiếu tối đa', "B")
+                                should_break_loop = True
+                                break
+                    
+                            # 🔄 Lấy lại cấu hình mới mỗi lần lặp để cập nhật cấu hình mới nhất
+                            try:
+                                configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
+                                    user=user, 
+                                    stock_symbol=symbol
+                                )
+                                if configuration:
+                                    refreshed_overview_config = configuration.get("overview_config")
+                                    if refreshed_overview_config:
+                                        overview_config = refreshed_overview_config
+                            except Exception as e:
+                                logger.info(f'Lỗi khi lấy lại cấu hình mua tay cho {symbol}: {e}')
+                                connection.close()
+                                # Tiếp tục dùng config cũ nếu lỗi
+                    
+                            is_block_buy_stock = overview_config.is_block_buy
+                            is_buy_hand = overview_config.is_buy_hand
+    
+                            logger.info(f'[{symbol}] Check Loop: is_block_buy={is_block_buy_stock}, is_buy_hand={is_buy_hand}')
+                    
+                            if is_block_buy_stock:
+                                logger.info(f'{symbol} đã bị chặn mua, hủy lệnh mua tay {symbol}')
+                                cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn mua', "B")
+                                # revert_status_request_trade removed here, handled in finally
+                                should_break_loop = True
+                                break                        
+                            if not is_buy_hand:
+                                logger.info(f'{symbol} Đã tắt mua tay, hủy lệnh mua tay {symbol} ngay lập tức.')
+                                cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã tắt mua tay', "B")
+                                # revert_status_request_trade removed here, handled in finally
+                                should_break_loop = True
+                                break
+                            if not is_time_valid_to_buy:
+                                logger.info(f'{symbol} Vượt khung giờ mua, hủy lệnh mua tay {symbol} ngay lập tức.')
+                                cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã vượt khung giờ mua', "B")
+                                should_break_loop = True
+                                break
+    
+                            vnindex_data_trading_tmp, vnindex_data_following_tmp, stock_data_trading_tmp, stock_data_following_tmp = download_data(
+                                stock=stock,
+                                vnindex_stock=vnindex_stock,
+                                trading_chart_type=trading_chart_type,
+                                following_chart_type=following_chart_type
                             )
-                            if configuration:
-                                refreshed_overview_config = configuration.get("overview_config")
-                                if refreshed_overview_config:
-                                    overview_config = refreshed_overview_config
+                            
+                            if stock_data_trading_tmp is not None and not stock_data_trading_tmp.empty:
+                                last_row_tmp = stock_data_trading_tmp.iloc[-1]
+                                close_last_row_tmp = last_row_tmp.get('close', 0)
+                                open_last_row_tmp = last_row_tmp.get('open', 0)
+                                
+                                start_price = round_up_to_unit(open_last_row_tmp, close_last_row_tmp, step_price)
+                                price_current = close_last_row_tmp
+                                
+                                limited_price_to_buy = start_price - add_price_buy + slippage_buy
+                            else:
+                                logger.info(f"Không lấy được dữ liệu mới để tính lại giá cho {symbol}. Tiếp tục sử dụng giá cũ.")
                         except Exception as e:
-                            logger.info(f'Lỗi khi lấy lại cấu hình mua tay cho {symbol}: {e}')
-                            connection.close()
-                            # Tiếp tục dùng config cũ nếu lỗi
-                
-                        is_block_buy_stock = overview_config.is_block_buy
-                        is_buy_hand = overview_config.is_buy_hand
-
-                        logger.info(f'[{symbol}] Check Loop: is_block_buy={is_block_buy_stock}, is_buy_hand={is_buy_hand}')
-                
-                        if is_block_buy_stock:
-                            logger.info(f'{symbol} đã bị chặn mua, hủy lệnh mua tay {symbol}')
-                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn mua', "B")
-                            # revert_status_request_trade removed here, handled in finally
-                            should_break_loop = True
-                            break                        
-                        if not is_buy_hand:
-                            logger.info(f'{symbol} Đã tắt mua tay, hủy lệnh mua tay {symbol} ngay lập tức.')
-                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã tắt mua tay', "B")
-                            # revert_status_request_trade removed here, handled in finally
-                            should_break_loop = True
-                            break
-                        if not is_time_valid_to_buy:
-                            logger.info(f'{symbol} Vượt khung giờ mua, hủy lệnh mua tay {symbol} ngay lập tức.')
-                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đã vượt khung giờ mua', "B")
-                            should_break_loop = True
-                            break
-
-                        vnindex_data_trading_tmp, vnindex_data_following_tmp, stock_data_trading_tmp, stock_data_following_tmp = download_data(
-                            stock=stock,
-                            vnindex_stock=vnindex_stock,
-                            trading_chart_type=trading_chart_type,
-                            following_chart_type=following_chart_type
-                        )
-                        
-                        if stock_data_trading_tmp is not None and not stock_data_trading_tmp.empty:
-                            last_row_tmp = stock_data_trading_tmp.iloc[-1]
-                            close_last_row_tmp = last_row_tmp.get('close', 0)
-                            open_last_row_tmp = last_row_tmp.get('open', 0)
-                            
-                            start_price = round_up_to_unit(open_last_row_tmp, close_last_row_tmp, step_price)
-                            price_current = close_last_row_tmp
-                            
-                            limited_price_to_buy = start_price - add_price_buy + slippage_buy
-                        else:
-                            logger.info(f"Không lấy được dữ liệu mới để tính lại giá cho {symbol}. Tiếp tục sử dụng giá cũ.")
+                            logger.warning(f"Lỗi API trong vòng lặp sleep mua tay cho {symbol}. Thử lại sau 10s: {e}")
+                            continue
             
                     status_buy = SignalTelegramEnum.BUY_SUCCESS
                     times_update = i + 1
@@ -1380,7 +1411,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 interval_check = 10  # Kiểm tra mỗi 10 giây
                 should_break_loop = False  # Flag để thoát khỏi vòng for
             
-                for i in range(int(limited_times) - 1):
+                for i in range(int(limited_times)):
                     if should_break_loop:
                         break
                     start_sleep = time.time()
@@ -1392,60 +1423,64 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             break
                         time.sleep(sleep_time)
                     
-                        # 🔄 Lấy lại cấu hình mới mỗi lần lặp để cập nhật cấu hình mới nhất
                         try:
-                            configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
-                                user=user, 
-                                stock_symbol=symbol
+                            # 🔄 Lấy lại cấu hình mới mỗi lần lặp để cập nhật cấu hình mới nhất
+                            try:
+                                configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
+                                    user=user, 
+                                    stock_symbol=symbol
+                                )
+                                if configuration:
+                                    refreshed_overview_config = configuration.get("overview_config")
+                                    if refreshed_overview_config:
+                                        overview_config = refreshed_overview_config
+                            except Exception as e:
+                                logger.info(f'Lỗi khi lấy lại cấu hình bán tay cho {symbol}: {e}')
+                                connection.close()
+                                # Tiếp tục dùng config cũ nếu lỗi
+                        
+                            is_block_sell_stock = overview_config.is_block_sell
+                            is_sell_hand = overview_config.is_sell_hand
+                            logger.info(f'[{symbol}] Check Loop Sell: is_block_sell={is_block_sell_stock}, is_sell_hand={is_sell_hand}')
+    
+                            if is_block_sell_stock:
+                                logger.info(f'{symbol} đã bị chặn bán, hủy lệnh bán tay {symbol}')
+                                cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn bán', "S")
+                                should_break_loop = True
+                                break
+                        
+                            if not is_sell_hand:
+                                logger.info(f'{symbol} Đã tắt bán tay, hủy lệnh bán tay {symbol} ngay lập tức.')
+                                cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã tắt bán tay', "S")
+                                should_break_loop = True
+                                break
+                            if not is_time_valid_to_sell :
+                                logger.info(f'{symbol} Đã vượt khung giờ bán, hủy lệnh bán tay {symbol} ngay lập tức.')
+                                cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã vượt khung giờ bán', "S")
+                                should_break_loop = True
+                                break
+                            
+                            vnindex_data_trading_tmp, vnindex_data_following_tmp, stock_data_trading_tmp, stock_data_following_tmp = download_data(
+                                stock=stock, 
+                                vnindex_stock=vnindex_stock, 
+                                trading_chart_type=trading_chart_type_sell, 
+                                following_chart_type=following_chart_type_sell
                             )
-                            if configuration:
-                                refreshed_overview_config = configuration.get("overview_config")
-                                if refreshed_overview_config:
-                                    overview_config = refreshed_overview_config
+                            
+                            if stock_data_trading_tmp is not None and not stock_data_trading_tmp.empty:
+                                last_row_tmp = stock_data_trading_tmp.iloc[-1]
+                                close_last_row_tmp = last_row_tmp.get('close', 0)
+                                open_last_row_tmp = last_row_tmp.get('open', 0)
+                                
+                                start_price = round_up_to_unit(open_last_row_tmp, close_last_row_tmp, step_price)
+                                price_current = close_last_row_tmp
+                                
+                                limited_price_to_sell = start_price + add_price_sell - slippage_sell
+                            else:
+                                logger.info(f"Không lấy được dữ liệu mới để tính lại giá cho {symbol}. Tiếp tục sử dụng giá cũ.")
                         except Exception as e:
-                            logger.info(f'Lỗi khi lấy lại cấu hình bán tay cho {symbol}: {e}')
-                            connection.close()
-                            # Tiếp tục dùng config cũ nếu lỗi
-                    
-                        is_block_sell_stock = overview_config.is_block_sell
-                        is_sell_hand = overview_config.is_sell_hand
-                        logger.info(f'[{symbol}] Check Loop Sell: is_block_sell={is_block_sell_stock}, is_sell_hand={is_sell_hand}')
-
-                        if is_block_sell_stock:
-                            logger.info(f'{symbol} đã bị chặn bán, hủy lệnh bán tay {symbol}')
-                            cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã bị chặn bán', "S")
-                            should_break_loop = True
-                            break
-                    
-                        if not is_sell_hand:
-                            logger.info(f'{symbol} Đã tắt bán tay, hủy lệnh bán tay {symbol} ngay lập tức.')
-                            cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã tắt bán tay', "S")
-                            should_break_loop = True
-                            break
-                        if not is_time_valid_to_sell :
-                            logger.info(f'{symbol} Đã vượt khung giờ bán, hủy lệnh bán tay {symbol} ngay lập tức.')
-                            cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã vượt khung giờ bán', "S")
-                            should_break_loop = True
-                            break
-                        
-                        vnindex_data_trading_tmp, vnindex_data_following_tmp, stock_data_trading_tmp, stock_data_following_tmp = download_data(
-                            stock=stock, 
-                            vnindex_stock=vnindex_stock, 
-                            trading_chart_type=trading_chart_type_sell, 
-                            following_chart_type=following_chart_type_sell
-                        )
-                        
-                        if stock_data_trading_tmp is not None and not stock_data_trading_tmp.empty:
-                            last_row_tmp = stock_data_trading_tmp.iloc[-1]
-                            close_last_row_tmp = last_row_tmp.get('close', 0)
-                            open_last_row_tmp = last_row_tmp.get('open', 0)
-                            
-                            start_price = round_up_to_unit(open_last_row_tmp, close_last_row_tmp, step_price)
-                            price_current = close_last_row_tmp
-                            
-                            limited_price_to_sell = start_price + add_price_sell - slippage_sell
-                        else:
-                            logger.info(f"Không lấy được dữ liệu mới để tính lại giá cho {symbol}. Tiếp tục sử dụng giá cũ.")
+                            logger.warning(f"Lỗi API trong vòng lặp sleep bán tay cho {symbol}. Thử lại sau 10s: {e}")
+                            continue
                 
                     status_sell = SignalTelegramEnum.SELL_SUCCESS
                     times_update = i + 1
@@ -1713,7 +1748,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     # 2. Kiểm Tra Cửa Vào Cuối Cùng
                     if current_total_market_value >= vps_account.limit_total_market_value:
                         logger.info(f"🚫 Mã {symbol} rớt đài vì vượt Limit Total Market Value ({current_total_market_value}/{vps_account.limit_total_market_value})!")
-                        message_cancel = f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh mua {symbol}'
+                        message_cancel = f'Vượt giới hạn giá trị cổ phiếu tối đa, không đặt lệnh mua {symbol}'
                         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
                         send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
                         # Trả lại lock và rời đi, không mua gì cả
@@ -1750,6 +1785,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         step_price = trading_config.stock_config_slippage_volume_buy_per_pid
                         time_to_buy = trading_config.stock_config_time_to_buy
                         time_to_buy = time_to_buy if time_to_buy > 30 else 30
+                        logger.info(f'time_to_buy {symbol}: {time_to_buy}')
                         sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
                         sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
                         start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
@@ -1890,8 +1926,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         # 🚀 BỔ SUNG: Cập nhật lại giá trị thị trường mỗi vòng lặp check
                         is_valid_loop, session_result_loop = validate_session(user_name, account, request_url, session, asp_net_session)
                         loop_total_market_value = session_result_loop.get("total_market_value", 0) if is_valid_loop else 0
-                        logger.info(f'Giá trị cổ phiếu tối đa cấu hình: {vps_account.limit_total_market_value}')
-                        logger.info(f'Giá trị cổ phiếu hiện tại khi sửa lệnh mua {symbol}: {loop_total_market_value}')
                         if loop_total_market_value >= vps_account.limit_total_market_value:
                             logger.info(f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh {symbol}')
                             message_cancel = f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh mua {symbol}'
