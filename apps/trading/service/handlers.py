@@ -1114,21 +1114,21 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                     return
                 
                 price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
-            status_sell = SignalTelegramEnum.SELL_REQUEST_SUCCESS
-            messages_to_sell = 'Bán ngay'
-            
-            time_now = datetime.now(timezone)
-            start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-            sell_attrs = {
-                "user_account": account,
-                "platform_trading": "Smart One",
-                "stock": stock.name,
-                "volume": 0,
-                "price": price_to_start,
-                "message": messages_to_sell,
-                "start_time_order": start_time_order,
-            }
-            send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs) 
+                status_sell = SignalTelegramEnum.SELL_REQUEST_SUCCESS
+                messages_to_sell = 'Bán ngay'
+                
+                time_now = datetime.now(timezone)
+                start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
+                sell_attrs = {
+                    "user_account": account,
+                    "platform_trading": "Smart One",
+                    "stock": stock.name,
+                    "volume": 0,
+                    "price": price_to_start,
+                    "message": messages_to_sell,
+                    "start_time_order": start_time_order,
+                }
+                send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs) 
 
             while is_use_chart_action and datetime.now() < end_time:
                 close_old_connections()
