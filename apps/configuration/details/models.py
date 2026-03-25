@@ -563,9 +563,9 @@ class Configuration(models.Model):
     stock_config_slippage_volume_buy_per_pid = models.FloatField(
         default=0.05, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)
     stock_config_slippage_buy = models.FloatField(
-        default=0.05, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)
+        default=0.05, validators=[MinValueValidator(0), MaxValueValidator(10)], null=True)
     stock_config_add_price_buy = models.FloatField(
-        default=0.2, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)
+        default=0.2, validators=[MinValueValidator(0), MaxValueValidator(10)], null=True)
 
     # other mode
     stock_config_time_to_sell = models.FloatField(
@@ -583,9 +583,9 @@ class Configuration(models.Model):
     stock_config_slippage_volume_sell_per_pid = models.FloatField(
         default=0.05, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)
     stock_config_slippage_sell = models.FloatField(
-        default=0.05, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)
+        default=0.05, validators=[MinValueValidator(0), MaxValueValidator(10)], null=True)
     stock_config_add_price_sell = models.FloatField(
-        default=0.2, validators=[MinValueValidator(0), MaxValueValidator(1)], null=True)
+        default=0.2, validators=[MinValueValidator(0), MaxValueValidator(10)], null=True)
 
     # stop loss
     stock_config_use_stop_loss_first_part = models.BooleanField(

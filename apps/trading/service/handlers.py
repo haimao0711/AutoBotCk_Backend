@@ -878,6 +878,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 limited_price_to_buy = start_price - add_price_buy + slippage_buy
                 interval_check = 10  # Kiểm tra mỗi 10 giây
                 should_break_loop = False  # Flag để thoát khỏi vòng for
+                is_matched_all = False
                 for i in range(int(limited_times)):
                     if should_break_loop:
                         break
@@ -889,6 +890,17 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         if sleep_time <= 0:
                             break
                         time.sleep(sleep_time)
+
+                        try:
+                            # Tối ưu: Bỏ qua sleep nếu đã khớp hết
+                            pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
+                            if isinstance(pending_orders, list) and len(pending_orders) == 0:
+                                logger.info(f"[{symbol}] Không còn lệnh mua PENDING, đã khớp hết. Bỏ qua chờ.")
+                                is_matched_all = True
+                                should_break_loop = True
+                                break
+                        except Exception as e:
+                            logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
 
                         try:
                             res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
@@ -977,6 +989,10 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             logger.warning(f"Lỗi API trong vòng lặp sleep mua tay cho {symbol}. Thử lại sau 10s: {e}")
                             continue
             
+                    if is_matched_all:
+                        logger.info(f"[{symbol}] Tất cả lệnh mua tay đã khớp, bỏ qua sửa lệnh.")
+                        break
+
                     status_buy = SignalTelegramEnum.BUY_SUCCESS
                     times_update = i + 1
                     message_update = update_buy_order(user_name, account, symbol, request_url, session, asp_net_session, "B", 
@@ -1410,6 +1426,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 logger.info(f'check limit_price_to_sell {symbol}: {limited_price_to_sell}')
                 interval_check = 10  # Kiểm tra mỗi 10 giây
                 should_break_loop = False  # Flag để thoát khỏi vòng for
+                is_matched_all = False
             
                 for i in range(int(limited_times)):
                     if should_break_loop:
@@ -1423,6 +1440,17 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             break
                         time.sleep(sleep_time)
                     
+                        try:
+                            # Tối ưu: Bỏ qua sleep nếu đã khớp hết
+                            pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
+                            if isinstance(pending_orders, list) and len(pending_orders) == 0:
+                                logger.info(f"[{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Bỏ qua chờ.")
+                                is_matched_all = True
+                                should_break_loop = True
+                                break
+                        except Exception as e:
+                            logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
+
                         try:
                             # 🔄 Lấy lại cấu hình mới mỗi lần lặp để cập nhật cấu hình mới nhất
                             try:
@@ -1482,6 +1510,10 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             logger.warning(f"Lỗi API trong vòng lặp sleep bán tay cho {symbol}. Thử lại sau 10s: {e}")
                             continue
                 
+                    if is_matched_all:
+                        logger.info(f"[{symbol}] Tất cả lệnh bán tay đã khớp, bỏ qua sửa lệnh.")
+                        break
+
                     status_sell = SignalTelegramEnum.SELL_SUCCESS
                     times_update = i + 1
                     message_update = update_sell_order(user_name, account, symbol, request_url, session, asp_net_session, "S", step_price, limited_price_to_sell, times_update)
@@ -1748,7 +1780,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     # 2. Kiểm Tra Cửa Vào Cuối Cùng
                     if current_total_market_value >= vps_account.limit_total_market_value:
                         logger.info(f"🚫 Mã {symbol} rớt đài vì vượt Limit Total Market Value ({current_total_market_value}/{vps_account.limit_total_market_value})!")
-                        message_cancel = f'Vượt giới hạn giá trị cổ phiếu tối đa, không đặt lệnh mua {symbol}'
+                        # message_cancel = f'Vượt giới hạn giá trị cổ phiếu tối đa, không đặt lệnh mua {symbol}'
                         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
                         send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
                         # Trả lại lock và rời đi, không mua gì cả
@@ -1903,6 +1935,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 interval_check = 10  # kiểm tra mỗi 10 giây
                 interval_stock_check = 2  # kiểm tra cổ phiếu mỗi 2 giây
                 should_break_loop = False  # Flag để thoát khỏi vòng for
+                is_matched_all = False
                 for i in range(int(limited_times) - 1):
                     if should_break_loop:
                         break
@@ -1918,6 +1951,17 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             break
                         
                         time.sleep(sleep_time)
+
+                        try:
+                            # Tối ưu: Bỏ qua sleep nếu đã khớp hết
+                            pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
+                            if isinstance(pending_orders, list) and len(pending_orders) == 0:
+                                logger.info(f"[{symbol}] Không còn lệnh mua PENDING, đã khớp hết. Bỏ qua chờ.")
+                                is_matched_all = True
+                                should_break_loop = True
+                                break
+                        except Exception as e:
+                            logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
 
                         res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                         number_stock_existing = res_stock.get('number_stock_existing', 0) if res_stock else 0
@@ -2078,6 +2122,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             should_break_loop = True
                             break  # thoát vòng kiểm tra, không update nữa
                     
+                    if is_matched_all:
+                        logger.info(f"[{symbol}] Đã khớp hết, chuyển thẳng đến phần tổng kết.")
+                        break
+
                     times_update = i + 1
                     message_update = update_buy_order(
                         user_name, account, symbol, request_url, session, asp_net_session, "B",
@@ -2437,6 +2485,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 limited_price_to_sell = start_price + add_price_sell - slippage_sell
                 interval_check = 10  # kiểm tra mỗi 10 giây
                 should_break_loop = False  # Flag để thoát khỏi vòng for                
+                is_matched_all = False
                 for i in range(int(limited_times) - 1):
                     if should_break_loop:
                         break
@@ -2451,6 +2500,18 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             break
                             
                         time.sleep(sleep_time)                        
+
+                        try:
+                            # Tối ưu: Bỏ qua sleep nếu đã khớp hết
+                            pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
+                            if isinstance(pending_orders, list) and len(pending_orders) == 0:
+                                logger.info(f"[{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Bỏ qua chờ.")
+                                is_matched_all = True
+                                should_break_loop = True
+                                break
+                        except Exception as e:
+                            logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
+
                         # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
                         try:
                             configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(
@@ -2477,6 +2538,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Đã vượt khung giờ bán', "S")
                             should_break_loop = True
                             break
+                            
+                    if is_matched_all:
+                        logger.info(f"[{symbol}] Tất cả lệnh bán đã khớp, chuyển thẳng đến phần tổng kết.")
+                        break
+
                     times_update = i + 1
                     message_update = update_sell_order(user_name, account, symbol, request_url, session, asp_net_session, "S", step_price, limited_price_to_sell, times_update)
                     if message_update:

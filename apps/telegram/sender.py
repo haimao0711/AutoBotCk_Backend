@@ -1,5 +1,8 @@
 import requests
 import time
+import threading
+
+api_lock = threading.Lock()
 from common.signal.enums import SignalTelegramEnum
 from apps.telegram.enum.enums import MessageTypeEnum
 from apps.authencation.user.models import User
@@ -189,38 +192,50 @@ def send_message_telegram(
 
         json_data = {"content": message}
 
-        start_time = time.time()
-        attempt = 0
+        with api_lock:
+            start_time = time.time()
+            attempt = 0
 
-        while time.time() - start_time < max_duration:
-            attempt += 1
-            try:
-                response = requests.post(
-                    url=webhook_url,
-                    json=json_data,
-                    timeout=timeout_per_request
-                )
+            while time.time() - start_time < max_duration:
+                attempt += 1
+                try:
+                    response = requests.post(
+                        url=webhook_url,
+                        json=json_data,
+                        timeout=timeout_per_request
+                    )
 
-                # Thành công thì dừng ngay
-                if response.status_code in (200, 204):
-                    print(f"📩 Gửi tin nhắn Telegram thành công sau {attempt} lần thử!")
-                    return
+                    # Thành công thì dừng ngay
+                    if response.status_code in (200, 204):
+                        print(f"📩 Gửi tin nhắn thành công sau {attempt} lần thử!")
+                        return
 
-                # Lỗi từ Telegram (ví dụ rate limit)
-                print(f"⚠️ Lỗi HTTP {response.status_code}: {response.text}")
+                    # Bị giới hạn tốc độ (Rate Limit 429) - Thường gặp ở Discord Webhook
+                    if response.status_code == 429:
+                        try:
+                            err_data = response.json()
+                            retry_after = err_data.get("retry_after", 2.0)
+                            print(f"⚠️ Lỗi HTTP 429 Rate Limit. Đợi chính xác {retry_after}s...")
+                            time.sleep(retry_after)
+                            continue
+                        except:
+                            pass
 
-            except requests.Timeout:
-                print(f"⏳ Timeout lần {attempt}.")
-            except requests.RequestException as error:
-                print(f"🚨 Lỗi mạng hoặc kết nối lần {attempt}: {error}")
+                    # Các lỗi HTTP khác
+                    print(f"⚠️ Lỗi HTTP {response.status_code}: {response.text}")
 
-            # Đợi 2 giây trước khi thử lại, nhưng không vượt quá max_duration
-            if time.time() - start_time + 2 >= max_duration:
-                break
-            print("🔄 Đợi 2 giây trước khi thử lại...")
-            time.sleep(2)
+                except requests.Timeout:
+                    print(f"⏳ Timeout lần {attempt}.")
+                except requests.RequestException as error:
+                    print(f"🚨 Lỗi mạng hoặc kết nối lần {attempt}: {error}")
 
-        print("❌ Hết 10 giây mà chưa gửi được tin nhắn, bỏ qua.")
+                # Đợi 1 giây trước khi thử lại nếu không phải 429, không vượt quá max_duration
+                if time.time() - start_time + 1 >= max_duration:
+                    break
+                print("🔄 Đợi 1 giây trước khi thử lại...")
+                time.sleep(1)
+
+            print(f"❌ Hết {max_duration} giây mà chưa gửi được tin nhắn, bỏ qua.")
 
     except Exception as e:
         # Bắt mọi lỗi bất ngờ, không cho treo luồng chính
