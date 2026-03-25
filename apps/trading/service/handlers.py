@@ -2690,6 +2690,7 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
 
     # Hàm worker cho mỗi cấu hình
     def worker(prepared):
+        time.sleep(0.1)  # Thêm độ trễ phân tán để giảm tải API rate limit
         close_old_connections()
         try:
             process_trading(
@@ -2703,14 +2704,14 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
             # Đóng connections của thread hiện tại
             connection.close()
 
-    # Khôi phục 100 worker để đảm bảo chạy đủ mã của user.
+    # Giới hạn 10 worker để tăng khả năng chịu tải hàng nghìn users mà không nghẽn RAM/DB.
     # Độ ổn định dựa vào logic try/except đóng kết nối ở trên.
-    with ThreadPoolExecutor(max_workers=100) as executor:
+    with ThreadPoolExecutor(max_workers=10) as executor:
         futures = []
         for config in prepared_configs:
             try:
                 futures.append(executor.submit(worker, config))
-                time.sleep(0.2)  # Thêm độ trễ giữa các luồng
+                # KHÔNG sleep ở vòng lặp submit này để giải phóng tốc độ đẻ task!
             except RuntimeError as e:
                 logger.info(f"Cannot submit new task: {e}")
                 break  # Dừng nếu executor đã shutdown
