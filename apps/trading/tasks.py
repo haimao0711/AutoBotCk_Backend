@@ -78,6 +78,10 @@ def cancel_trading_task(self, user_id, job_type="morning"):
     """
     Celery task thay thế cho TradingViews.cancel_trading
     """
+    # TẠM THỜI ĐÓNG TASK THEO YÊU CẦU
+    logger.info("Task cancel_trading_task đã bị tắt tạm thời qua lệnh return.")
+    return True
+
     try:
         user = User.objects.get(id=user_id)
         logger.info(f'Job cancel all order is running for {job_type}')
