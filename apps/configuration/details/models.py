@@ -22,7 +22,7 @@ class Configuration(models.Model):
     candle_sell_second = models.ForeignKey(Candle, on_delete=models.CASCADE, null=True, related_name='configuration_sell_second_set')
     config_type = models.ForeignKey( ConfigurationType, on_delete=models.CASCADE)
     level = models.IntegerField(default=6, validators=[
-                                MinValueValidator(1), MaxValueValidator(6)])
+                                MinValueValidator(1), MaxValueValidator(20)])
     margin_percentage = models.IntegerField(
         default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
 
