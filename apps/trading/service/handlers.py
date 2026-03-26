@@ -2644,8 +2644,6 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
 
     # Lấy dữ liệu cần thiết
     vnindex_stock = StockService.get_stock_by_symbol('VNINDEX')
-    limit_number_stocks = vps_account.limit_number_stocks
-    limit_total_market_value = vps_account.limit_total_market_value
 
     # Chuẩn bị dữ liệu cấu hình cho từng cổ phiếu
     prepared_configs = []
@@ -2703,7 +2701,6 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
 
     # Hàm worker cho mỗi cấu hình
     def worker(prepared):
-        time.sleep(0.1)  # Thêm độ trễ phân tán để giảm tải API rate limit
         close_old_connections()
         try:
             process_trading(
@@ -2723,8 +2720,10 @@ def  trading_configurations(user: User, configurations: object, vps_account: Acc
         futures = []
         for config in prepared_configs:
             try:
+                # Đưa sleep vào đây để các luồng thực sự được spawn cách nhau 0.1s
+                # Điều này giúp tản API request hiệu quả hơn rất nhiều thay vì gộp lại ngủ ở cùng một vạch xuất phát.
+                time.sleep(0.1) 
                 futures.append(executor.submit(worker, config))
-                # KHÔNG sleep ở vòng lặp submit này để giải phóng tốc độ đẻ task!
             except RuntimeError as e:
                 logger.info(f"Cannot submit new task: {e}")
                 break  # Dừng nếu executor đã shutdown

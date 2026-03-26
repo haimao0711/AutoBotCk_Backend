@@ -272,8 +272,8 @@ def validate_session(user_account: str, trade_account: str, url: str, session: s
     account_status_object = json.loads(account_status_text)
     response_type = validate_response(account_status_object)
     
-    # print('check account_status_object: ', account_status_object)
-    # print('check response_type: ', response_type)
+    print('check account_status_object: ', account_status_object)
+    print('check response_type: ', response_type)
     if response_type == None:
         return False, {}
     else:    
