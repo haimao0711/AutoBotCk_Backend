@@ -895,9 +895,10 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             # Tối ưu: Bỏ qua sleep nếu đã khớp hết
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"[{symbol}] Không còn lệnh mua PENDING, đã khớp hết. Bỏ qua chờ.")
+                                logger.info(f"[{symbol}] Không còn lệnh mua PENDING, đã khớp hết. Chờ 2s để VPS đồng bộ trước khi tổng kết.")
                                 is_matched_all = True
                                 should_break_loop = True
+                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
                                 break
                         except Exception as e:
                             logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
@@ -1005,6 +1006,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Sửa lệnh mua không thành công', "B")
                         # revert_status_request_trade removed here, handled in finally
                         break
+                else:
+                    logger.info(f"[{symbol}] Vượt giới hạn thời gian đặt lệnh tối đa.")
+                    cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn thời gian đặt lệnh tối đa', "B")
 
                 #Tổng kết các lệnh đã khớp theo symbol để send telegram
                 try:
@@ -1444,9 +1448,10 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             # Tối ưu: Bỏ qua sleep nếu đã khớp hết
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"[{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Bỏ qua chờ.")
+                                logger.info(f"[{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Chờ 2s để VPS đồng bộ trước khi tổng kết.")
                                 is_matched_all = True
                                 should_break_loop = True
+                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
                                 break
                         except Exception as e:
                             logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
@@ -1523,6 +1528,9 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                     else:
                         cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lỗi không sửa được lệnh bán tay', "S")
                         break 
+                else:
+                    logger.info(f"[{symbol}] Vượt giới hạn thời gian đặt lệnh tối đa.")
+                    cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn thời gian đặt lệnh tối đa', "S")
 
                 #Tổng kết các lệnh đã khớp theo symbol để send telegram 
                 try:          
@@ -1957,9 +1965,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             # Tối ưu: Bỏ qua sleep nếu đã khớp hết
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"[{symbol}] Không còn lệnh mua PENDING, đã khớp hết. Bỏ qua chờ.")
+                                logger.info(f"[{symbol}] Không còn lệnh mua PENDING, đã khớp hết. Chờ 2s để VPS đồng bộ trước khi tổng kết.")
                                 is_matched_all = True
                                 should_break_loop = True
+                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
                                 break
                         except Exception as e:
                             logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
@@ -2137,6 +2146,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
                     else:
                         break
+                else:
+                    logger.info(f"[{symbol}] Vượt giới hạn thời gian đặt lệnh tối đa.")
+                    cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn thời gian đặt lệnh tối đa', "B")
 
                 #Tổng kết các lệnh đã khớp theo symbol để send telegram   
                 res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
@@ -2506,9 +2518,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             # Tối ưu: Bỏ qua sleep nếu đã khớp hết
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"[{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Bỏ qua chờ.")
+                                logger.info(f"[{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Chờ 2s để VPS đồng bộ trước khi tổng kết.")
                                 is_matched_all = True
                                 should_break_loop = True
+                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
                                 break
                         except Exception as e:
                             logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
@@ -2553,9 +2566,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lỗi không sửa được lệnh bán', "S")
                         break  
                 else:
-                    # Vòng for chạy hết mà không gặp break (tức là số vòng chạy đạt limited_times
-                    cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Vượt quá thời gian tối đa đặt lệnh bán', "S")
-                    pass
+                    logger.info(f"[{symbol}] Vượt giới hạn thời gian đặt lệnh tối đa.")
+                    cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn thời gian đặt lệnh tối đa', "S")
              #Tổng kết các lệnh đã khớp theo symbol để send telegram           
                 res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
                 if res_matcheds:
