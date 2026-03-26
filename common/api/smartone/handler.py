@@ -272,8 +272,8 @@ def validate_session(user_account: str, trade_account: str, url: str, session: s
     account_status_object = json.loads(account_status_text)
     response_type = validate_response(account_status_object)
     
-    print('check account_status_object: ', account_status_object)
-    print('check response_type: ', response_type)
+    # print('check account_status_object: ', account_status_object)
+    # print('check response_type: ', response_type)
     if response_type == None:
         return False, {}
     else:    
@@ -285,6 +285,8 @@ def validate_session(user_account: str, trade_account: str, url: str, session: s
             "cash_balance": int(data.get("cash_balance", 0)),  # Số tiền mặt có thể rút
             "total_market_value": int(data.get("total_market_value", 0)),  # Giá trị cổ phiếu
             "cash_available": int(data.get("cash_avai", 0)),  # Số tiền có thể mua cổ phiếu
+            "gain_loss_value": int(data.get("gain_loss_value", 0)),  # Lãi/lỗ danh mục
+            "gain_loss_oneday_value": int(data.get("gain_loss_oneday_value", 0)),  # Lãi/lỗ hôm nay
         }
     return True, result
 

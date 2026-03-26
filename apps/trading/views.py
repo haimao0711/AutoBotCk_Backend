@@ -216,6 +216,8 @@ class TradingViewsIsTrading(APIView):
                     "cash_available": financial_data.get("cash_available", 0),
                     "limit_number_stocks": limit_number_stocks,
                     "limit_total_market_value": limit_total_market_value,
+                    "gain_loss_value": financial_data.get("gain_loss_value", 0),
+                    "gain_loss_oneday_value": financial_data.get("gain_loss_oneday_value", 0),
                 })
             else:
                 return Response({
@@ -228,6 +230,8 @@ class TradingViewsIsTrading(APIView):
                     "cash_available": 0,
                     "limit_number_stocks": limit_number_stocks,
                     "limit_total_market_value": limit_total_market_value,
+                    "gain_loss_value": 0,
+                    "gain_loss_oneday_value": 0,
                 })
         except Exception as e:
             print(f"Lỗi không mong muốn: {e}")
