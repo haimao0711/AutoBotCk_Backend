@@ -7,6 +7,99 @@ import requests
 import pandas as pd
 from datetime import datetime
 import pytz
+import threading
+import time
+
+class VNIndexManager:
+    """
+    Quản lý Cache dữ liệu VNINDEX để tránh tải và tính toán lại nhiều lần trong các luồng.
+    Sử dụng cơ chế TTL (Time To Live) và Locking để đảm bảo thread-safe.
+    """
+    _cache = {}  # {chart_type: {"data": df, "timestamp": float}}
+    _lock = threading.Lock()
+    _ttl = 60  # Cache có hiệu lực trong 60 giây
+
+    @classmethod
+    def get_data(cls, vnindex_stock, chart_type):
+        now = time.time()
+        
+        # 1. Kiểm tra cache trước (không cần lock để nhanh)
+        cache_entry = cls._cache.get(chart_type)
+        if cache_entry and (now - cache_entry["timestamp"] < cls._ttl):
+            # logger.info(f"VNINDEX Cache Hit: {chart_type}")
+            return cache_entry["data"].copy()
+
+        # 2. Nếu hết hạn hoặc chưa có, dùng lock để chỉ 1 luồng đi fetch
+        with cls._lock:
+            # Check lại một lần nữa sau khi có lock (Double-checked locking)
+            cache_entry = cls._cache.get(chart_type)
+            if cache_entry and (now - cache_entry["timestamp"] < cls._ttl):
+                return cache_entry["data"].copy()
+
+            # Thực hiện tải mới
+            try:
+                from apps.trading.service.handlers import logger # Late import to avoid circular dependency
+                logger.info(f"VNINDEX Cache Miss/Expired: Refreshing {chart_type}...")
+                
+                df = DownloadService.download_data_single(
+                    stock=vnindex_stock, 
+                    chart_type=chart_type, 
+                    download_status=DownloadStatusEnum.NEW.value
+                )
+                
+                # Patch realtime data
+                vnindex_info = DownloadService.get_stock_info(vnindex_stock.symbol, None)
+                if vnindex_info and 'matchPrice' in vnindex_info:
+                    patch_realtime_data(df, vnindex_info['matchPrice'], chart_type)
+                
+                # Tính toán chỉ số
+                adding_idicator(df)
+                
+                # Cập nhật cache
+                cls._cache[chart_type] = {
+                    "data": df,
+                    "timestamp": time.time()
+                }
+                return df.copy()
+            except Exception as e:
+                print(f"Error refreshing VNINDEX cache for {chart_type}: {e}")
+                # Nếu lỗi và có cache cũ, dùng tạm cache cũ thay vì crash
+                if cache_entry:
+                    return cache_entry["data"].copy()
+                return None
+
+    @classmethod
+    def clear_cache(cls):
+        with cls._lock:
+            cls._cache.clear()
+
+def download_data_stock_only(stock: Stock, trading_chart_type: CandleEnum, following_chart_type: CandleEnum):
+    """
+    Chỉ tải dữ liệu cho Stock cụ thể, không tải VNINDEX.
+    """
+    try:
+        stock_data_following = DownloadService.download_data_single(
+            stock=stock, chart_type=following_chart_type, download_status=DownloadStatusEnum.NEW.value)
+        stock_data_trading = DownloadService.download_data_single(
+            stock=stock, chart_type=trading_chart_type, download_status=DownloadStatusEnum.NEW.value)
+        
+        # Patch realtime data for Stock
+        try:
+            stock_info = DownloadService.get_stock_info(stock.symbol, None)
+            if stock_info and 'matchPrice' in stock_info:
+                match_price = stock_info['matchPrice']
+                patch_realtime_data(stock_data_following, match_price, following_chart_type)
+                patch_realtime_data(stock_data_trading, match_price, trading_chart_type)
+        except Exception as e:
+            print(f"Error patching Stock realtime data: {e}")
+
+        adding_idicator(stock_data_following)
+        adding_idicator(stock_data_trading)
+        
+        return stock_data_trading, stock_data_following
+    except Exception as e:
+        print(f"Error in download_data_stock_only for {stock.symbol}: {e}")
+        return None, None
 
 def patch_realtime_data(df, match_price, chart_type):
     if df is None or df.empty:
@@ -76,45 +169,13 @@ def patch_realtime_data(df, match_price, chart_type):
         print(f"Error in patch_realtime_data: {e}")
 
 def download_data(stock: Stock, vnindex_stock: Stock, trading_chart_type: CandleEnum, following_chart_type: CandleEnum):
-    try:
-        vnindex_data_following = DownloadService.download_data_single(
-            stock=vnindex_stock, chart_type=following_chart_type, download_status=DownloadStatusEnum.NEW.value)
-        vnindex_data_trading = DownloadService.download_data_single(
-            stock=vnindex_stock, chart_type=trading_chart_type, download_status=DownloadStatusEnum.NEW.value)
-        
-        # Patch realtime data for VNINDEX
-        try:
-            vnindex_info = DownloadService.get_stock_info(vnindex_stock.symbol, None)
-            if vnindex_info and 'matchPrice' in vnindex_info:
-                match_price = vnindex_info['matchPrice']
-                patch_realtime_data(vnindex_data_following, match_price, following_chart_type)
-                patch_realtime_data(vnindex_data_trading, match_price, trading_chart_type)
-        except Exception as e:
-            print(f"Error patching VNINDEX realtime data: {e}")
+    """
+    Hàm wrapper giữ nguyên interface cũ nhưng sử dụng VNIndexManager để tối ưu.
+    """
+    vnindex_data_following = VNIndexManager.get_data(vnindex_stock, following_chart_type)
+    vnindex_data_trading = VNIndexManager.get_data(vnindex_stock, trading_chart_type)
 
-        adding_idicator(vnindex_data_following)
-        adding_idicator(vnindex_data_trading)
-
-        stock_data_following = DownloadService.download_data_single(
-            stock=stock, chart_type=following_chart_type, download_status=DownloadStatusEnum.NEW.value)
-        stock_data_trading = DownloadService.download_data_single(
-            stock=stock, chart_type=trading_chart_type, download_status=DownloadStatusEnum.NEW.value)
-        
-        # Patch realtime data for Stock
-        try:
-            stock_info = DownloadService.get_stock_info(stock.symbol, None)
-            if stock_info and 'matchPrice' in stock_info:
-                match_price = stock_info['matchPrice']
-                patch_realtime_data(stock_data_following, match_price, following_chart_type)
-                patch_realtime_data(stock_data_trading, match_price, trading_chart_type)
-        except Exception as e:
-            print(f"Error patching Stock realtime data: {e}")
-
-        adding_idicator(stock_data_following)
-        adding_idicator(stock_data_trading)
-    except Exception as error:
-        print(str(error))
-        return None, None, None, None
+    stock_data_trading, stock_data_following = download_data_stock_only(stock, trading_chart_type, following_chart_type)
 
     return vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following
 
