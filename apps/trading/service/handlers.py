@@ -497,11 +497,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     is_time_valid_to_buy = is_valid_time_to_buy(following_config)
     # HANDLE BUY
     if is_time_valid_to_buy:
+        # Gán is_update_success = False ở đây để finally dùng được
+        is_update_success = False 
         try:
-            # Gán is_update_success = False ở đây để finally dùng được
-            is_update_success = False 
-            # Dùng try-except bọc toàn bộ body để tránh treo im lặng
-            try:
             # Xác định thời gian bắt đầu và thời gian kết thúc (sau 2 tiếng)
             start_time = datetime.now()
             end_time = start_time + timedelta(hours=2)
@@ -1011,16 +1009,14 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 ConfigurationServices.update_all_take_profit_flags_true(user, stock_id)
              #Hủy tất cả các lệnh nếu còn đặt
                 cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Hủy các lệnh mua còn sót lại', "B")
-            except Exception as e:
-                logger.error(f'⚠️ FATAL ERROR in process_buy_request {symbol}: {e}', exc_info=True)
-                message_fatal = f'🔴 **Lỗi hệ thống khi MUA TAY mã {symbol}**: {str(e)[:200]}...\nTiến trình đã tạm dừng để đảm bảo an toàn.'
-                send_message_telegram(user, MessageTypeEnum.OVERALL, message_fatal)
-                send_message_telegram(user, MessageTypeEnum.ACT, message_fatal)
-            finally:
-                logger.info(f'Finalizing process_buy_request for {symbol}')
-                revert_status_request_trade(user, stock_id, reset_is_trading=is_update_success)
-        except Exception as outer_e:
-            logger.error(f"Lỗi nghiêm trọng ngoài dự kiến trong process_buy_request {symbol}: {outer_e}")
+        except Exception as e:
+            logger.error(f'⚠️ FATAL ERROR in process_buy_request {symbol}: {e}', exc_info=True)
+            message_fatal = f'🔴 **Lỗi hệ thống khi MUA TAY mã {symbol}**: {str(e)[:200]}...\nTiến trình đã tạm dừng để đảm bảo an toàn.'
+            send_message_telegram(user, MessageTypeEnum.OVERALL, message_fatal)
+            send_message_telegram(user, MessageTypeEnum.ACT, message_fatal)
+        finally:
+            logger.info(f'Finalizing process_buy_request for {symbol}')
+            revert_status_request_trade(user, stock_id, reset_is_trading=is_update_success)
     else:
         message_cancel = f'Ngoài khung giờ mua mã {symbol}, hủy yêu cầu mua tay.'
         send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
