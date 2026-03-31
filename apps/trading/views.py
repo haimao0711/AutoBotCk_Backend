@@ -155,6 +155,7 @@ class TradingViews(APIView):
             session_id = vps_account.vps_session_id
             url = api.TRADING_URL 
             cancel_all_orders(user, account_name, account_num, 'calendar_cancel', url, session_id, '', 'All')
+            ConfigurationOverviewServices.restart_request_trade_overview(user) # Reset trạng thái toàn bộ
                
         except Exception as e:
             print(f"Unexpected error: {e}")
@@ -172,6 +173,7 @@ class TradingViews(APIView):
             url = api.TRADING_URL 
             cancel_buy_order(user, account_name, account_num, symbol, url, session_id, 'Yêu cầu ngừng mua tay', "B")
             cancel_sell_order(user, account_name, account_num, symbol, url, session_id, 'Yêu cầu ngừng bán tay', "S")
+            ConfigurationOverviewServices.restart_single_stock_trade_status(user, symbol) # Reset trạng thái cho 1 mã
                
         except Exception as e:
             print(f"Unexpected error: {e}")

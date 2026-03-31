@@ -320,6 +320,21 @@ class ConfigurationOverviewServices:
         if tradings.exists():
             tradings.update(is_trading=False)
         return {}  # Không có bản ghi nào để cập nhật
+
+    def restart_single_stock_trade_status(user, stock_symbol):
+        # Reset trạng thái cho 1 mã cụ thể
+        from apps.stock.models import Stock
+        try:
+            stock = Stock.objects.get(name=stock_symbol)
+            overview_type = ConfigurationTypeServices.get_overview()
+            trading_type = ConfigurationTypeServices.get_trading()
+            
+            Configuration.objects.filter(user=user, stock=stock, config_type=overview_type.id).update(is_buy_hand=False, is_sell_hand=False)
+            Configuration.objects.filter(user=user, stock=stock, config_type=trading_type.id).update(is_trading=False)
+            return True
+        except Exception as e:
+            print(f"Error resetting status for {stock_symbol}: {e}")
+            return False
     
     def restart_is_trading_configutation(user):
         trading_type = ConfigurationTypeServices.get_trading()

@@ -23,6 +23,7 @@ from apps.telegram.enum.enums import MessageTypeEnum
 from common.api.smartone.handler import validate_session
 from apps.trading.service.handlers import cancel_all_orders
 from apps.trading.scheduler.celery_scheduler import create_user_schedules, remove_user_schedules
+from apps.configuration.details.overview.services import ConfigurationOverviewServices
 from common.errors.messages import ErrorMessages
 from apps import api
 
@@ -70,6 +71,7 @@ class AuthencationStockExchagesView(APIView):
             cancel_all_orders(user, account_name, account_num, '', url, session_id, '', 'All')
             result = update_vps_data(session_id, "Trading is stopped!", 2)
             remove_user_schedules(user)  # Dừng scheduler của user (xóa PeriodicTask trong DB)
+            ConfigurationOverviewServices.restart_request_trade_overview(user) # Reset is_trading và mua/bán tay
             user.scheduler_status = False
             user.save()
         else:
@@ -83,9 +85,10 @@ class AuthencationStockExchagesView(APIView):
             if session_login_2:
                 session_id = session_login_2
 
-            # Nếu session thay đổi, hủy tất cả lệnh cũ
+            # Nếu session thay đổi, hủy tất cả lệnh cũ và reset trạng thái
             if session_id != session_id_old:
                 cancel_all_orders(user, account_name, account_num, '', url, session_id, '', 'All')
+                ConfigurationOverviewServices.restart_request_trade_overview(user) # Reset is_trading và mua/bán tay
 
             # Kiểm tra tính hợp lệ của session
             if session_login_2 and validate_session(account_name, account_num, url, session_id, ''):
