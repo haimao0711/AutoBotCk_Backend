@@ -25,7 +25,7 @@ from .enums import AccountStatusEnum, AccountLoginStatusEnum
 from apps.configuration.details.overview.services import ConfigurationOverviewServices
 from common.errors.messages import ErrorMessages
 from common.success.messages import SuccessMessage
-from apps.trading.service.handlers import cancel_all_buy_orders, cancel_all_sell_orders
+from apps.trading.service.handlers import cancel_all_buy_orders, cancel_all_sell_orders, cancel_all_orders
 from apps import api
 import hashlib
 import logging
@@ -469,6 +469,38 @@ class AccountTradingView(APIView):
                 })
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
+class ResetBotView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            user = request.user
+            vps_account = AccountService.get_account_by_user(user)
+            if not vps_account:
+                raise ValueError(ErrorMessages.ACCOUNT_DOES_NOT_EXIST)
+            
+            account_name = vps_account.name
+            account_num = vps_account.account_num
+            session_id = vps_account.vps_session_id
+            url = api.TRADING_URL
+
+            # 1. Hủy tất cả các lệnh đang đặt (tương tự startup)
+            cancel_all_orders(user, account_name, account_num, '', url, session_id, '', 'All')
+
+            # 2. Reset trạng thái is_trading, is_buy_hand, is_sell_hand (tương tự startup)
+            # Hàm này thực hiện update cho cả Overview và Trading configuration
+            ConfigurationOverviewServices.restart_request_trade_overview(user)
+
+            return Response({
+                "data": {
+                    "message": "Reset bot successfully"
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.exception(f"Error in ResetBotView: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class AccountDetailView(APIView):
     permission_classes = [IsAuthenticated]
