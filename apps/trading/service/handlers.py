@@ -2362,7 +2362,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 
                 start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
                 price_current = close_last_row
-                price_set_sell = max(start_price, price_current)  
+                price_set_sell = max(start_price, price_current) + slippage_sell  
                 number_order = trading_config.stock_config_number_pid_sell_once_time
                 time_now = datetime.now(timezone)
                 start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
