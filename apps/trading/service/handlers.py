@@ -2201,6 +2201,29 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 message_download_sell = f'Download data symbol {symbol } to sell không thành công hoặc dữ liệu rỗng. Bỏ qua lượt trade này!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_download_sell)                 
                 return
+
+            try:
+                sales_data = download_sales_volume(symbol=symbol)
+                def safe_int(val):
+                    try: return int(val) if val is not None else 0
+                    except (ValueError, TypeError): return 0
+                buyForeignQtty = safe_int(sales_data.get('buyForeignQtty')) if sales_data else 0
+                sellForeignQtty = safe_int(sales_data.get('sellForeignQtty')) if sales_data else 0
+                total_foreign = buyForeignQtty + sellForeignQtty
+                value_buy_foreign = round((buyForeignQtty / total_foreign) * 100, 2) if total_foreign > 0 else 0
+            except Exception as e:
+                logger.warning(f"Lỗi tải sales volume cho {symbol}: {e}")
+                value_buy_foreign = 0
+
+            stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign
+            stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
+            stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign
+            stock_data_following_second.loc[stock_data_following_second.index[-3:], 'volume_trade'] = percent_buy_trade
+            
+            stock_data_trading.loc[stock_data_trading.index[-3:], 'buy_foreign'] = value_buy_foreign
+            stock_data_trading.loc[stock_data_trading.index[-3:], 'volume_trade'] = percent_buy_trade
+            stock_data_trading_second.loc[stock_data_trading_second.index[-3:], 'buy_foreign'] = value_buy_foreign
+            stock_data_trading_second.loc[stock_data_trading_second.index[-3:], 'volume_trade'] = percent_buy_trade
             price_current = stock_data_trading.iloc[-1].get('close', 0)
             upper_bolinger = stock_data_following.iloc[-1]['upper_bolinger']
             latest_stoch_rsi_following  = stock_data_following.iloc[-1]['stoch_rsi']
@@ -2270,6 +2293,26 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         send_message_telegram(user, MessageTypeEnum.ACT, message_download)
                         break
                     logger.info('Download data thành công!')
+
+                    try:
+                        sales_data = download_sales_volume(symbol=symbol)
+                        buyForeignQtty = safe_int(sales_data.get('buyForeignQtty')) if sales_data else 0
+                        sellForeignQtty = safe_int(sales_data.get('sellForeignQtty')) if sales_data else 0
+                        total_foreign = buyForeignQtty + sellForeignQtty
+                        value_buy_foreign = round((buyForeignQtty / total_foreign) * 100, 2) if total_foreign > 0 else 0
+                    except Exception as e:
+                        logger.warning(f"Lỗi tải sales volume (vòng lặp chốt lời) cho {symbol}: {e}")
+                        value_buy_foreign = 0
+
+                    stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign
+                    stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
+                    stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign
+                    stock_data_following_second.loc[stock_data_following_second.index[-3:], 'volume_trade'] = percent_buy_trade
+                    
+                    stock_data_trading.loc[stock_data_trading.index[-3:], 'buy_foreign'] = value_buy_foreign
+                    stock_data_trading.loc[stock_data_trading.index[-3:], 'volume_trade'] = percent_buy_trade
+                    stock_data_trading_second.loc[stock_data_trading_second.index[-3:], 'buy_foreign'] = value_buy_foreign
+                    stock_data_trading_second.loc[stock_data_trading_second.index[-3:], 'volume_trade'] = percent_buy_trade
                     is_sell, sell_reason = should_sell_trading(
                         trading_config=trading_config,
                         data_trading_df=stock_data_trading,            
@@ -2362,11 +2405,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 
                 start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
                 price_current = close_last_row
+                slippage_sell = trading_config.stock_config_slippage_sell
                 price_set_sell = max(start_price, price_current) + slippage_sell  
                 number_order = trading_config.stock_config_number_pid_sell_once_time
                 time_now = datetime.now(timezone)
-                start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-                slippage_sell = trading_config.stock_config_slippage_sell
+                start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")                
                # Dao động cộng trừ     
                 add_price_sell = trading_config.stock_config_add_price_sell
     
