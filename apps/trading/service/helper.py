@@ -709,7 +709,7 @@ def  should_buy(
         # Tính toán kết quả cho trading và trading_second
         trading, trading_reasons = should_buy_chart_trading(
             trading_config, data_trading_df, config_type )
-            trading_second, trading_reasons_second = False, []
+        trading_second, trading_reasons_second = False, []
         if is_use_candle_trading_second and chart_trading_second != 'OFF' and data_trading_df_second is not None:
             trading_second, trading_reasons_second = should_buy_chart_trading(
                 trading_config, data_trading_df_second, config_type)
@@ -872,10 +872,10 @@ def  should_buy_trading(
     # Tính toán kết quả cho trading và trading_second
     trading, trading_reasons = should_buy_chart_trading(
         trading_config, data_trading_df, config_type)
-        trading_second, trading_reasons_second = False, []
-        if is_use_candle_trading_second and chart_trading_second != 'OFF' and data_trading_df_second is not None:
-            trading_second, trading_reasons_second = should_buy_chart_trading(
-                trading_config, data_trading_df_second, config_type)
+    trading_second, trading_reasons_second = False, []
+    if is_use_candle_trading_second and chart_trading_second != 'OFF' and data_trading_df_second is not None:
+        trading_second, trading_reasons_second = should_buy_chart_trading(
+            trading_config, data_trading_df_second, config_type)
     
     # Xử lý trading dựa trên is_use_candle_trading_second
     if is_use_candle_trading_second and chart_trading_second != 'OFF':
