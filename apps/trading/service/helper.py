@@ -701,14 +701,18 @@ def  should_buy(
         # Tính toán kết quả cho following và following_second
         following, following_reasons = should_buy_chart(
             following_config, data_following_df, config_type)
-        following_second, following_reasons_second = should_buy_chart(
-            following_config, data_following_df_second, config_type)
+        following_second, following_reasons_second = False, []
+        if is_use_candle_following_second and chart_following_second != 'OFF' and data_following_df_second is not None:
+            following_second, following_reasons_second = should_buy_chart(
+                following_config, data_following_df_second, config_type)
 
         # Tính toán kết quả cho trading và trading_second
         trading, trading_reasons = should_buy_chart_trading(
             trading_config, data_trading_df, config_type )
-        trading_second, trading_reasons_second = should_buy_chart_trading(
-            trading_config, data_trading_df_second, config_type)
+            trading_second, trading_reasons_second = False, []
+        if is_use_candle_trading_second and chart_trading_second != 'OFF' and data_trading_df_second is not None:
+            trading_second, trading_reasons_second = should_buy_chart_trading(
+                trading_config, data_trading_df_second, config_type)
         
         # Xử lý following dựa trên is_use_candle_following_second
         if is_use_candle_following_second and chart_following_second != 'OFF':
@@ -801,8 +805,10 @@ def  should_buy_following(
         # Tính toán kết quả cho following và following_second
         following, following_reasons = should_buy_chart(
             following_config, data_following_df, config_type)
-        following_second, following_reasons_second = should_buy_chart(
-            following_config, data_following_df_second, config_type)
+        following_second, following_reasons_second = False, []
+        if is_use_candle_following_second and chart_following_second != 'OFF' and data_following_df_second is not None:
+            following_second, following_reasons_second = should_buy_chart(
+                following_config, data_following_df_second, config_type)
         
         # Xử lý following dựa trên is_use_candle_following_second
         if is_use_candle_following_second and chart_following_second != 'OFF':
@@ -866,8 +872,10 @@ def  should_buy_trading(
     # Tính toán kết quả cho trading và trading_second
     trading, trading_reasons = should_buy_chart_trading(
         trading_config, data_trading_df, config_type)
-    trading_second, trading_reasons_second = should_buy_chart_trading(
-        trading_config, data_trading_df_second, config_type)
+        trading_second, trading_reasons_second = False, []
+        if is_use_candle_trading_second and chart_trading_second != 'OFF' and data_trading_df_second is not None:
+            trading_second, trading_reasons_second = should_buy_chart_trading(
+                trading_config, data_trading_df_second, config_type)
     
     # Xử lý trading dựa trên is_use_candle_trading_second
     if is_use_candle_trading_second and chart_trading_second != 'OFF':
@@ -947,14 +955,18 @@ def should_sell(
         # Tính toán kết quả cho following và following_second
         following, following_reasons = should_sell_chart(
             following_config, data_following_df, config_type)
-        following_second, following_reasons_second = should_sell_chart(
-            following_config, data_following_df_second, config_type)
+        following_second, following_reasons_second = False, []
+        if is_use_candle_following_second and chart_following_second != 'OFF' and data_following_df_second is not None:
+            following_second, following_reasons_second = should_sell_chart(
+                following_config, data_following_df_second, config_type)
 
         # Tính toán kết quả cho trading và trading_second
         trading, trading_reasons = should_sell_chart(
             trading_config, data_trading_df, config_type)
-        trading_second, trading_reasons_second = should_sell_chart(
-            trading_config, data_trading_df_second, config_type)
+        trading_second, trading_reasons_second = False, []
+        if is_use_candle_trading_second and chart_trading_second != 'OFF' and data_trading_df_second is not None:
+            trading_second, trading_reasons_second = should_sell_chart(
+                trading_config, data_trading_df_second, config_type)
         
         # Xử lý following dựa trên is_use_candle_following_second
         if is_use_candle_following_second and chart_following_second != 'OFF':
@@ -1047,8 +1059,10 @@ def  should_sell_trading(
     # Tính toán kết quả cho trading và trading_second
     trading, trading_reasons = should_sell_chart(
         trading_config, data_trading_df, config_type)
-    trading_second, trading_reasons_second = should_sell_chart(
-        trading_config, data_trading_df_second, config_type)
+    trading_second, trading_reasons_second = False, []
+    if is_use_candle_trading_second and chart_trading_second != 'OFF' and data_trading_df_second is not None:
+        trading_second, trading_reasons_second = should_sell_chart(
+            trading_config, data_trading_df_second, config_type)
     
     # Xử lý trading dựa trên is_use_candle_trading_second
     if is_use_candle_trading_second and chart_trading_second != 'OFF':

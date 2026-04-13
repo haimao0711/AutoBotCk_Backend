@@ -589,13 +589,15 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         trading_chart_type=trading_chart_type,
                         following_chart_type=following_chart_type
                     )
-                    # Tải dữ liệu lần 2
-                    vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
-                        stock=stock, 
-                        vnindex_stock=vnindex_stock, 
-                        trading_chart_type=trading_chart_type_second, 
-                        following_chart_type=following_chart_type_second
-                    )
+                    # Tải dữ liệu lần 2 (Conditional)
+                    vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = None, None, None, None
+                    if getattr(getattr(trading_config, 'candle_second', None), 'candle', 'OFF') != 'OFF' or getattr(getattr(following_config, 'candle_second', None), 'candle', 'OFF') != 'OFF':
+                        vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                            stock=stock, 
+                            vnindex_stock=vnindex_stock, 
+                            trading_chart_type=trading_chart_type_second, 
+                            following_chart_type=following_chart_type_second
+                        )
                     if stock_data_trading is None:
                         logger.info('Download data không thành công, bỏ qua!')
                         message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu mua tay. Vui lòng thử lại sau ít phút'
@@ -742,6 +744,15 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 low_last_row = last_row.get('low', 0)
                 high_last_row = last_row.get('high', 0)
 
+                if stock_data_trading_second is not None and not stock_data_trading_second.empty:
+                    last_row_second = stock_data_trading_second.iloc[-1]
+                else:
+                    last_row_second = last_row
+                open_last_row_second = last_row_second.get('open', 0)
+                close_last_row_second = last_row_second.get('close', 0)
+                low_last_row_second = last_row_second.get('low', 0)
+                high_last_row_second = last_row_second.get('high', 0)
+
                 step_price = trading_config.stock_config_slippage_volume_buy_per_pid
                 time_to_buy = trading_config.stock_config_time_to_buy
                 time_to_buy = time_to_buy if time_to_buy > 30 else 30
@@ -750,8 +761,14 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
                 
                 start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
+                start_price_second = round_up_to_unit(open_last_row_second, close_last_row_second, step_price)
                 price_current = close_last_row
-                price_set_buy = min(start_price, price_current)
+                is_use_candle_trading_second = getattr(trading_config, 'is_use_candle_second', False)
+                chart_trading_second = getattr(getattr(trading_config, 'candle_second', None), 'candle', 'OFF')
+                if is_use_candle_trading_second and chart_trading_second != 'OFF':
+                    price_set_buy = min(start_price, price_current, start_price_second)
+                else:
+                    price_set_buy = min(start_price, price_current)
                 percent_first_buy = trading_config.stock_config_percent_first_buy                
                 logger.info(f'percent_first_buy {symbol}: {percent_first_buy}')
                 number_order = trading_config.stock_config_number_pid_buy_once_time
@@ -1139,13 +1156,15 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                         trading_chart_type=trading_chart_type_sell, 
                         following_chart_type=following_chart_type_sell,
                     )
-                    # Tải dữ liệu lần 2
-                    vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
-                        stock=stock, 
-                        vnindex_stock=vnindex_stock, 
-                        trading_chart_type=trading_chart_type_sell_second, 
-                        following_chart_type=following_chart_type_sell_second
-                    )
+                    # Tải dữ liệu lần 2 (Conditional sell)
+                    vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = None, None, None, None
+                    if getattr(getattr(trading_config, 'candle_second', None), 'candle', 'OFF') != 'OFF' or getattr(getattr(following_config, 'candle_second', None), 'candle', 'OFF') != 'OFF':
+                        vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                            stock=stock, 
+                            vnindex_stock=vnindex_stock, 
+                            trading_chart_type=trading_chart_type_sell_second, 
+                            following_chart_type=following_chart_type_sell_second
+                        )
                     if stock_data_trading is None:
                         logger.info('Download data không thành công, bỏ qua!')
                         message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu bán tay. Vui lòng thử lại sau ít phút!'
@@ -1276,6 +1295,15 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 close_last_row = last_row.get('close', 0)
                 low_last_row = last_row.get('low', 0)
                 high_last_row = last_row.get('high', 0)
+
+                if stock_data_trading_second is not None and not stock_data_trading_second.empty:
+                    last_row_second = stock_data_trading_second.iloc[-1]
+                else:
+                    last_row_second = last_row
+                open_last_row_second = last_row_second.get('open', 0)
+                close_last_row_second = last_row_second.get('close', 0)
+                low_last_row_second = last_row_second.get('low', 0)
+                high_last_row_second = last_row_second.get('high', 0)
                 
                 step_price = trading_config.stock_config_slippage_volume_sell_per_pid
                 sleeping_time_sell= trading_config.stock_config_time_update_pid_sell
@@ -1285,8 +1313,14 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 time_to_sell = time_to_sell if time_to_sell >= 30 else 30
                 
                 start_price = round_up_to_unit(open_last_row, close_last_row, step_price)       
+                start_price_second = round_up_to_unit(open_last_row_second, close_last_row_second, step_price)
                 price_current = close_last_row
-                price_set_sell = max(start_price, price_current)
+                is_use_candle_trading_sell_second = getattr(trading_config, 'is_use_candle_second', False)
+                chart_trading_sell_second = getattr(getattr(trading_config, 'candle_sell_second', None), 'candle', 'OFF')
+                if is_use_candle_trading_sell_second and chart_trading_sell_second != 'OFF':
+                    price_set_sell = max(start_price, price_current, start_price_second)
+                else:
+                    price_set_sell = max(start_price, price_current)
                 number_order = trading_config.stock_config_number_pid_sell_once_time 
                 start_time_order = datetime.now(timezone).strftime("%H:%M:%S ngày %d-%m-%Y")
                 slippage_sell = trading_config.stock_config_slippage_sell
@@ -1619,13 +1653,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 trading_chart_type=trading_chart_type, 
                 following_chart_type=following_chart_type
             )
-             # Tải dữ liệu lần 2
-            vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
-                stock=stock, 
-                vnindex_stock=vnindex_stock, 
-                trading_chart_type=trading_chart_type_second, 
-                following_chart_type=following_chart_type_second
-            )
+             # Tải dữ liệu lần 2 (Conditional)
+            vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = None, None, None, None
+            if getattr(getattr(trading_config, 'candle_second', None), 'candle', 'OFF') != 'OFF' or getattr(getattr(following_config, 'candle_second', None), 'candle', 'OFF') != 'OFF':
+                vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                    stock=stock, 
+                    vnindex_stock=vnindex_stock, 
+                    trading_chart_type=trading_chart_type_second, 
+                    following_chart_type=following_chart_type_second
+                )
             sales_data = download_sales_volume(symbol=symbol)
             if sales_data is None:
                 logger.info(f'❌ Download sales_data cho {symbol} không thành công sau 3 lần thử!')
@@ -1788,6 +1824,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         close_last_row = last_row.get('close', 0)
                         low_last_row = last_row.get('low', 0)
                         high_last_row = last_row.get('high', 0)
+
+                        if stock_data_trading_second is not None and not stock_data_trading_second.empty:
+                            last_row_second = stock_data_trading_second.iloc[-1]
+                        else:
+                            last_row_second = last_row
+                        open_last_row_second = last_row_second.get('open', 0)
+                        close_last_row_second = last_row_second.get('close', 0)
+                        low_last_row_second = last_row_second.get('low', 0)
+                        high_last_row_second = last_row_second.get('high', 0)
                         step_price = trading_config.stock_config_slippage_volume_buy_per_pid
                         time_to_buy = trading_config.stock_config_time_to_buy
                         time_to_buy = time_to_buy if time_to_buy > 30 else 30
@@ -1795,8 +1840,14 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         sleeping_time_buy = trading_config.stock_config_time_update_pid_buy
                         sleeping_time_buy = sleeping_time_buy if sleeping_time_buy > 5 else 5
                         start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
+                        start_price_second = round_up_to_unit(open_last_row_second, close_last_row_second, step_price)
                         price_current = close_last_row
-                        price_set_buy = min(start_price, price_current)
+                        is_use_candle_trading_second = getattr(trading_config, 'is_use_candle_second', False)
+                        chart_trading_second = getattr(getattr(trading_config, 'candle_second', None), 'candle', 'OFF')
+                        if is_use_candle_trading_second and chart_trading_second != 'OFF':
+                            price_set_buy = min(start_price, price_current, start_price_second)
+                        else:
+                            price_set_buy = min(start_price, price_current)
                         number_order = trading_config.stock_config_number_pid_buy_once_time
                         slippage_buy = trading_config.stock_config_slippage_buy
                         # Dao động cộng trừ    
@@ -2020,13 +2071,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             trading_chart_type=trading_chart_type, 
                             following_chart_type=following_chart_type
                         )
-                        # Tải dữ liệu lần 2
-                        vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
-                            stock=stock, 
-                            vnindex_stock=vnindex_stock, 
-                            trading_chart_type=trading_chart_type_second, 
-                            following_chart_type=following_chart_type_second
-                        )
+                        # Tải dữ liệu lần 2 (Conditional)
+                        vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = None, None, None, None
+                        if getattr(getattr(trading_config, 'candle_second', None), 'candle', 'OFF') != 'OFF' or getattr(getattr(following_config, 'candle_second', None), 'candle', 'OFF') != 'OFF':
+                            vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                                stock=stock, 
+                                vnindex_stock=vnindex_stock, 
+                                trading_chart_type=trading_chart_type_second, 
+                                following_chart_type=following_chart_type_second
+                            )
                         sales_data = download_sales_volume(symbol=symbol)
                         if sales_data is None or stock_data_following is None:
                             logger.info(f'❌ Không tải được dữ liệu cho {symbol}, bỏ qua vòng này.')
@@ -2189,13 +2242,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 trading_chart_type=trading_chart_type_sell, 
                 following_chart_type=following_chart_type_sell,
             )
-            # Tải dữ liệu lần 2
-            vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
-                stock=stock, 
-                vnindex_stock=vnindex_stock, 
-                trading_chart_type=trading_chart_type_sell_second, 
-                following_chart_type=following_chart_type_sell_second
-            )
+            # Tải dữ liệu lần 2 (Conditional sell)
+            vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = None, None, None, None
+            if getattr(getattr(trading_config, 'candle_second', None), 'candle', 'OFF') != 'OFF' or getattr(getattr(following_config, 'candle_second', None), 'candle', 'OFF') != 'OFF':
+                vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                    stock=stock, 
+                    vnindex_stock=vnindex_stock, 
+                    trading_chart_type=trading_chart_type_sell_second, 
+                    following_chart_type=following_chart_type_sell_second
+                )
             if stock_data_trading is None or stock_data_trading_second is None or stock_data_trading.empty or stock_data_trading_second.empty:
                 logger.info('Download data không thành công hoặc dữ liệu rỗng, bỏ qua!')
                 message_download_sell = f'Download data symbol {symbol } to sell không thành công hoặc dữ liệu rỗng. Bỏ qua lượt trade này!'
@@ -2279,13 +2334,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         trading_chart_type=trading_chart_type_sell, 
                         following_chart_type=following_chart_type_sell,
                     )
-                    # Tải dữ liệu lần 2
-                    vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
-                        stock=stock, 
-                        vnindex_stock=vnindex_stock, 
-                        trading_chart_type=trading_chart_type_sell_second, 
-                        following_chart_type=following_chart_type_sell_second
-                    )
+                    # Tải dữ liệu lần 2 (Conditional sell)
+                    vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = None, None, None, None
+                    if getattr(getattr(trading_config, 'candle_second', None), 'candle', 'OFF') != 'OFF' or getattr(getattr(following_config, 'candle_second', None), 'candle', 'OFF') != 'OFF':
+                        vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
+                            stock=stock, 
+                            vnindex_stock=vnindex_stock, 
+                            trading_chart_type=trading_chart_type_sell_second, 
+                            following_chart_type=following_chart_type_sell_second
+                        )
                     if stock_data_trading is None or stock_data_trading_second is None:
                         logger.info('Download data không thành công, bỏ qua!')
                         message_download = f'Không tải được dữ liệu mã {symbol}, hủy bán chốt lời lượt chạy này!'
@@ -2396,6 +2453,15 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 close_last_row = last_row.get('close', 0)
                 low_last_row = last_row.get('low', 0)
                 high_last_row = last_row.get('high', 0)
+
+                if stock_data_trading_second is not None and not stock_data_trading_second.empty:
+                    last_row_second = stock_data_trading_second.iloc[-1]
+                else:
+                    last_row_second = last_row
+                open_last_row_second = last_row_second.get('open', 0)
+                close_last_row_second = last_row_second.get('close', 0)
+                low_last_row_second = last_row_second.get('low', 0)
+                high_last_row_second = last_row_second.get('high', 0)
                 
                 step_price = trading_config.stock_config_slippage_volume_sell_per_pid
                 sleeping_time_sell= trading_config.stock_config_time_update_pid_sell
@@ -2404,15 +2470,21 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 time_to_sell = time_to_sell if time_to_sell >= 30 else 30   
                 
                 start_price = round_up_to_unit(open_last_row, close_last_row, step_price)
-                price_current = close_last_row
+                start_price_second = round_up_to_unit(open_last_row_second, close_last_row_second, step_price)
+                # Dao động cộng trừ     
+                add_price_sell = trading_config.stock_config_add_price_sell
                 slippage_sell = trading_config.stock_config_slippage_sell
-                price_set_sell = max(start_price, price_current) + slippage_sell  
+                price_current = close_last_row                
+                is_use_candle_trading_sell_second = getattr(trading_config, 'is_use_candle_second', False)
+                chart_trading_sell_second = getattr(getattr(trading_config, 'candle_sell_second', None), 'candle', 'OFF')
+                if is_use_candle_trading_sell_second and chart_trading_sell_second != 'OFF':
+                    price_set_sell = max(start_price, price_current, start_price_second)
+                else:
+                    price_set_sell = max(start_price, price_current) 
                 number_order = trading_config.stock_config_number_pid_sell_once_time
                 time_now = datetime.now(timezone)
                 start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")                
-               # Dao động cộng trừ     
-                add_price_sell = trading_config.stock_config_add_price_sell
-    
+                   
                 # Get stock balance to set volume
                 volume = volume_take_profit if is_take_profit else int(volume_balance)
                 sell_order_overrall_attrs = {

@@ -25,27 +25,27 @@ class DownloadStatusEnum(Enum):
     
 class DownloadCoefficientNewEnum(Enum):
     W1 = 3000
-    D1 = 200
-    H1 = 200
-    M15 = 24
-    M5 = 10
-    M1 = 3
+    D1 = 400
+    H1 = 300
+    M15 = 90
+    M5 = 30
+    M1 = 15
     
 class DownloadCoefficientMondayNewEnum(Enum):
     W1 = 3000
-    D1 = 200
-    H1 = 200
-    M15 = 24
-    M5 = 10
-    M1 = 3
+    D1 = 400
+    H1 = 300
+    M15 = 90
+    M5 = 30
+    M1 = 15
     
 class DownloadCoefficientWeekendNewEnum(Enum):
     W1 = 3000
-    D1 = 200
-    H1 = 200
-    M15 = 24
-    M5 = 4
-    M1 = 3
+    D1 = 400
+    H1 = 300
+    M15 = 90
+    M5 = 30
+    M1 = 15
     
 class DownloadCoefficientExistEnum(Enum):
     W1 = 1000
