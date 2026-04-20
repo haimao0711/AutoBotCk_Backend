@@ -954,6 +954,14 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         
                     # === THỰC HIỆN CẬP NHẬT GIÁ VÀ SỬA LỆNH ===
                     try:
+                        # Làm mới cấu hình để nhận add_price, slippage mới nhất
+                        conf_tmp = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
+                        if conf_tmp:
+                            trading_config = conf_tmp.get("trading_config")
+                            add_price_buy = trading_config.stock_config_add_price_buy
+                            slippage_buy = trading_config.stock_config_slippage_buy
+                            step_price = trading_config.stock_config_slippage_volume_buy_per_pid
+
                         vnindex_data_trading_tmp, _, stock_data_trading_tmp, _ = download_data(
                             stock=stock, vnindex_stock=vnindex_stock,
                             trading_chart_type=trading_chart_type, following_chart_type=following_chart_type
@@ -974,8 +982,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         logger.error(f"Lỗi khi thực hiện sửa lệnh mua tay cho {symbol}: {e}")
                 
                 else:
-                    # Chạy hết vòng for mà không break (hết retry/time)
-                    logger.info(f"[{symbol}] Vượt giới hạn thời gian đặt lệnh mua tay tối đa.")
+                    # Chạy hết vòng for mà không break (hết retry/time) -> Cho lệnh cuối ở lại thêm 10s trước khi hủy
+                    logger.info(f"[{symbol}] Hết lượt sửa giá, chờ 10s cuối trước khi dọn dẹp lệnh mua tay...")
+                    time.sleep(10)
                     cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn thời gian đặt lệnh tối đa', "B")
 
                 # Tổng kết cuối cùng
