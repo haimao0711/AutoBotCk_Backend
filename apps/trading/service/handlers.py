@@ -895,137 +895,117 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             if is_send_order_buy: 
                 limited_times = time_to_buy // sleeping_time_buy
                 limited_price_to_buy = start_price - add_price_buy + slippage_buy
-                interval_check = 10  # Kiểm tra mỗi 10 giây
+                interval_check = 10  # Kiểm tra tổng quát mỗi 10 giây
+                interval_stock_check = 2  # Kiểm tra khớp lệnh mỗi 2 giây
                 should_break_loop = False  # Flag để thoát khỏi vòng for
                 is_matched_all = False
+                
                 for i in range(int(limited_times)):
                     if should_break_loop:
                         break
                     start_sleep = time.time()
+                    last_general_check = time.time()
+                    
                     while time.time() - start_sleep < sleeping_time_buy:
                         connection.close()  # Close connection before sleep
                         remaining = sleeping_time_buy - (time.time() - start_sleep)
-                        sleep_time = min(interval_check, remaining)
+                        sleep_time = min(interval_stock_check, remaining)
                         if sleep_time <= 0:
                             break
                         time.sleep(sleep_time)
 
                         try:
-                            # Tối ưu: Bỏ qua sleep nếu đã khớp hết
+                            # 1. Kiểm tra nếu đã khớp hết thì thoát sớm
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"[{symbol}] Không còn lệnh mua PENDING, đã khớp hết. Chờ 2s để VPS đồng bộ trước khi tổng kết.")
+                                logger.info(f"[{symbol}] Không còn lệnh mua PENDING (Tay), đã khớp hết. Chờ 2s để đồng bộ.")
                                 is_matched_all = True
                                 should_break_loop = True
-                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
+                                time.sleep(2)
                                 break
-                        except Exception as e:
-                            logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
+                            
+                            # 2. Kiểm tra giới hạn giá trị thị trường
+                            current_time = time.time()
+                            if current_time - last_general_check >= interval_check:
+                                last_general_check = current_time
+                                
+                                is_valid_loop, session_result_loop = validate_session(user_name, account, request_url, session, asp_net_session)
+                                loop_total_market_value = session_result_loop.get("total_market_value", 0) if is_valid_loop else 0
+                                if loop_total_market_value >= max_total_market_value:
+                                    logger.info(f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh mua tay {symbol}')
+                                    cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn giá trị cổ phiếu tối đa', "B")
+                                    should_break_loop = True
+                                    break
 
+                                # 3. Kiểm tra nếu tín hiệu mua tay (Chart Action) bị tắt hoặc hết hạn
+                                if is_use_chart_action:
+                                    conf_tmp = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
+                                    if not conf_tmp.get("overview_config").is_buy_hand:
+                                        logger.info(f'Dừng mua tay {symbol} do flag is_buy_hand đã tắt.')
+                                        cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Người dùng dừng mua tay', "B")
+                                        should_break_loop = True
+                                        break
                         except Exception as e:
-                            logger.warning(f"Lỗi khi kiểm tra trạng thái mua tay cho {symbol}: {e}")
+                            logger.warning(f"Lỗi khi kiểm tra trạng thái trong lúc chờ mua tay {symbol}: {e}")
                             continue
                     
                     if should_break_loop:
                         break
                         
                     # === THỰC HIỆN CẬP NHẬT GIÁ VÀ SỬA LỆNH ===
-                    # Chỉ tải dữ liệu và kiểm tra session 1 lần mỗi lần sửa lệnh (không phải mỗi 10s)
                     try:
-                        is_valid_loop, session_result_loop = validate_session(user_name, account, request_url, session, asp_net_session)
-                        loop_total_market_value = session_result_loop.get("total_market_value", 0) if is_valid_loop else 0
-                        
-                        if loop_total_market_value >= max_total_market_value:
-                            logger.info(f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh {symbol}')
-                            send_message_telegram(user, MessageTypeEnum.OVERALL, f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh mua {symbol}')
-                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn giá trị cổ phiếu tối đa', "B")
-                            break
-                            
-                        vnindex_data_trading_tmp, vnindex_data_following_tmp, stock_data_trading_tmp, stock_data_following_tmp = download_data(
+                        vnindex_data_trading_tmp, _, stock_data_trading_tmp, _ = download_data(
                             stock=stock, vnindex_stock=vnindex_stock,
                             trading_chart_type=trading_chart_type, following_chart_type=following_chart_type
                         )
                         
                         if stock_data_trading_tmp is not None and not stock_data_trading_tmp.empty:
                             last_row_tmp = stock_data_trading_tmp.iloc[-1]
-                            start_price = round_up_to_unit(last_row_tmp.get('open', 0), last_row_tmp.get('close', 0), step_price)
-                            limited_price_to_buy = start_price - add_price_buy + slippage_buy
+                            start_price_tmp = round_up_to_unit(last_row_tmp.get('open', 0), last_row_tmp.get('close', 0), step_price)
+                            limited_price_to_buy = start_price_tmp - add_price_buy + slippage_buy
+                        
+                        times_update = i + 1
+                        message_update = update_buy_order(user_name, account, symbol, request_url, session, asp_net_session, "B", 
+                                                            step_price, limited_price_to_buy, times_update)
+                        if message_update:
+                            send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
+                            send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
                     except Exception as e:
-                        logger.warning(f"Lỗi khi chuẩn bị dữ liệu sửa lệnh cho {symbol}: {e}")
-            
-                    if is_matched_all:
-                        logger.info(f"[{symbol}] Tất cả lệnh mua tay đã khớp, bỏ qua sửa lệnh.")
-                        break
-
-                    status_buy = SignalTelegramEnum.BUY_SUCCESS
-                    times_update = i + 1
-                    message_update = update_buy_order(user_name, account, symbol, request_url, session, asp_net_session, "B", 
-                                                        step_price, limited_price_to_buy, times_update)
-                    if message_update:
-                        send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
-                        send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
-                    else:
-                        # Kiểm tra kỹ nguyên nhân không sửa được lệnh mua
-                        pending_check = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
-                        if isinstance(pending_check, list) and len(pending_check) == 0:
-                            logger.info(f"[{symbol}] Đã khớp hết toàn bộ lệnh mua trong quá trình sửa.")
-                            is_matched_all = True
-                            break
-                        else:
-                            # Lỗi API hoặc lệnh biến mất
-                            logger.error(f"[{symbol}] Sửa lệnh mua thất bại và không tìm thấy lệnh PENDING.")
-                            send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ **Thông báo {symbol}**: Không tìm thấy lệnh mua chờ để sửa (có thể đã khớp hoặc API lỗi). Bot sẽ dừng kiểm tra.")
-                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Sửa lệnh mua không thành công', "B")
-                            break
+                        logger.error(f"Lỗi khi thực hiện sửa lệnh mua tay cho {symbol}: {e}")
+                
                 else:
-                    logger.info(f"[{symbol}] Vượt giới hạn thời gian đặt lệnh tối đa.")
+                    # Chạy hết vòng for mà không break (hết retry/time)
+                    logger.info(f"[{symbol}] Vượt giới hạn thời gian đặt lệnh mua tay tối đa.")
                     cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn thời gian đặt lệnh tối đa', "B")
 
-                #Tổng kết các lệnh đã khớp theo symbol để send telegram
+                # Tổng kết cuối cùng
                 try:
-                    time.sleep(2)  # đợi backend cập nhật
+                    time.sleep(2)
                     res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
                     if res_matcheds:
                         time_now = datetime.now(timezone)
                         start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
                         message_buy_matched = []
                         buy_matched_overrall_attrs = {
-                            'user_account': account,
-                            'stock': symbol,
-                            'number_order': len(res_matcheds),
-                            'start_time_order': start_time_order,
-                            } 
-                        message_buy_matched.append({
-                            'status_signal': SignalTelegramEnum.BUY_MATCHED_OVERRAL,
-                            **buy_matched_overrall_attrs
-                            })
+                            'user_account': account, 'stock': symbol,
+                            'number_order': len(res_matcheds), 'start_time_order': start_time_order,
+                        } 
+                        message_buy_matched.append({'status_signal': SignalTelegramEnum.BUY_MATCHED_OVERRAL, **buy_matched_overrall_attrs})
                         for order in res_matcheds:
-                            buy_matched_details_attrs = {
-                                'stock': order['symbol'],
-                                'price': order['showPrice'],
-                                'volume': order['volume'],
-                                'status': order['status']
-                                }
                             message_buy_matched.append({
                                 'status_signal': SignalTelegramEnum.BUY_MATCHED_DETAIL,
-                                **buy_matched_details_attrs
-                                })
-                        if message_buy_matched:
-                            send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_buy_matched)
-                            send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_matched)
-                    else:
-                        logger.info(f'Không lấy được danh sách các lệnh đã khớp symbol: {symbol}')
+                                'stock': order['symbol'], 'price': order['showPrice'],
+                                'volume': order['volume'], 'status': order['status']
+                            })
+                        send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_buy_matched)
+                        send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_matched)
+                    
+                    # Mở chốt lãi
+                    ConfigurationServices.update_all_take_profit_flags_true(user, stock_id)
+                    # Hủy lệnh sót
+                    cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Hủy các lệnh mua còn sót lại', "B")
                 except Exception as e:
-                    logger.info(f"Lỗi khi xử lý matched orders: {e}")
-                    message = f'Không lấy được thông tin các lệnh mua tay đã khớp mã {symbol}'
-                    send_message_telegram(user, MessageTypeEnum.OVERALL, message)
-                    send_message_telegram(user, MessageTypeEnum.ACT, message)
-
-                # Mở chốt lãi lần 1 và lần 2
-                logger.info('Tiến hành mở chốt lãi lần 1 và lần 2') 
-                ConfigurationServices.update_all_take_profit_flags_true(user, stock_id)
-             #Hủy tất cả các lệnh nếu còn đặt
-                cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Hủy các lệnh mua còn sót lại', "B")
+                    logger.error(f"Lỗi tổng kết matched orders cho {symbol}: {e}")
         except Exception as e:
             logger.error(f'⚠️ FATAL ERROR in process_buy_request {symbol}: {e}', exc_info=True)
             message_fatal = f'🔴 **Lỗi hệ thống khi MUA TAY mã {symbol}**: {str(e)[:200]}...\nTiến trình đã tạm dừng để đảm bảo an toàn.'

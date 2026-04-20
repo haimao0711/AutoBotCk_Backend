@@ -52,6 +52,7 @@ services:
   stock-predict-api:
     build: .
     environment:
+      PYTHONUNBUFFERED: 1
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: ngominhnguyen@1985
       POSTGRES_DB: stockdb
@@ -90,6 +91,7 @@ services:
     build: .
     restart: always
     environment:
+      PYTHONUNBUFFERED: 1
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: ngominhnguyen@1985
       POSTGRES_DB: stockdb
@@ -116,6 +118,7 @@ services:
     build: .
     restart: always
     environment:
+      PYTHONUNBUFFERED: 1
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: ngominhnguyen@1985
       POSTGRES_DB: stockdb
@@ -137,6 +140,7 @@ services:
   celery-flower:
     build: .
     environment:
+      PYTHONUNBUFFERED: 1
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
     depends_on:
