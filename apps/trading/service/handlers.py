@@ -237,7 +237,9 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
                                 **buy_update_details_attrs
                         })
                     else:
-                        logger.info(f'Chua update duoc lenh mua one order {symbol}')
+                        error_msg = f'⚠️ {symbol}: Lỗi API không thể cập nhật giá lệnh mua {order_num}.'
+                        logger.error(error_msg)
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, error_msg)
                 
             # Nếu update_price vượt quá limited_price thì handle cancel order
                 else:
@@ -262,7 +264,9 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
                             **buy_cancel_details_attrs
                         })
                     else:
-                        logger.info(f'Chua huy duoc lenh mua one order {symbol}')
+                        error_msg = f'⚠️ {symbol}: Lỗi API không thể hủy lệnh mua {order_num} khi vượt giới hạn giá.'
+                        logger.error(error_msg)
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, error_msg)
             except Exception as e:
                 logger.info(f"[ERROR] Lỗi khi xử lý order {order_num}: {e}")
     else:
@@ -324,6 +328,11 @@ def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, reque
             send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_cancel)
     else:
         logger.info(f'Chua lay duoc danh sach chua khop to cancel buy {symbol}')  
+        # Thông báo cho người dùng lý do dừng nếu có lý do cụ thể và không phải là dọn dẹp định kỳ
+        if reason and reason not in ['Hủy các lệnh mua còn sót lại', 'Đảm bảo hết lệnh còn đặt khi kết thúc mỗi vòng mua']:
+            msg_notify = f'🔔 **{symbol}**: {reason} (Không còn lệnh PENDING để hủy)'
+            send_message_telegram(user, MessageTypeEnum.OVERALL, msg_notify)
+            send_message_telegram(user, MessageTypeEnum.ACT, msg_notify)
     logger.info(f'Kết thúc chạy hàm cancel lệnh mua {symbol} ' )
 
 def update_sell_order(user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str, step_price: float, limited_price: float, times_update: int):
@@ -791,11 +800,21 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 volume_to_buy = overview_config.volume_to_buy        
                 #Kiểm tra đk số cổ phiếu giới hạn, khối lượng mua còn lại, tiền mặt, và tổng giá trị thị trường
                 if current_total_market_value >= max_total_market_value:
-                    logger.info(f'Lệnh mua tay {symbol} rơi vào trường hợp vượt quá tổng giá trị thị trường tối đa hiện đang là {current_total_market_value}/{max_total_market_value}')
+                    msg_limit = f'⚠️ {symbol} vượt quá tổng giá trị thị trường tối đa ({current_total_market_value:,.0f}/{max_total_market_value:,.0f}). Hủy yêu cầu mua tay!'
+                    logger.info(msg_limit)
+                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_limit)
+                    send_message_telegram(user, MessageTypeEnum.ACT, msg_limit)
+                    return
                 elif number_stock_existing >= max_stock_existing and stock_balance == 0:
-                    logger.info(f'Lệnh mua tay {symbol} rơi vào trường hợp vượt quá số cổ phiếu tối đa hiện đang là {number_stock_existing}/{max_stock_existing}')
+                    msg_limit = f'⚠️ {symbol} chưa có trong danh mục và tài khoản đã vượt quá số mã cổ phiếu tối đa ({number_stock_existing}/{max_stock_existing}). Hủy yêu cầu mua tay!'
+                    logger.info(msg_limit)
+                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_limit)
+                    send_message_telegram(user, MessageTypeEnum.ACT, msg_limit)
+                    return
                 elif not cash_balance:
                     logger.info(f'không có respon khi lấy số dư tiền mặt {symbol}')
+                    send_message_telegram(user, MessageTypeEnum.OVERALL, f'⚠️ Không lấy được số dư tiền mặt cho {symbol}. Hủy yêu cầu mua tay!')
+                    return
                 else: 
                     volume_buy_balance =  int(volume_to_buy - stock_balance)
                     volume = min(((int(volume_to_buy * percent_first_buy) + 99) // 100) * 100,(volume_buy_balance // 100) * 100)
@@ -918,7 +937,10 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             # 1. Kiểm tra nếu đã khớp hết thì thoát sớm
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"[{symbol}] Không còn lệnh mua PENDING (Tay), đã khớp hết. Chờ 2s để đồng bộ.")
+                                msg_match = f'🎯 [{symbol}] Tất cả các lệnh mua tay đã khớp hết.'
+                                logger.info(msg_match)
+                                send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
+                                send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
                                 is_matched_all = True
                                 should_break_loop = True
                                 time.sleep(2)
@@ -932,8 +954,25 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                 is_valid_loop, session_result_loop = validate_session(user_name, account, request_url, session, asp_net_session)
                                 loop_total_market_value = session_result_loop.get("total_market_value", 0) if is_valid_loop else 0
                                 if loop_total_market_value >= max_total_market_value:
-                                    logger.info(f'Vượt giới hạn giá trị cổ phiếu tối đa, hủy lệnh mua tay {symbol}')
+                                    msg_limit_loop = f'⚠️ {symbol} vượt giới hạn giá trị cổ phiếu tối đa ({loop_total_market_value:,.0f}/{max_total_market_value:,.0f}), dừng mua tay.'
+                                    logger.info(msg_limit_loop)
+                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_limit_loop)
+                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_limit_loop)
                                     cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn giá trị cổ phiếu tối đa', "B")
+                                    should_break_loop = True
+                                    break
+                                
+                                # 3. Kiểm tra giới hạn số lượng mã cổ phiếu (max_stock_existing)
+                                res_stock_loop = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
+                                loop_number_stock = res_stock_loop.get('number_stock_existing', 0) if res_stock_loop else 0
+                                loop_stock_balance = res_stock_loop.get('stock_balance', {}).get('actual_vol', 0) if res_stock_loop else 0
+                                
+                                if loop_number_stock >= max_stock_existing and loop_stock_balance == 0:
+                                    msg_limit_stock = f'⚠️ {symbol} chưa có trong danh mục và tài khoản đã đạt giới hạn số mã cổ phiếu ({loop_number_stock}/{max_stock_existing}). Dừng mua tay!'
+                                    logger.info(msg_limit_stock)
+                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_limit_stock)
+                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_limit_stock)
+                                    cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn số lượng mã cổ phiếu', "B")
                                     should_break_loop = True
                                     break
 
@@ -1013,6 +1052,11 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     ConfigurationServices.update_all_take_profit_flags_true(user, stock_id)
                     # Hủy lệnh sót
                     cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Hủy các lệnh mua còn sót lại', "B")
+                    
+                    # Thông báo kết thúc tiến trình
+                    msg_end = f'✅ Hoàn tất tiến trình mua tay mã {symbol}.'
+                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_end)
+                    send_message_telegram(user, MessageTypeEnum.ACT, msg_end)
                 except Exception as e:
                     logger.error(f"Lỗi tổng kết matched orders cho {symbol}: {e}")
         except Exception as e:
@@ -1317,11 +1361,11 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 add_price_sell = trading_config.stock_config_add_price_sell
 
             # Get stock balance to set volume
-                res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
-                stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
-                stock_balance = res_stock_balance.get('stock_balance', {}).get('available_vol', 0) if res_stock_balance else 0
-                ceil_price = res_stock_balance.get('stock_balance', {}).get('ceil_price', 0) if res_stock_balance else 0  
-                volume_balance = (stock_balance // 100) * 100
+                res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'S')
+                stock_balance_data = res_stock_balance.get('stock_balance', {}) if res_stock_balance else {}
+                available_vol = stock_balance_data.get('available_vol', 0)
+                ceil_price = stock_balance_data.get('ceil_price', 0)
+                volume_balance = (available_vol // 100) * 100
                 half = volume_balance / 2
                 volume = int(volume_balance) if volume_sell == 'all' else int(half + 50) if half % 100 == 50 else int(half)
                 sell_order_overrall_attrs = {
@@ -1350,7 +1394,6 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                         volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100                        
                         sell_order_attrs_send = {
                             'stock': symbol,
-                            # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
                             'price': round(price_set_sell, 2),
                             'volume': int(volume_sell_sensitive)
                         }
@@ -1430,7 +1473,10 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             # 1. Kiểm tra trạng thái khớp (PENDING)
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"[{symbol}] Không còn lệnh bán PENDING, đã khớp hết.")
+                                msg_match = f'🎯 [{symbol}] Tất cả các lệnh bán tay đã khớp hết.'
+                                logger.info(msg_match)
+                                send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
+                                send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
                                 is_matched_all = True
                                 should_break_loop = True
                                 break
@@ -1710,7 +1756,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     is_buy = is_buy_vnindex  
 
             logger.info(f'check is_buy {symbol}: {is_buy}')
-            logger.info(f'check buy_reason {symbol}: {buy_reason}') 
+            # logger.info(f'check buy_reason {symbol}: {buy_reason}') 
             # if symbol in ['PC1', 'BVH']:
             #     logger.info(f'check buy_reason {symbol}: {buy_reason}')     
 
