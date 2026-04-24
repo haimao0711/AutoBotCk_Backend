@@ -1810,7 +1810,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 try:
                     acquired = redis_lock.acquire(blocking=True)
                     if not acquired:
-                        logger.warning(f"⚠️ Quá giờ chờ Lock để mua {symbol}. Bỏ qua lượt này.")
+                        msg_lock = f"⚠️ {symbol}: Quá giờ chờ quyền đặt lệnh (Lock) cho tài khoản {account}. Bỏ qua lượt này."
+                        logger.warning(msg_lock)
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, msg_lock)
                         return
                     
                     # 1. ĐÃ VÀO TRONG LOCK DÀNH RIÊNG CHO ACCOUNT -> Lấy lại Số dư Cổ Phiếu Mới Nhất từ VPS
@@ -1824,18 +1826,18 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     
                     # 2. Kiểm Tra Cửa Vào Cuối Cùng
                     if current_total_market_value >= vps_account.limit_total_market_value:
-                        logger.info(f"🚫 Mã {symbol} rớt đài vì vượt Limit Total Market Value ({current_total_market_value}/{vps_account.limit_total_market_value})!")
-                        # message_cancel = f'Vượt giới hạn giá trị cổ phiếu tối đa, không đặt lệnh mua {symbol}'
-                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
-                        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
+                        msg_limit_val = f"🚫 Mã {symbol} không thể mua vì vượt giới hạn giá trị thị trường ({current_total_market_value:,.0f}/{vps_account.limit_total_market_value:,.0f})!"
+                        logger.info(msg_limit_val)
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, msg_limit_val)
+                        send_message_telegram(user, MessageTypeEnum.ACT, msg_limit_val)
                         # Trả lại lock và rời đi, không mua gì cả
                         redis_lock.release()
                         return
                     elif current_stock_count >= vps_account.limit_number_stocks and symbol not in current_symbols:
-                        logger.info(f"🚫 Mã {symbol} rớt đài vì luồng khác vừa chiếm slots. Account đã đạt limit ({current_stock_count}/{vps_account.limit_number_stocks})!")
-                        message_cancel = f'Vượt giới hạn cổ phiếu tối đa, hủy lệnh mua {symbol}'
-                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_cancel)
-                        send_message_telegram(user, MessageTypeEnum.ACT, message_cancel)
+                        msg_limit_stock = f"🚫 Mã {symbol} không thể mua vì đã đạt giới hạn số mã cổ phiếu ({current_stock_count}/{vps_account.limit_number_stocks})!"
+                        logger.info(msg_limit_stock)
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, msg_limit_stock)
+                        send_message_telegram(user, MessageTypeEnum.ACT, msg_limit_stock)
                         # Trả lại lock và rời đi, không mua gì cả
                         redis_lock.release()
                         return
@@ -2016,7 +2018,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             # Tối ưu: Bỏ qua sleep nếu đã khớp hết
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"[{symbol}] Không còn lệnh mua PENDING, đã khớp hết. Chờ 2s để VPS đồng bộ trước khi tổng kết.")
+                                msg_match = f"🎯 [{symbol}] Tất cả các lệnh mua đã khớp hết."
+                                logger.info(msg_match)
+                                send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
+                                send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
                                 is_matched_all = True
                                 should_break_loop = True
                                 time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
