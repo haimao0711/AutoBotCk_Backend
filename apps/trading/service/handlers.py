@@ -941,10 +941,17 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             # 1. Kiểm tra nếu đã khớp hết thì thoát sớm
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                msg_match = f'🎯 [{symbol}] Tất cả các lệnh mua tay đã khớp hết.'
-                                logger.info(msg_match)
-                                send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
-                                send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
+                                res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B')
+                                if res_matcheds:
+                                    msg_match = f'🎯 [{symbol}] Tất cả các lệnh mua tay đã khớp hết.'
+                                    logger.info(msg_match)
+                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
+                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
+                                else:
+                                    msg_cancel = f'⚠️ [{symbol}] Các lệnh mua tay đã bị hủy bởi hệ thống.'
+                                    logger.info(msg_cancel)
+                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_cancel)
+                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_cancel)
                                 is_matched_all = True
                                 should_break_loop = True
                                 time.sleep(2)
@@ -1483,10 +1490,17 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             # 1. Kiểm tra trạng thái khớp (PENDING)
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                msg_match = f'🎯 [{symbol}] Tất cả các lệnh bán tay đã khớp hết.'
-                                logger.info(msg_match)
-                                send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
-                                send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
+                                res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
+                                if res_matcheds:
+                                    msg_match = f'🎯 [{symbol}] Tất cả các lệnh bán tay đã khớp hết.'
+                                    logger.info(msg_match)
+                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
+                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
+                                else:
+                                    msg_cancel = f'⚠️ [{symbol}] Các lệnh bán tay đã bị hủy bởi hệ thống.'
+                                    logger.info(msg_cancel)
+                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_cancel)
+                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_cancel)
                                 is_matched_all = True
                                 should_break_loop = True
                                 break
