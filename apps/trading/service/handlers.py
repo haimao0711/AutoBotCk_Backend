@@ -926,7 +926,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     last_general_check = time.time()
                     
                     while time.time() - start_sleep < sleeping_time_buy:
-                        connection.close()  # Close connection before sleep
+                        # connection.close()  # Close connection before sleep (Bỏ đi để tránh DB deadlock)
                         remaining = sleeping_time_buy - (time.time() - start_sleep)
                         sleep_time = min(interval_stock_check, remaining)
                         if sleep_time <= 0:
@@ -950,6 +950,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             current_time = time.time()
                             if current_time - last_general_check >= interval_check:
                                 last_general_check = current_time
+                                logger.info(f"[{symbol}] Đang trong chu kỳ chờ sửa lệnh. Đã qua {int(current_time - start_sleep)}s / {int(sleeping_time_buy)}s")
                                 
                                 is_valid_loop, session_result_loop = validate_session(user_name, account, request_url, session, asp_net_session)
                                 loop_total_market_value = session_result_loop.get("total_market_value", 0) if is_valid_loop else 0
@@ -1462,13 +1463,14 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                     # Sleep period with periodic status checks
                     start_sleep_time = time.time()
                     while time.time() - start_sleep_time < sleeping_time_sell:
-                        connection.close()  # Close connection before sleep
+                        # connection.close()  # Close connection before sleep (Bỏ đi để tránh DB deadlock)
                         remaining = sleeping_time_sell - (time.time() - start_sleep_time)
                         sleep_time = min(interval_check, remaining)
                         if sleep_time <= 0:
                             break
                         time.sleep(sleep_time)
                         
+                        logger.info(f"[{symbol}] Đang trong chu kỳ chờ sửa lệnh bán. Đã qua {int(time.time() - start_sleep_time)}s / {int(sleeping_time_sell)}s")
                         try:
                             # 1. Kiểm tra trạng thái khớp (PENDING)
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
