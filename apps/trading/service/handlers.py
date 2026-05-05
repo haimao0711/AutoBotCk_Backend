@@ -1681,7 +1681,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         stock_id = trading_config.stock_id
         # Get stock balance 
         res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
-        stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
+        volume_stock_balance = res_stock_balance.get('stock_balance', {}).get('actual_vol', 0) if res_stock_balance else 0
         volume_balance_trade = res_stock_balance.get('stock_balance', {}).get('available_vol', 0) if res_stock_balance else 0
         ceil_price = res_stock_balance.get('stock_balance', {}).get('ceil_price', 0) if res_stock_balance else 0
         floor_price = res_stock_balance.get('stock_balance', {}).get('floor_price', 0) if res_stock_balance else 0
@@ -1914,7 +1914,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         # Dao động cộng trừ    
                         add_price_buy = trading_config.stock_config_add_price_buy
                         volume_to_buy = overview_config.volume_to_buy                
-                        volume_buy_balance =  int(volume_to_buy - stock_balance)
+                        volume_buy_balance =  int(volume_to_buy - volume_stock_balance)
                         volume = min(((int(volume_to_buy * percent_first_buy) + 99) // 100) * 100,(volume_buy_balance // 100) * 100)
                         if cash_available < volume*start_price:
                             logger.info('roi vao truong hop khong du tien mua theo yeu cau nen mua het so tien con lai')
@@ -2279,7 +2279,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         if not is_block_sell_stock and is_time_valid_to_sell  and symbol in symbols_existing and volume_balance_trade > 0:
             logger.info(f'bắt đầu hàm kiểm tra thực hiện sell {symbol}')
             # Handle take profit
-            volume_balance = (volume_balance_trade // 100) * 100
+            volume_balance_trade = (volume_balance_trade // 100) * 100 
+            volume_balance_purchased = (volume_stock_balance  // 100) * 100            
             use_take_profit_first_part = trading_config.stock_config_use_take_profit_first_part
             use_take_profit_first_part_two = trading_config.stock_config_use_take_profit_first_part_two
             use_bolinger_a_part_to_take_profit = trading_config.stock_config_use_bolinger_a_part_to_take_profit
@@ -2378,7 +2379,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 is_take_profit, percent_take_profit = True, percent_rsi_decrease_to_take_profit
                 messages_take_profit=f'Bắt đầu chạy chart hành động chốt lãi lần 1 {symbol} vì RSI(chart theo dõi) giảm, RSI D1: {previous_rsi_following} > RSI D0: {current_rsi_following}'
                 take_profit_type = 'Bán một phần khi RSI giảm'
-            volume_take_profit = int(volume_balance*percent_take_profit)
+            volume_take_profit = min(int(volume_balance_purchased * percent_take_profit), int(volume_balance_trade))
             volume_take_profit = ((volume_take_profit + 99) // 100) * 100     
             is_trading_take_profit = False
             is_sell, sell_reason = False, ''
@@ -2487,7 +2488,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 "user_account": account,
                 "platform_trading": "Smart One",
                 "stock": stock.name,
-                "volume": 0,
+                "volume": int(volume_balance_trade),
                 "price": price_to_start,
                 "message": messages_to_sell
             }
@@ -2495,7 +2496,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 "user_account": account,
                 "platform_trading": "Smart One",
                 "stock": stock.name,
-                "volume": volume_take_profit if use_take_profit_first_part else int(volume_balance),
+                "volume": volume_take_profit,
                 "price": price_to_start,                
                 "take_profit_type": take_profit_type,
                 "message": messages_to_sell
@@ -2550,7 +2551,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")                
                    
                 # Get stock balance to set volume
-                volume = volume_take_profit if is_take_profit else int(volume_balance)
+                volume = volume_take_profit if is_take_profit else int(volume_balance_trade)
                 sell_order_overrall_attrs = {
                     'user_account': account,
                     'stock': symbol,
