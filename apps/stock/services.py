@@ -202,9 +202,8 @@ class DownloadService:
                         # Đặt time làm index để gộp theo tuần
                         df.set_index('time', inplace=True)
 
-                        # Tính Thứ 2 của mỗi ngày để gộp nến tuần
-                        # (df.index.weekday returns 0 for Monday, 6 for Sunday)
-                        df['week_start'] = (df.index - pd.to_timedelta(df.index.weekday, unit='D')).normalize()
+                        # Tính Thứ 2 đầu tuần (W-SUN period bắt đầu từ Thứ 2 và kết thúc vào Chủ Nhật)
+                        df['week_start'] = df.index.to_period('W-SUN').start_time
                         
                         # Gộp theo tuần và aggregate
                         weekly_df = df.groupby('week_start').agg({
@@ -214,6 +213,10 @@ class DownloadService:
                             'close': 'last',
                             'volume': 'sum'
                         })
+
+                        # Sắp xếp và loại bỏ trùng lặp nếu có
+                        weekly_df = weekly_df.sort_index()
+                        weekly_df = weekly_df[~weekly_df.index.duplicated(keep='last')]
 
                         # Reset index và chuyển time về timestamp giây theo đúng timezone
                         weekly_df = weekly_df.reset_index()

@@ -134,42 +134,35 @@ def patch_realtime_data(df, match_price, chart_type):
 
         current_candle_ts = int(start_time.timestamp())
         
-        last_idx = df.index[-1]
-        last_ts = int(df.at[last_idx, 'time'])
+        # Tìm xem trong df đã có nến cho tuần này chưa (không chỉ kiểm tra nến cuối)
+        # Sử dụng so sánh int để tránh sai số float
+        existing_indices = df.index[df['time'].astype(int) == current_candle_ts].tolist()
         
-        # --- Normalization Logic ---
-        last_close = df.at[last_idx, 'close']
-        if last_close > 0:
-            ratio = match_price / last_close
-            if ratio > 100:
-                # Discrepancy detected (e.g. 30000 vs 30). Normalize match_price.
-                match_price = match_price / 1000
-            elif ratio < 0.01:
-                # Inverse discrepancy (e.g. 30 vs 30000). Highly unlikely but safe to handle.
-                match_price = match_price * 1000
-        # ---------------------------
-        
-        if last_ts == current_candle_ts:
-            # Update existing candle
-            df.at[last_idx, 'close'] = match_price
-            df.at[last_idx, 'high'] = max(df.at[last_idx, 'high'], match_price)
-            df.at[last_idx, 'low'] = min(df.at[last_idx, 'low'], match_price)
-        elif last_ts < current_candle_ts:
-            # Append new candle for the new week
-            new_row = {
-                'time': current_candle_ts,
-                'open': match_price,
-                'high': match_price,
-                'low': match_price,
-                'close': match_price,
-                'volume': 0,
-            }
-            # Copy other fields if they exist (like id)
-            for col in df.columns:
-                if col not in new_row:
-                    new_row[col] = df.at[last_idx, col]
+        if existing_indices:
+            idx = existing_indices[-1] # Lấy nến cuối cùng nếu có trùng (hy hữu)
+            df.at[idx, 'close'] = match_price
+            df.at[idx, 'high'] = max(df.at[idx, 'high'], match_price)
+            df.at[idx, 'low'] = min(df.at[idx, 'low'], match_price)
+        else:
+            last_idx = df.index[-1]
+            last_ts = int(df.at[last_idx, 'time'])
             
-            df.loc[len(df)] = new_row
+            if last_ts < current_candle_ts:
+                # Append new candle for the new week
+                new_row = {
+                    'time': current_candle_ts,
+                    'open': match_price,
+                    'high': match_price,
+                    'low': match_price,
+                    'close': match_price,
+                    'volume': 0,
+                }
+                # Copy other fields if they exist (like id)
+                for col in df.columns:
+                    if col not in new_row:
+                        new_row[col] = df.at[last_idx, col]
+                
+                df.loc[len(df)] = new_row
             
     except Exception as e:
         print(f"Error in patch_realtime_data: {e}")
