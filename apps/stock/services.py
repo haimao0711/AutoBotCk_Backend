@@ -199,27 +199,25 @@ class DownloadService:
                             'volume': json_data['v'],
                         })
 
-                        # Đặt time làm index để resample
+                        # Đặt time làm index để gộp theo tuần
                         df.set_index('time', inplace=True)
 
-                        # Resample theo tuần (bắt đầu từ Thứ 2), fillna cho các tuần nghỉ lễ
-                        weekly_df = df.resample('W-MON', closed='left', label='left').agg({
+                        # Tính Thứ 2 của mỗi ngày để gộp nến tuần
+                        # (df.index.weekday returns 0 for Monday, 6 for Sunday)
+                        df['week_start'] = (df.index - pd.to_timedelta(df.index.weekday, unit='D')).normalize()
+                        
+                        # Gộp theo tuần và aggregate
+                        weekly_df = df.groupby('week_start').agg({
                             'open': 'first',
                             'high': 'max',
                             'low': 'min',
                             'close': 'last',
                             'volume': 'sum'
                         })
-                        
-                        # Điền dữ liệu cho các tuần trống (ffill cho giá, 0 cho volume)
-                        weekly_df['close'] = weekly_df['close'].ffill()
-                        weekly_df['open'] = weekly_df['open'].fillna(weekly_df['close'])
-                        weekly_df['high'] = weekly_df['high'].fillna(weekly_df['close'])
-                        weekly_df['low'] = weekly_df['low'].fillna(weekly_df['close'])
-                        weekly_df['volume'] = weekly_df['volume'].fillna(0)
 
                         # Reset index và chuyển time về timestamp giây theo đúng timezone
                         weekly_df = weekly_df.reset_index()
+                        weekly_df.rename(columns={'week_start': 'time'}, inplace=True)
                         weekly_df['time'] = weekly_df['time'].dt.tz_localize('Asia/Ho_Chi_Minh').astype('int64') // 10**9
 
                         # Đổi tên cột giống format cũ

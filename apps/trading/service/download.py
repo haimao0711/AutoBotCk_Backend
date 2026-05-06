@@ -150,11 +150,12 @@ def patch_realtime_data(df, match_price, chart_type):
         # ---------------------------
         
         if last_ts == current_candle_ts:
+            # Update existing candle
             df.at[last_idx, 'close'] = match_price
             df.at[last_idx, 'high'] = max(df.at[last_idx, 'high'], match_price)
             df.at[last_idx, 'low'] = min(df.at[last_idx, 'low'], match_price)
         elif last_ts < current_candle_ts:
-            # Append
+            # Append new candle for the new week
             new_row = {
                 'time': current_candle_ts,
                 'open': match_price,
@@ -162,8 +163,12 @@ def patch_realtime_data(df, match_price, chart_type):
                 'low': match_price,
                 'close': match_price,
                 'volume': 0,
-                'id': df.at[last_idx, 'id'] if 'id' in df.columns else None
             }
+            # Copy other fields if they exist (like id)
+            for col in df.columns:
+                if col not in new_row:
+                    new_row[col] = df.at[last_idx, col]
+            
             df.loc[len(df)] = new_row
             
     except Exception as e:
