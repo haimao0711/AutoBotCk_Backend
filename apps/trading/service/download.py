@@ -5,7 +5,7 @@ from apps.stock.services import DownloadService
 from apps.trading.service.helper import adding_idicator
 import requests
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import threading
 import time
@@ -125,7 +125,8 @@ def patch_realtime_data(df, match_price, chart_type):
         elif chart_type == CandleEnum.D1:
             start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif chart_type == CandleEnum.W1:
-            start_time = now - pd.Timedelta(days=now.weekday())
+            # Lấy Thứ 2 của tuần hiện tại
+            start_time = now - timedelta(days=now.weekday())
             start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
         
         if start_time is None:

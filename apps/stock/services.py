@@ -202,21 +202,24 @@ class DownloadService:
                         # Đặt time làm index để resample
                         df.set_index('time', inplace=True)
 
-                        # Tính toán ngày đầu tuần (Thứ 2) cho mỗi dòng
-                        df['week_start'] = df.index.to_period('W-SUN').start_time
-                        
-                        # Group by tuần và aggregate
-                        weekly_df = df.groupby('week_start').agg({
+                        # Resample theo tuần (bắt đầu từ Thứ 2), fillna cho các tuần nghỉ lễ
+                        weekly_df = df.resample('W-MON', closed='left', label='left').agg({
                             'open': 'first',
                             'high': 'max',
                             'low': 'min',
                             'close': 'last',
                             'volume': 'sum'
-                        }).dropna()
+                        })
+                        
+                        # Điền dữ liệu cho các tuần trống (ffill cho giá, 0 cho volume)
+                        weekly_df['close'] = weekly_df['close'].ffill()
+                        weekly_df['open'] = weekly_df['open'].fillna(weekly_df['close'])
+                        weekly_df['high'] = weekly_df['high'].fillna(weekly_df['close'])
+                        weekly_df['low'] = weekly_df['low'].fillna(weekly_df['close'])
+                        weekly_df['volume'] = weekly_df['volume'].fillna(0)
 
                         # Reset index và chuyển time về timestamp giây theo đúng timezone
                         weekly_df = weekly_df.reset_index()
-                        weekly_df.rename(columns={'week_start': 'time'}, inplace=True)
                         weekly_df['time'] = weekly_df['time'].dt.tz_localize('Asia/Ho_Chi_Minh').astype('int64') // 10**9
 
                         # Đổi tên cột giống format cũ
