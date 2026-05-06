@@ -203,6 +203,7 @@ class DownloadService:
                         df.set_index('time', inplace=True)
 
                         # Tính Thứ 2 đầu tuần (W-SUN period bắt đầu từ Thứ 2 và kết thúc vào Chủ Nhật)
+                        # Đảm bảo Monday belongs to Monday, Sunday belongs to Previous Monday
                         df['week_start'] = df.index.to_period('W-SUN').start_time
                         
                         # Gộp theo tuần và aggregate
@@ -214,7 +215,7 @@ class DownloadService:
                             'volume': 'sum'
                         })
 
-                        # Sắp xếp và loại bỏ trùng lặp nếu có
+                        # Sắp xếp và loại bỏ trùng lặp
                         weekly_df = weekly_df.sort_index()
                         weekly_df = weekly_df[~weekly_df.index.duplicated(keep='last')]
 

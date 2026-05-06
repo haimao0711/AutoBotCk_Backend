@@ -112,43 +112,56 @@ def patch_realtime_data(df, match_price, chart_type):
         
         start_time = None
         
-        if chart_type == CandleEnum.M1:
-            start_time = now.replace(second=0, microsecond=0)
-        elif chart_type == CandleEnum.M5:
-            minute = (now.minute // 5) * 5
-            start_time = now.replace(minute=minute, second=0, microsecond=0)
+        if chart_type == CandleEnum.W1:
+            # Sử dụng to_period('W-SUN') giống hệt services.py để tìm đúng Thứ 2
+            start_time = now.to_period('W-SUN').start_time
+        elif chart_type == CandleEnum.D1:
+            start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif chart_type == CandleEnum.H1:
+            start_time = now.replace(minute=0, second=0, microsecond=0)
         elif chart_type == CandleEnum.M15:
             minute = (now.minute // 15) * 15
             start_time = now.replace(minute=minute, second=0, microsecond=0)
-        elif chart_type == CandleEnum.H1:
-            start_time = now.replace(minute=0, second=0, microsecond=0)
-        elif chart_type == CandleEnum.D1:
-            start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        elif chart_type == CandleEnum.W1:
-            # Lấy Thứ 2 của tuần hiện tại
-            start_time = now - timedelta(days=now.weekday())
-            start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif chart_type == CandleEnum.M5:
+            minute = (now.minute // 5) * 5
+            start_time = now.replace(minute=minute, second=0, microsecond=0)
+        elif chart_type == CandleEnum.M1:
+            start_time = now.replace(second=0, microsecond=0)
         
         if start_time is None:
             return
 
+        # Đảm bảo start_time là naive timestamp đại diện cho giờ VN để khớp với services.py
+        if hasattr(start_time, 'tzinfo') and start_time.tzinfo is not None:
+            start_time = start_time.replace(tzinfo=None)
+            
         current_candle_ts = int(start_time.timestamp())
         
-        # Tìm xem trong df đã có nến cho tuần này chưa (không chỉ kiểm tra nến cuối)
-        # Sử dụng so sánh int để tránh sai số float
+        last_idx = df.index[-1]
+        
+        # --- Normalization Logic ---
+        last_close = df.at[last_idx, 'close']
+        if last_close > 0:
+            ratio = match_price / last_close
+            if ratio > 100:
+                match_price = match_price / 1000
+            elif ratio < 0.01:
+                match_price = match_price * 1000
+        # ---------------------------
+
+        # Tìm xem trong df đã có nến cho mốc thời gian này chưa
+        # (Sử dụng list index để an toàn)
         existing_indices = df.index[df['time'].astype(int) == current_candle_ts].tolist()
         
         if existing_indices:
-            idx = existing_indices[-1] # Lấy nến cuối cùng nếu có trùng (hy hữu)
+            idx = existing_indices[-1]
             df.at[idx, 'close'] = match_price
             df.at[idx, 'high'] = max(df.at[idx, 'high'], match_price)
             df.at[idx, 'low'] = min(df.at[idx, 'low'], match_price)
         else:
-            last_idx = df.index[-1]
             last_ts = int(df.at[last_idx, 'time'])
-            
             if last_ts < current_candle_ts:
-                # Append new candle for the new week
+                # Append nến mới
                 new_row = {
                     'time': current_candle_ts,
                     'open': match_price,
@@ -157,11 +170,9 @@ def patch_realtime_data(df, match_price, chart_type):
                     'close': match_price,
                     'volume': 0,
                 }
-                # Copy other fields if they exist (like id)
                 for col in df.columns:
                     if col not in new_row:
                         new_row[col] = df.at[last_idx, col]
-                
                 df.loc[len(df)] = new_row
             
     except Exception as e:
