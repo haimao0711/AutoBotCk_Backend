@@ -202,8 +202,11 @@ class DownloadService:
                         # Đặt time làm index để resample
                         df.set_index('time', inplace=True)
 
-                        # Resample tuần: open = first, high = max, low = min, close = last, volume = sum
-                        weekly_df = df.resample('W-MON', closed='left', label='left').agg({
+                        # Tính toán ngày đầu tuần (Thứ 2) cho mỗi dòng
+                        df['week_start'] = df.index.to_period('W-SUN').start_time
+                        
+                        # Group by tuần và aggregate
+                        weekly_df = df.groupby('week_start').agg({
                             'open': 'first',
                             'high': 'max',
                             'low': 'min',
@@ -213,7 +216,8 @@ class DownloadService:
 
                         # Reset index và chuyển time về timestamp giây theo đúng timezone
                         weekly_df = weekly_df.reset_index()
-                        weekly_df['time'] = weekly_df['time'].dt.tz_localize('Asia/Ho_Chi_Minh').astype('int64') // 10**9  # chuyển datetime về timestamp
+                        weekly_df.rename(columns={'week_start': 'time'}, inplace=True)
+                        weekly_df['time'] = weekly_df['time'].dt.tz_localize('Asia/Ho_Chi_Minh').astype('int64') // 10**9
 
                         # Đổi tên cột giống format cũ
                         weekly_df.rename(columns={
