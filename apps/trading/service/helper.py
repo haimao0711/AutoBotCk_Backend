@@ -39,6 +39,8 @@ def append_messages_to_return(messages: List[str], base_message: str) -> str:
 
 
 def adding_idicator(df: pd.DataFrame):
+    if df is None or df.empty:
+        return
     length_rsi = 14
     rsi = RSIIndicator(close=df["close"], window=length_rsi)
     rsi_values = rsi.rsi()

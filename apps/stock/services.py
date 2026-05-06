@@ -191,7 +191,7 @@ class DownloadService:
 
                         # Tạo DataFrame ban đầu, đảm bảo chuyển đổi đúng timestamp (giờ địa phương)
                         df = pd.DataFrame({
-                            'time': pd.to_datetime(json_data['t'], unit='s', utc=True).dt.tz_convert('Asia/Ho_Chi_Minh').dt.tz_localize(None),
+                            'time': pd.to_datetime(json_data['t'], unit='s', utc=True).tz_convert('Asia/Ho_Chi_Minh').tz_localize(None),
                             'open': json_data['o'],
                             'high': json_data['h'],
                             'low': json_data['l'],
