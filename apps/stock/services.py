@@ -189,9 +189,9 @@ class DownloadService:
                         json_data = res.json()
                         json_data.pop('s', None)
 
-                        # Tạo DataFrame ban đầu
+                        # Tạo DataFrame ban đầu, đảm bảo chuyển đổi đúng timestamp (giờ địa phương)
                         df = pd.DataFrame({
-                            'time': pd.to_datetime(json_data['t'], unit='s'),
+                            'time': pd.to_datetime(json_data['t'], unit='s', utc=True).dt.tz_convert('Asia/Ho_Chi_Minh').dt.tz_localize(None),
                             'open': json_data['o'],
                             'high': json_data['h'],
                             'low': json_data['l'],
@@ -203,7 +203,7 @@ class DownloadService:
                         df.set_index('time', inplace=True)
 
                         # Resample tuần: open = first, high = max, low = min, close = last, volume = sum
-                        weekly_df = df.resample('W').agg({
+                        weekly_df = df.resample('W-MON', closed='left', label='left').agg({
                             'open': 'first',
                             'high': 'max',
                             'low': 'min',
@@ -211,9 +211,9 @@ class DownloadService:
                             'volume': 'sum'
                         }).dropna()
 
-                        # Reset index và chuyển time về timestamp giây
+                        # Reset index và chuyển time về timestamp giây theo đúng timezone
                         weekly_df = weekly_df.reset_index()
-                        weekly_df['time'] = weekly_df['time'].astype('int64') // 10**9  # chuyển datetime về timestamp
+                        weekly_df['time'] = weekly_df['time'].dt.tz_localize('Asia/Ho_Chi_Minh').astype('int64') // 10**9  # chuyển datetime về timestamp
 
                         # Đổi tên cột giống format cũ
                         weekly_df.rename(columns={
