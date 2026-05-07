@@ -114,7 +114,8 @@ def patch_realtime_data(df, match_price, chart_type):
         
         if chart_type == CandleEnum.W1:
             # Sử dụng to_period('W-SUN') giống hệt services.py để tìm đúng Thứ 2
-            start_time = now.to_period('W-SUN').start_time
+            # Cần convert 'now' (datetime) sang pd.Timestamp để dùng to_period
+            start_time = pd.Timestamp(now).to_period('W-SUN').start_time
         elif chart_type == CandleEnum.D1:
             start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif chart_type == CandleEnum.H1:

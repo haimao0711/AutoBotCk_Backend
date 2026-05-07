@@ -1820,9 +1820,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             if is_buy_following and not is_buy:
                 send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
             
-            if symbol in ['MWG', 'FTS']:
-                send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
-            is_send_order_buy = False   
+            # if symbol in ['MWG', 'FTS']:
+            #     send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
+            # is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_SUCCESS:
                 logger.info(f'bắt đầu hàm đặt lệnh buy {symbol} (Đã có lock từ đầu)')                
                 
