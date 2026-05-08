@@ -871,9 +871,14 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             volume -= int(res_buy['volume'])
                             number_order -= 1
                         else:
-                            logger.info(f"Error: lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng")
+                            msg_error = f"Error: lệnh mua nhạy cảm handle_buy_service của {symbol} có phản hồi là rỗng"
+                            logger.info(msg_error)
+                            send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
                     else:
-                        logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
+                        if volume < 100:
+                            logger.info(f'Mã {symbol} đạt khối lượng tối đa hoặc khối lượng quá nhỏ (< 100)') 
+                        else:
+                            logger.info(f'Bắt đầu quy trình đặt lệnh mua chia nhỏ cho {symbol}')
                         logger.info(f'volume_to_buy {symbol}: {volume_to_buy}')
                         logger.info(f'volume_set_buy {symbol}: {volume}')
                 # Chia đều phần còn lại của volume to buy
@@ -900,8 +905,12 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                     }                
                                     buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
                                                     **buy_order_details_attrs })                            
+                                else:
+                                    msg_error = f"Lệnh mua lần thứ {i+1} cho {symbol} thất bại (API không phản hồi hoặc trả về rỗng)"
+                                    logger.error(f"Error: {msg_error}")
+                                    send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
                             else:
-                                logger.info(f"Error: lệnh mua lần thứ {i+1} hàm handle_buy_service  của {symbol} có phản hồi là rỗng") 
+                                logger.info(f"Bỏ qua lệnh mua lần thứ {i+1} của {symbol} do volume_buy < 100 ({volume_buy})") 
                             volume -= volume_buy
                     else:
                         logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
