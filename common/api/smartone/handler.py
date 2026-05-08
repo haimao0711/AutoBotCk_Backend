@@ -225,7 +225,7 @@ def handle_cash_balance_service(user_account, trade_account, url, session, asp_n
 
     else:
         request_new_session()
-        return []
+        return {}
 
 
 def handle_stock_balance_service(user_account, trade_account, symbol, url, session, asp_net_session, side):

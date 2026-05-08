@@ -157,7 +157,10 @@ def extract_stock_balance_object(object: list):
 #         'cash_available': float(object['ee_available_tk']) # hạn mức ứng tiền
 #     }
 
-def extract_cash_balance_object(object: CashData): 
+def extract_cash_balance_object(object: any): 
+    if isinstance(object, list):
+        object = object[0] if object else {}
+        
     return {
         'symbol': 'VND',
         'cash_balance': float(object.get('cash_balance', 0)),   # tiền mặt có thể rút VND
