@@ -17,7 +17,7 @@ def convert_text_to_dict(data_class, data: Dict[str, Any]):
 
 def validate_response(object: ResponseSmartOneType) -> ResponseAPISmartOneEnum:
     response_code = object.get('rc', None)
-    if response_code == 1:
+    if response_code is not None:
         for item in ResponseAPISmartOneEnum:
             if item.value == response_code:
                 return item
@@ -38,6 +38,8 @@ def request_new_session():
 
 
 def extract_buy_object(object: OrderData):
+    if not object or len(object) == 0:
+        return {}
     volume = int(object[0]['volume'])
     matchVolume = int(object[0]['matchVolume'])
     if matchVolume > 0:
@@ -62,6 +64,8 @@ def extract_buy_object(object: OrderData):
 
 
 def extract_sell_object(object: OrderData):
+    if not object or len(object) == 0:
+        return {}
     volume = int(object[0]['volume'])
     matchVolume = int(object[0]['matchVolume'])
     if matchVolume > 0:

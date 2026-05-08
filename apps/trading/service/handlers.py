@@ -20,7 +20,7 @@ from apps.trading.service.constants import VALID_TIME_REQUEST_BUY, VALID_TIME_RE
 from apps.trading.service.download import download_data, download_sales_volume
 from apps.trading.service.helper import (render_message, round_to_nearest_hundred, should_sell_take_profit, should_take_profit_bolinger, is_valid_time_to_buy, is_valid_time_to_sell,
                                          send_telegram_message, send_telegram_message_batch, should_buy, should_buy_following, should_buy_trading, should_sell, should_sell_trading)
-from apps.trading.service.utils import round_up_to_unit, revert_status_request_trade
+from apps.trading.service.utils import round_up_to_unit, round_to_unit, revert_status_request_trade
 from apps.telegram.sender import send_message, send_message_telegram
 
 # from apps.balance.services import BalanceService
@@ -534,20 +534,59 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 return
             
             # Đã lock thành công
+            # Đã lock thành công
             is_update_success = True
-
-            if not is_use_chart_action:
-                logger.info(f'Xu ly lenh mua ngay {symbol}')
-                # Tải dữ liệu       
-                vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
+            
+            # --- CHUẨN BỊ DỮ LIỆU CHUNG ---
+            def prepare_data_for_buy():
+                close_old_connections()
+                # Tải dữ liệu chính
+                v_trading, v_following, s_trading, s_following = download_data(
                     stock=stock,
                     vnindex_stock=vnindex_stock,
                     trading_chart_type=trading_chart_type,
                     following_chart_type=following_chart_type
                 )
+                
+                # Tải dữ liệu lần 2 (nếu có)
+                s_trading_second, s_following_second = None, None
+                is_use_second = getattr(getattr(trading_config, 'candle_second', None), 'candle', 'OFF') != 'OFF' or \
+                               getattr(getattr(following_config, 'candle_second', None), 'candle', 'OFF') != 'OFF'
+                if is_use_second:
+                    _, _, s_trading_second, s_following_second = download_data(
+                        stock=stock, 
+                        vnindex_stock=vnindex_stock, 
+                        trading_chart_type=trading_chart_type_second, 
+                        following_chart_type=following_chart_type_second
+                    )
+                
+                # Cập nhật dữ liệu Real-time (Foreign, Volume trade)
+                if s_trading is not None:
+                    p_buy_trade = getattr(overview_config, 'percent_buy_trade', 10.0)
+                    sales_data = download_sales_volume(symbol=symbol)
+                    v_buy_foreign = 0
+                    if sales_data:
+                        buyForeignQtty = int(sales_data.get('buyForeignQtty', 0))
+                        sellForeignQtty = int(sales_data.get('sellForeignQtty', 0))
+                        total_foreign = buyForeignQtty + sellForeignQtty
+                        if total_foreign > 0:
+                            v_buy_foreign = round((buyForeignQtty / total_foreign) * 100, 2)
+                    
+                    # Patching
+                    for df_tmp in [s_trading, s_following, s_trading_second, s_following_second]:
+                        if df_tmp is not None:
+                            df_tmp.loc[df_tmp.index[-3:], 'volume_trade'] = p_buy_trade
+                            df_tmp.loc[df_tmp.index[-3:], 'buy_foreign'] = v_buy_foreign
+                
+                return v_trading, v_following, s_trading, s_following, s_trading_second, s_following_second
+
+            if not is_use_chart_action:
+                logger.info(f'Xu ly lenh mua ngay {symbol}')
+                vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following, stock_data_trading_second, stock_data_following_second = prepare_data_for_buy()
+                
                 if stock_data_trading is None:
-                    logger.info('Download data không thành công (chart action), bỏ qua!')
-                    message_download = f'Không tải được dữ liệu mã {symbol} từ Chart Action, hủy yêu cầu mua tay. Vui lòng thử lại sau ít phút'
+                    logger.info('Download data không thành công (Mua ngay), bỏ qua!')
+                    message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu mua tay. Vui lòng thử lại sau ít phút'
                     send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
                     send_message_telegram(user, MessageTypeEnum.ACT, message_download)
                     return
@@ -594,32 +633,13 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 if last_buy_check_time is None or (now - last_buy_check_time).total_seconds() >= 60:
                     last_buy_check_time = now
 
-                    # === XỬ LÝ MUA ===     
-                    # Tải dữ liệu lần 1       
-                    vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
-                        stock=stock,
-                        vnindex_stock=vnindex_stock,
-                        trading_chart_type=trading_chart_type,
-                        following_chart_type=following_chart_type
-                    )
-                    # Tải dữ liệu lần 2 (Conditional)
-                    vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = None, None, None, None
-                    if getattr(getattr(trading_config, 'candle_second', None), 'candle', 'OFF') != 'OFF' or getattr(getattr(following_config, 'candle_second', None), 'candle', 'OFF') != 'OFF':
-                        vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
-                            stock=stock, 
-                            vnindex_stock=vnindex_stock, 
-                            trading_chart_type=trading_chart_type_second, 
-                            following_chart_type=following_chart_type_second
-                        )
-                    if stock_data_trading is None:
-                        logger.info('Download data không thành công, bỏ qua!')
-                        message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu mua tay. Vui lòng thử lại sau ít phút'
-                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
-                        send_message_telegram(user, MessageTypeEnum.ACT, message_download)
-                        return
+                    vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following, stock_data_trading_second, stock_data_following_second = prepare_data_for_buy()
 
-                    price_to_start = (
-                        stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close']) / 2
+                    if stock_data_trading is None:
+                        logger.info('Download data không thành công (Vòng lặp), bỏ qua!')
+                        continue
+
+                    price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close']) / 2
 
                     # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
                     try:
@@ -652,26 +672,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                 stock = refreshed_stock
                     except Exception as e:
                         logger.info(f'Lỗi khi lấy lại cấu hình cho {symbol}: {e}')
-                        connection.close()
                         # Tiếp tục dùng config cũ nếu lỗi
-
-                    percent_buy_trade = getattr(overview_config, 'percent_buy_trade', 10.0)
-                    sales_data = download_sales_volume(symbol=symbol)
-                    value_buy_foreign = 0
-                    if sales_data:
-                        buyForeignQtty = int(sales_data.get('buyForeignQtty', 0))
-                        sellForeignQtty = int(sales_data.get('sellForeignQtty', 0))
-                        total_foreign = buyForeignQtty + sellForeignQtty
-                        if total_foreign > 0:
-                            value_buy_foreign = round((buyForeignQtty / total_foreign) * 100, 2)
-                    
-                    stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign
-                    stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
-                    stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign
-                    stock_data_following_second.loc[stock_data_following_second.index[-3:], 'volume_trade'] = percent_buy_trade
-                    
-                    stock_data_trading.loc[stock_data_trading.index[-3:], 'volume_trade'] = percent_buy_trade
-                    stock_data_trading_second.loc[stock_data_trading_second.index[-3:], 'volume_trade'] = percent_buy_trade
 
                     is_buy, buy_reason = should_buy_trading(
                         trading_config=trading_config,
@@ -800,7 +801,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 is_valid_session, session_result = validate_session(user_name, account, request_url, session, asp_net_session)
                 current_total_market_value = session_result.get("total_market_value", 0) if is_valid_session else 0
                 
-                cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
+                cash_balance_res = handle_cash_balance_service(user_name, account, request_url, session, asp_net_session)
+                cash_balance = cash_balance_res.get('cash_balance', 0) if cash_balance_res else 0
+                logger.info(f"Debug Buy Session: is_valid_session={is_valid_session}, cash_balance={cash_balance}, price_set_buy={price_set_buy}")
                 volume_to_buy = overview_config.volume_to_buy        
                 #Kiểm tra đk số cổ phiếu giới hạn, khối lượng mua còn lại, tiền mặt, và tổng giá trị thị trường
                 if current_total_market_value >= max_total_market_value:
@@ -821,7 +824,13 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     return
                 else: 
                     volume_buy_balance =  int(volume_to_buy - stock_balance)
-                    volume = min(((int(volume_to_buy * percent_first_buy) + 99) // 100) * 100,(volume_buy_balance // 100) * 100)
+                    volume_calc = min(((int(volume_to_buy * percent_first_buy) + 99) // 100) * 100,(volume_buy_balance // 100) * 100)
+                    
+                    # Ensure we don't exceed cash balance
+                    max_volume_by_cash = (cash_balance // price_set_buy // 100) * 100 if price_set_buy > 0 else 0
+                    volume = min(volume_calc, max_volume_by_cash)
+                    
+                    logger.info(f"Debug Buy Volume Calculation: volume_to_buy={volume_to_buy}, stock_balance={stock_balance}, volume_calc={volume_calc}, max_volume_by_cash={max_volume_by_cash}, final_volume={volume}")
                     buy_order_overrall_attrs = {
                         'user_account': account,
                         'stock': symbol,
@@ -853,7 +862,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         
                         buy_order_attrs_send = {
                             'stock': symbol,
-                            'price': round(price_set_buy, 2),
+                            'price': round_to_unit(price_set_buy, step_price),
                             'volume': int(volume_buy_sensitive)
                         }
                         logger.info(f'buy_order_attrs_send {symbol}: {buy_order_attrs_send}')
@@ -892,8 +901,13 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                 volume_buy = round_to_nearest_hundred(volume)
                         #Gửi các lệnh buy
                             ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                            price = round(price_set_buy - add_price_buy - i*step_price, 2) if round(start_price - add_price_buy - i*step_price, 2) > floor_price else round(floor_price, 2)
+                            price_raw = price_set_buy - add_price_buy - i*step_price
+                            price = round_to_unit(price_raw, step_price)
+                            if price < floor_price:
+                                price = round(floor_price, 2)
+                            
                             if volume_buy >= 100:
+                                logger.info(f"Thực hiện lệnh mua lần thứ {i+1} cho {symbol}: Price={price}, Volume={volume_buy}, RefID={ref_id}")
                                 res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_buy, ref_id)
                                 if res_buy:
                                     is_send_order_buy = True
@@ -1149,17 +1163,45 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             
             is_update_success = True
             
-            if not is_use_chart_action:
-                logger.info(f'Xu ly lenh ban ngay {symbol}')
-                # Tải dữ liệu lần 1
-                vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
+            # --- CHUẨN BỊ DỮ LIỆU CHUNG ---
+            def prepare_data_for_sell():
+                close_old_connections()
+                # Tải dữ liệu chính
+                v_trading, v_following, s_trading, s_following = download_data(
                     stock=stock, 
                     vnindex_stock=vnindex_stock, 
                     trading_chart_type=trading_chart_type_sell, 
-                    following_chart_type=following_chart_type_sell,
+                    following_chart_type=following_chart_type_sell
                 )
+                
+                # Tải dữ liệu lần 2 (nếu có)
+                s_trading_second, s_following_second = None, None
+                is_use_second = getattr(getattr(trading_config, 'candle_second', None), 'candle', 'OFF') != 'OFF' or \
+                               getattr(getattr(following_config, 'candle_second', None), 'candle', 'OFF') != 'OFF'
+                if is_use_second:
+                    _, _, s_trading_second, s_following_second = download_data(
+                        stock=stock, 
+                        vnindex_stock=vnindex_stock, 
+                        trading_chart_type=trading_chart_type_sell_second, 
+                        following_chart_type=following_chart_type_sell_second
+                    )
+                
+                # Cập nhật dữ liệu Real-time (Volume trade)
+                if s_trading is not None:
+                    p_buy_trade = getattr(overview_config, 'percent_buy_trade', 10.0)
+                    # Patching
+                    for df_tmp in [s_trading, s_following, s_trading_second, s_following_second]:
+                        if df_tmp is not None:
+                            df_tmp.loc[df_tmp.index[-3:], 'volume_trade'] = p_buy_trade
+                
+                return v_trading, v_following, s_trading, s_following, s_trading_second, s_following_second
+
+            if not is_use_chart_action:
+                logger.info(f'Xu ly lenh ban ngay {symbol}')
+                vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following, stock_data_trading_second, stock_data_following_second = prepare_data_for_sell()
+
                 if stock_data_trading is None:
-                    logger.info('Download data không thành công, bỏ qua!')
+                    logger.info('Download data không thành công (Bán ngay), bỏ qua!')
                     message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu bán tay. Vui lòng thử lại sau ít phút!'
                     send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
                     send_message_telegram(user, MessageTypeEnum.ACT, message_download)
@@ -1206,32 +1248,14 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 if last_buy_check_time is None or (now - last_buy_check_time).total_seconds() >= 60:
                     last_buy_check_time = now
 
-                    # === XỬ LÝ BÁN ===
-                    # Tải dữ liệu lần 1
-                    vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
-                        stock=stock, 
-                        vnindex_stock=vnindex_stock, 
-                        trading_chart_type=trading_chart_type_sell, 
-                        following_chart_type=following_chart_type_sell,
-                    )
-                    # Tải dữ liệu lần 2 (Conditional sell)
-                    vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = None, None, None, None
-                    if getattr(getattr(trading_config, 'candle_second', None), 'candle', 'OFF') != 'OFF' or getattr(getattr(following_config, 'candle_second', None), 'candle', 'OFF') != 'OFF':
-                        vnindex_data_trading_second, vnindex_data_following_second, stock_data_trading_second, stock_data_following_second = download_data(
-                            stock=stock, 
-                            vnindex_stock=vnindex_stock, 
-                            trading_chart_type=trading_chart_type_sell_second, 
-                            following_chart_type=following_chart_type_sell_second
-                        )
+                    vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following, stock_data_trading_second, stock_data_following_second = prepare_data_for_sell()
+
                     if stock_data_trading is None:
-                        logger.info('Download data không thành công, bỏ qua!')
-                        message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu bán tay. Vui lòng thử lại sau ít phút!'
-                        send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
-                        send_message_telegram(user, MessageTypeEnum.ACT, message_download)
-                        return
+                        logger.info('Download data không thành công (Vòng lặp Bán), bỏ qua!')
+                        continue
+
                     logger.info('Download data thành công!')
-                    price_to_start = (
-                        stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
+                    price_to_start = (stock_data_trading.iloc[-1]['open'] + stock_data_trading.iloc[-1]['close'])/2
                 
                     # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
                     try:
@@ -1264,16 +1288,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                 stock = refreshed_stock
                     except Exception as e:
                         logger.info(f'Lỗi khi lấy lại cấu hình cho {symbol}: {e}')
-                        connection.close()
                         # Tiếp tục dùng config cũ nếu lỗi
-                
-                    percent_buy_trade = getattr(overview_config, 'percent_buy_trade', 10.0)
-                    
-                    stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
-                    stock_data_following_second.loc[stock_data_following_second.index[-3:], 'volume_trade'] = percent_buy_trade
-                    
-                    stock_data_trading.loc[stock_data_trading.index[-3:], 'volume_trade'] = percent_buy_trade
-                    stock_data_trading_second.loc[stock_data_trading_second.index[-3:], 'volume_trade'] = percent_buy_trade
 
                     is_sell, sell_reason = should_sell_trading(
                         trading_config=trading_config,
@@ -1419,9 +1434,10 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                         volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100                        
                         sell_order_attrs_send = {
                             'stock': symbol,
-                            'price': round(price_set_sell, 2),
+                            'price': round_to_unit(price_set_sell, step_price),
                             'volume': int(volume_sell_sensitive)
                         }
+                        logger.info(f"Thực hiện lệnh bán nhạy cảm cho {symbol}: Price={sell_order_attrs_send['price']}, Volume={sell_order_attrs_send['volume']}, RefID={ref_id}")
                         res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
                         if res_sell:
                             is_send_order_sell = True
@@ -1448,9 +1464,13 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                 volume_sell = round_to_nearest_hundred(volume / divisor) if volume % 100 != 0 else int(volume)
                             volume -= volume_sell
                             #Gửi các lệnh sell
-                            ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                            price = round(price_set_sell + add_price_sell + i*step_price, 2) if round(price_set_sell + add_price_sell + i*step_price, 2) < ceil_price else round(ceil_price, 2)
+                            price_raw = price_set_sell + add_price_sell + i*step_price
+                            price = round_to_unit(price_raw, step_price)
+                            if price > ceil_price:
+                                price = round(ceil_price, 2)
+                                
                             if volume_sell >= 100:
+                                logger.info(f"Thực hiện lệnh bán lần thứ {i+1} cho {symbol}: Price={price}, Volume={volume_sell}, RefID={ref_id}")
                                 res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_sell, ref_id)
                                 if res_sell:
                                     is_send_order_sell = True
@@ -1462,8 +1482,12 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                     }                
                                     sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
                                                         **sell_order_details_attrs })
+                                else:
+                                    msg_error = f"Lệnh bán lần thứ {i+1} cho {symbol} thất bại (API không phản hồi hoặc trả về rỗng)"
+                                    logger.error(f"Error: {msg_error}")
+                                    send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
                             else:
-                                logger.info(f"Error: lệnh bán lần thứ {i+1} hàm handle_sell_service  của {symbol} có phản hồi là rỗng") 
+                                logger.info(f"Bỏ qua lệnh bán lần thứ {i+1} của {symbol} do volume_sell < 100 ({volume_sell})") 
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
                     if is_send_order_sell:
                         send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)

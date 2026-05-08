@@ -1,5 +1,8 @@
 from common.api.smartone.enums import ResponseAPISmartOneEnum
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 from common.api.smartone.api import (buy_stock_smart_one, cancel_order_smart_one, get_cash_balance, get_stock_balance, get_account_status,
                  get_transaction, get_orders_status, sell_stock_smart_one, update_order_smart_one)
@@ -22,6 +25,7 @@ def handle_buy_service(user_account: str, trade_account: str, url: str, symbol: 
         return extract_buy_object(object=data)
 
     else:
+        logger.error(f"API Buy Error: {buy_object.get('rs')} (rc: {buy_object.get('rc')}) for {symbol}")
         request_new_session()
         return {}
 
@@ -37,6 +41,7 @@ def handle_sell_service(user_account: str, trade_account: str, url: str, symbol:
         data = sell_object.get('data', [])
         return extract_sell_object(object=data)
     else:
+        logger.error(f"API Sell Error: {sell_object.get('rs')} (rc: {sell_object.get('rc')}) for {symbol}")
         request_new_session()
         return {}
 

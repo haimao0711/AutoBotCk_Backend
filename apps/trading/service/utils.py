@@ -200,6 +200,11 @@ def round_up_to_unit(val1: float, val2: float, unit: float) -> float:
 
     return rounded_up
 
+def round_to_unit(value: float, unit: float) -> float:
+    if unit == 0:
+        return value
+    return round(value / unit) * unit
+
 def revert_status_request_trade(user, stock_id, reset_is_trading=True):
     from apps.configuration.details.overview.views import ConfigurationOverviewRequestViews
     from django.db import connection
