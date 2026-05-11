@@ -891,41 +891,50 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         logger.info(f'volume_to_buy {symbol}: {volume_to_buy}')
                         logger.info(f'volume_set_buy {symbol}: {volume}')
                 # Chia đều phần còn lại của volume to buy
-                    number_order = min(number_order, volume // 100)
-                    if volume >=100:
-                        for i in range(int(number_order)):
-                            divisor = number_order - i
-                            if i != int(number_order) - 1:
+                    if volume >= 100:
+                        number_to_order = int(number_order)
+                        for i in range(number_to_order):
+                            divisor = number_to_order - i
+                            if i != number_to_order - 1:
                                 volume_buy = round_to_nearest_hundred(volume / divisor)
                             else:
                                 volume_buy = round_to_nearest_hundred(volume)
-                        #Gửi các lệnh buy
-                            ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                            price_raw = price_set_buy - add_price_buy - i*step_price
-                            price = round_to_unit(price_raw, step_price)
+                            
+                            # Gửi các lệnh buy với ref_id duy nhất bằng cách thêm index
+                            ref_id = f"{user_name}.I.buy.{int(time.time()*1000)}.{i}"
+                            # Làm tròn giá cơ sở (snap to unit) trước khi rải để đảm bảo các mức giá khác nhau
+                            base_price_buy = round_to_unit(price_set_buy - add_price_buy, step_price)
+                            price = round_to_unit(base_price_buy - i * step_price, step_price)
+                            
                             if price < floor_price:
                                 price = round(floor_price, 2)
                             
                             if volume_buy >= 100:
-                                logger.info(f"Thực hiện lệnh mua lần thứ {i+1} cho {symbol}: Price={price}, Volume={volume_buy}, RefID={ref_id}")
-                                res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_buy, ref_id)
+                                logger.info(f"Thực hiện lệnh mua lần thứ {i+1}/{number_to_order} cho {symbol}: Price={price}, Volume={volume_buy}, RefID={ref_id}")
+                                res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price, volume_buy, ref_id)
                                 if res_buy:
                                     is_send_order_buy = True
                                     buy_order_details_attrs = {
-                                    'stock': res_buy['symbol'],
-                                    'price': round(res_buy['price'], 2),
-                                    'volume': res_buy['volume'],
-                                    'status': res_buy['status'],
-                                    }                
-                                    buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
-                                                    **buy_order_details_attrs })                            
+                                        'stock': res_buy['symbol'],
+                                        'price': round(res_buy['price'], 2),
+                                        'volume': res_buy['volume'],
+                                        'status': res_buy['status'],
+                                    }
+                                    buy_messages.append({
+                                        'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
+                                        **buy_order_details_attrs
+                                    })
+                                    # Chỉ trừ volume khi đặt lệnh thành công
+                                    volume -= int(res_buy['volume'])
                                 else:
                                     msg_error = f"Lệnh mua lần thứ {i+1} cho {symbol} thất bại (API không phản hồi hoặc trả về rỗng)"
                                     logger.error(f"Error: {msg_error}")
                                     send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
                             else:
-                                logger.info(f"Bỏ qua lệnh mua lần thứ {i+1} của {symbol} do volume_buy < 100 ({volume_buy})") 
-                            volume -= volume_buy
+                                logger.info(f"Bỏ qua lệnh mua lần thứ {i+1} của {symbol} do volume_buy < 100 ({volume_buy})")
+                            
+                            # Thêm delay nhỏ để tránh trùng ref_id và spam API quá nhanh
+                            time.sleep(0.2)
                     else:
                         logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh mua
@@ -1455,23 +1464,26 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             logger.info(f"Error: lệnh bán nhạy cảm handle_sell_service  của {symbol} phản hồi là rỗng") 
                 # Chia đều phần còn lại của volume to sell
                     if volume >= 100:
-                        number_order = min(number_order, volume // 100)
-                        for i in range(int(number_order)):
-                            divisor = number_order - i
-                            if i != int(number_order) - 1:
-                                volume_sell = round_to_nearest_hundred(volume / divisor)
+                        number_to_order = int(number_order)
+                        for i in range(number_to_order):
+                            divisor = number_to_order - i
+                            if i != number_to_order - 1:
+                                volume_sell_step = round_to_nearest_hundred(volume / divisor)
                             else:
-                                volume_sell = round_to_nearest_hundred(volume / divisor) if volume % 100 != 0 else int(volume)
-                            volume -= volume_sell
-                            #Gửi các lệnh sell
-                            price_raw = price_set_sell + add_price_sell + i*step_price
-                            price = round_to_unit(price_raw, step_price)
+                                volume_sell_step = int(volume)
+                            
+                            # Gửi các lệnh sell với ref_id duy nhất
+                            ref_id = f"{user_name}.I.sell.{int(time.time()*1000)}.{i}"
+                            # Làm tròn giá cơ sở (snap to unit) trước khi rải để đảm bảo các mức giá khác nhau
+                            base_price_sell = round_to_unit(price_set_sell + add_price_sell, step_price)
+                            price = round_to_unit(base_price_sell + i * step_price, step_price)
+                            
                             if price > ceil_price:
                                 price = round(ceil_price, 2)
                                 
-                            if volume_sell >= 100:
-                                logger.info(f"Thực hiện lệnh bán lần thứ {i+1} cho {symbol}: Price={price}, Volume={volume_sell}, RefID={ref_id}")
-                                res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_sell, ref_id)
+                            if volume_sell_step >= 100:
+                                logger.info(f"Thực hiện lệnh bán lần thứ {i+1}/{number_to_order} cho {symbol}: Price={price}, Volume={volume_sell_step}, RefID={ref_id}")
+                                res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price, volume_sell_step, ref_id)
                                 if res_sell:
                                     is_send_order_sell = True
                                     sell_order_details_attrs = {
@@ -1479,15 +1491,22 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                         'price': round(res_sell['price'], 2),
                                         'volume': res_sell['volume'],
                                         'status': res_sell['status'],
-                                    }                
-                                    sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
-                                                        **sell_order_details_attrs })
+                                    }
+                                    sell_messages.append({
+                                        'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
+                                        **sell_order_details_attrs
+                                    })
+                                    # Chỉ trừ volume khi đặt lệnh thành công
+                                    volume -= int(res_sell['volume'])
                                 else:
                                     msg_error = f"Lệnh bán lần thứ {i+1} cho {symbol} thất bại (API không phản hồi hoặc trả về rỗng)"
                                     logger.error(f"Error: {msg_error}")
                                     send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
                             else:
-                                logger.info(f"Bỏ qua lệnh bán lần thứ {i+1} của {symbol} do volume_sell < 100 ({volume_sell})") 
+                                logger.info(f"Bỏ qua lệnh bán lần thứ {i+1} của {symbol} do volume_sell < 100 ({volume_sell_step})")
+                            
+                            # Thêm delay nhỏ
+                            time.sleep(0.2)
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
                     if is_send_order_sell:
                         send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)
