@@ -746,6 +746,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
                 logger.info(f'bắt đầu hàm đặt lệnh mua tay {symbol}')
+                buy_messages = [] # Danh sách lưu trữ các tin nhắn chi tiết của lô lệnh
                 timezone = pytz.timezone('Asia/Ho_Chi_Minh')
                 if stock_data_trading is None or stock_data_trading.empty:
                     logger.info('Không có dữ liệu trading để xác định giá, hủy lệnh mua tay.')
@@ -832,6 +833,15 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     current_batch_order_nums = [] # Lưu các mã lệnh của phiên hiện tại
                     
                     logger.info(f"Debug Buy Volume Calculation: volume_to_buy={volume_to_buy}, stock_balance={stock_balance}, volume_calc={volume_calc}, max_volume_by_cash={max_volume_by_cash}, final_volume={volume}")
+                    buy_attrs = {
+                        "user_account": account,
+                        "platform_trading": "Smart One",
+                        "stock": stock.name,
+                        "level": level,
+                        "price": price_set_buy,
+                        "message": "Yêu cầu mua tay thành công, bắt đầu đặt lệnh...",
+                        "start_time_order": start_time_order,
+                    }
                     buy_order_overrall_attrs = {
                         'user_account': account,
                         'stock': symbol,
@@ -1450,6 +1460,16 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 volume_balance = (available_vol // 100) * 100
                 half = volume_balance / 2
                 volume = int(volume_balance) if volume_sell == 'all' else int(half + 50) if half % 100 == 50 else int(half)
+                sell_messages = []
+                sell_attrs = {
+                    "user_account": account,
+                    "platform_trading": "Smart One",
+                    "stock": stock.name,
+                    "volume": volume,
+                    "price": price_set_sell,
+                    "message": "Yêu cầu bán tay thành công, bắt đầu đặt lệnh...",
+                    "start_time_order": start_time_order,
+                }
                 sell_order_overrall_attrs = {
                     'user_account': account,
                     'stock': symbol,
@@ -1464,7 +1484,6 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                     'number_order': int(number_order),
                     'start_time_order': start_time_order
                 }
-                sell_messages = []
                 sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_OVERRAL,
                                     **sell_order_overrall_attrs })
             
