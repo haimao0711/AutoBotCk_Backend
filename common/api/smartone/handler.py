@@ -16,6 +16,9 @@ def handle_buy_service(user_account: str, trade_account: str, url: str, symbol: 
     
     buy_res = buy_stock_smart_one(
         user_account, trade_account, url, symbol, session, asp_net_session, price, volume, ref_id)
+    if buy_res is None:
+        logger.error(f"API Buy Error: Không nhận được phản hồi từ máy chủ cho {symbol}")
+        return {}
     buy_text = buy_res.text
     buy_object = json.loads(buy_text)
     response_type = validate_response(buy_object)
@@ -33,6 +36,9 @@ def handle_buy_service(user_account: str, trade_account: str, url: str, symbol: 
 def handle_sell_service(user_account: str, trade_account: str, url: str, symbol: str, session: str, asp_net_session: str, price: float, volume: float, ref_id: str):
     sell_res = sell_stock_smart_one(
         user_account, trade_account, url, symbol, session, asp_net_session, price, volume, ref_id)
+    if sell_res is None:
+        logger.error(f"API Sell Error: Không nhận được phản hồi từ máy chủ cho {symbol}")
+        return {}
     sell_text = sell_res.text
     sell_object = json.loads(sell_text)
     response_type = validate_response(sell_object)
@@ -56,6 +62,8 @@ def handle_update_order_service(user_account, trade_account, url, symbol, sessio
             asp_net_session, order_num, price, price_value,
             update_volume, ref_id, side
         )
+        if res is None:
+            return ResponseAPISmartOneEnum.FAILED, {}
         obj = json.loads(res.text)
         return validate_response(obj), obj
 
@@ -86,6 +94,9 @@ def handle_update_order_service(user_account, trade_account, url, symbol, sessio
 def handle_cancel_order_service(user_account, url, session, asp_net_session, order_num, ref_id ):
     cancel_order_res = cancel_order_smart_one(
         user_account, url, session, asp_net_session, order_num, ref_id)
+    if cancel_order_res is None:
+        logger.error("API Cancel Error: Không nhận được phản hồi từ máy chủ")
+        return {}
     cancel_order_text = cancel_order_res.text
     cancel_order_object = json.loads(cancel_order_text)
     response_type = validate_response(cancel_order_object)
@@ -161,7 +172,9 @@ def handle_orders_not_matched(user_account, trade_account, symbol, url, valid_se
 def handle_orders_matched(user_account, trade_account, symbol, url, valid_session, asp_net_session, side):   
     data_res = get_orders_status(
         user_account, trade_account, url, valid_session, asp_net_session, "MATCH" )
-   
+    if data_res is None:
+        logger.info("Không nhận được phản hồi từ API get_orders_status (MATCH).")
+        return []
     data_text = data_res.text
     data_object = json.loads(data_text)
     response_type = validate_response(data_object)
@@ -215,6 +228,9 @@ def handle_transaction_service(user_account, trade_account, url, valid_session, 
 def handle_cash_balance_service(user_account, trade_account, url, session, asp_net_session):
     cash_balance_res = get_cash_balance(
         user_account, trade_account, url, session, asp_net_session)
+    if cash_balance_res is None:
+        logger.error("API Cash Balance Error: Không nhận được phản hồi từ máy chủ")
+        return {}
     cash_balance_text = cash_balance_res.text
     cash_balance_object = json.loads(cash_balance_text)
     response_type = validate_response(cash_balance_object)
@@ -231,6 +247,9 @@ def handle_cash_balance_service(user_account, trade_account, url, session, asp_n
 def handle_stock_balance_service(user_account, trade_account, symbol, url, session, asp_net_session, side):
     stock_balance_res = get_stock_balance(
         user_account, trade_account, url, session, asp_net_session)
+    if stock_balance_res is None:
+        logger.error("API Stock Balance Error: Không nhận được phản hồi từ máy chủ")
+        return {}
     stock_balance_text = stock_balance_res.text
     stock_balance_object = json.loads(stock_balance_text)
     response_type = validate_response(stock_balance_object)

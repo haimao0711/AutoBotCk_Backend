@@ -1797,7 +1797,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         floor_price = res_stock_balance.get('stock_balance', {}).get('floor_price', 0) if res_stock_balance else 0
         symbols_existing = res_stock_balance.get('symbols_existing', []) if res_stock_balance else []
         cash_balance = handle_cash_balance_service(user_name, account, request_url, session, '')
-        cash_available = cash_balance['cash_available']
+        cash_available = cash_balance.get('cash_available', 0) if cash_balance else 0
         
         # Lấy total_market_value từ validate_session
         is_valid_session, session_result = validate_session(user_name, account, request_url, session, asp_net_session)
