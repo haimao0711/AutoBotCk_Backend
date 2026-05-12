@@ -1838,11 +1838,16 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 message_download = f'⚠️ Download sales_data to buy symbol {symbol} failed after 3 attempts. Skipping!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
                 return
-            elif stock_data_following is None:
-                logger.info(f'❌ Download following_data cho {symbol} không thành công!')
-                message_download = f'⚠️ Download following to buy symbol {symbol} failed. Skipping!'
+            elif stock_data_following is None or stock_data_following.empty:
+                logger.info(f'❌ Download following_data cho {symbol} không thành công hoặc dữ liệu trống!')
+                message_download = f'⚠️ Download following to buy symbol {symbol} failed or empty. Skipping!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)  
-                return               
+                return
+            
+            # Kiểm tra dữ liệu trading cơ bản
+            if stock_data_trading is None or stock_data_trading.empty:
+                logger.info(f'❌ Download trading_data cho {symbol} không thành công hoặc dữ liệu trống!')
+                return
             def safe_int(val):
                 try:
                     return int(val) if val is not None else 0
@@ -1857,13 +1862,19 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                 value_buy_foreign = 0
 
             # Gán cho 3 dòng cuối
-            stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign          
-            stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
-            stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign
-            stock_data_following_second.loc[stock_data_following_second.index[-3:], 'volume_trade'] = percent_buy_trade
+            if stock_data_following is not None:
+                stock_data_following.loc[stock_data_following.index[-3:], 'buy_foreign'] = value_buy_foreign          
+                stock_data_following.loc[stock_data_following.index[-3:], 'volume_trade'] = percent_buy_trade
             
-            stock_data_trading.loc[stock_data_trading.index[-3:], 'volume_trade'] = percent_buy_trade
-            stock_data_trading_second.loc[stock_data_trading_second.index[-3:], 'volume_trade'] = percent_buy_trade
+            if stock_data_following_second is not None:
+                stock_data_following_second.loc[stock_data_following_second.index[-3:], 'buy_foreign'] = value_buy_foreign
+                stock_data_following_second.loc[stock_data_following_second.index[-3:], 'volume_trade'] = percent_buy_trade
+            
+            if stock_data_trading is not None:
+                stock_data_trading.loc[stock_data_trading.index[-3:], 'volume_trade'] = percent_buy_trade
+            
+            if stock_data_trading_second is not None:
+                stock_data_trading_second.loc[stock_data_trading_second.index[-3:], 'volume_trade'] = percent_buy_trade
             is_use_vnindex_following = following_config.is_use_vnindex_config
             logger.info(f'bắt đầu hàm should buy {symbol}')            
             is_buy_following, is_buy, buy_reason = should_buy(

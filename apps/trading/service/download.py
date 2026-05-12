@@ -39,7 +39,7 @@ class VNIndexManager:
             # Thực hiện tải mới
             try:
                 from apps.trading.service.handlers import logger # Late import to avoid circular dependency
-                logger.info(f"VNINDEX Cache Miss/Expired: Refreshing {chart_type}...")
+                # logger.info(f"VNINDEX Cache Miss/Expired: Refreshing {chart_type}...")
                 
                 df = DownloadService.download_data_single(
                     stock=vnindex_stock, 

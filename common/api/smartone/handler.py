@@ -255,34 +255,45 @@ def handle_stock_balance_service(user_account, trade_account, symbol, url, sessi
     response_type = validate_response(stock_balance_object)
 
     if response_type == ResponseAPISmartOneEnum.SUCCESS:
-        data = stock_balance_object['data']
-        list_stock_existing = [item for item in data if item.get("actual_vol", 0) != '0' and item.get("symbol") != "TOTAL"]
+        data = stock_balance_object.get('data', [])
+        if not isinstance(data, list):
+            logger.warning(f"API Stock Balance Warning: 'data' không phải là danh sách cho {symbol}")
+            data = []
+            
+        list_stock_existing = [
+            item for item in data 
+            if isinstance(item, dict) and str(item.get("actual_vol", "0")) != '0' and item.get("symbol") != "TOTAL"
+        ]
         
         # tính tổng actual_vol và avaiable_vol
-        total_volume_buy = sum(int(item.get("actual_vol", 0)) for item in list_stock_existing)
-        total_volume_trade = sum(int(item.get("avaiable_vol", 0)) for item in list_stock_existing)
+        total_volume_buy = sum(int(item.get("actual_vol", 0)) for item in list_stock_existing if str(item.get("actual_vol")).isdigit())
+        total_volume_trade = sum(int(item.get("avaiable_vol", 0)) for item in list_stock_existing if str(item.get("avaiable_vol")).isdigit())
+        
         percent_buy_trade = (total_volume_trade / total_volume_buy * 100) if total_volume_buy else 0
-        list_symbols_existing = [item["symbol"] for item in list_stock_existing]
-        number_stock_existing = int(len(list_stock_existing)) if list_stock_existing else 0
-        stock_balance_by_symbol = [item for item in data if item["symbol"] == symbol]
-        # print(f'data stock balance symbol {symbol}: ', stock_balance_by_symbol )
+        list_symbols_existing = [item.get("symbol") for item in list_stock_existing if item.get("symbol")]
+        number_stock_existing = len(list_stock_existing)
+        
+        stock_balance_by_symbol = [item for item in data if isinstance(item, dict) and item.get("symbol") == symbol]
+        
         if stock_balance_by_symbol:
-            stock_balance = extract_stock_balance_object(stock_balance_by_symbol)            
+            stock_balance = extract_stock_balance_object(stock_balance_by_symbol[0])            
         else:
-            stock_balance = {'available_vol': 0,
-                             'actual_vol': 0,
-                             'percentage_loss': 0,
-                             'ceil_price': 0,
-                             'floor_price': 0,
-                             }
-        return {
-                'number_stock_existing': number_stock_existing,
-                'stock_balance': stock_balance,
-                'symbols_existing': list_symbols_existing,
-                'percent_buy_trade': percent_buy_trade
+            stock_balance = {
+                'available_vol': 0,
+                'actual_vol': 0,
+                'percentage_loss': 0,
+                'ceil_price': 0,
+                'floor_price': 0,
             }
+            
+        return {
+            'number_stock_existing': number_stock_existing,
+            'stock_balance': stock_balance,
+            'symbols_existing': list_symbols_existing,
+            'percent_buy_trade': percent_buy_trade
+        }
     else:
-        print('rơi vào trường hợp response_type lỗi ')
+        logger.error(f"API Stock Balance Error: {stock_balance_object.get('rs')} (rc: {stock_balance_object.get('rc')})")
         request_new_session()
         return {}
 
@@ -292,6 +303,9 @@ def validate_session(user_account: str, trade_account: str, url: str, session: s
 
     account_status_res = get_account_status(
         user_account, trade_account, url, session, asp_net_session)
+    if account_status_res is None:
+        logger.error("API Account Status Error: Không nhận được phản hồi từ máy chủ")
+        return False, {}
     account_status_text = account_status_res.text
     account_status_object = json.loads(account_status_text)
     response_type = validate_response(account_status_object)

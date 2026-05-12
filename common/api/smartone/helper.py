@@ -37,55 +37,60 @@ def request_new_session():
     pass
 
 
-def extract_buy_object(object: OrderData):
-    if not object or len(object) == 0:
+def extract_buy_object(object: Any):
+    if not object:
         return {}
-    volume = int(object[0]['volume'])
-    matchVolume = int(object[0]['matchVolume'])
+    
+    # Nếu là list, lấy phần tử đầu tiên
+    item = object[0] if isinstance(object, list) and len(object) > 0 else (object if isinstance(object, dict) else {})
+    if not item: return {}
+
+    volume = int(item.get('volume', 0))
+    matchVolume = int(item.get('matchVolume', 0))
     if matchVolume > 0:
-        if volume == matchVolume:
-            status = 'Khớp'
-        else:
-            status = 'Khớp một phần'
+        status = 'Khớp' if volume == matchVolume else 'Khớp một phần'
     else:
         status = 'Chưa khớp'
+        
     return {
-        'symbol': object[0]['symbol'],
-        'volume': object[0]['volume'],
-        'price': float(object[0]['showPrice']),
-        'account': object[0]['accountCode'],
-        'order_num': object[0]['orderNo'],
-        'time': object[0]['orderTime'],
-        'ref_id': object[0]['refID'],
+        'symbol': item.get('symbol', ''),
+        'volume': volume,
+        'price': float(item.get('showPrice', 0)),
+        'account': item.get('accountCode', ''),
+        'order_num': item.get('orderNo', ''),
+        'time': item.get('orderTime', ''),
+        'ref_id': item.get('refID', ''),
         'status': status,
         'type': SideOrderEnum.BUY,
-        'channel': object[0]['channel']
+        'channel': item.get('channel', '')
     }
 
 
-def extract_sell_object(object: OrderData):
-    if not object or len(object) == 0:
+def extract_sell_object(object: Any):
+    if not object:
         return {}
-    volume = int(object[0]['volume'])
-    matchVolume = int(object[0]['matchVolume'])
+    
+    item = object[0] if isinstance(object, list) and len(object) > 0 else (object if isinstance(object, dict) else {})
+    if not item: return {}
+
+    volume = int(item.get('volume', 0))
+    matchVolume = int(item.get('matchVolume', 0))
     if matchVolume > 0:
-        if volume == matchVolume:
-            status = 'Khớp'
-        else:
-            status = 'Khớp một phần'
+        status = 'Khớp' if volume == matchVolume else 'Khớp một phần'
     else:
         status = 'Chưa Khớp'
+        
     return {
-        'symbol': object[0]['symbol'],
-        'volume': object[0]['volume'],
-        'price': float(object[0]['showPrice']),
-        'account': object[0]['accountCode'],
-        'order_num': object[0]['orderNo'],
-        'time': object[0]['orderTime'],
-        'ref_id': object[0]['refID'],
+        'symbol': item.get('symbol', ''),
+        'volume': volume,
+        'price': float(item.get('showPrice', 0)),
+        'account': item.get('accountCode', ''),
+        'order_num': item.get('orderNo', ''),
+        'time': item.get('orderTime', ''),
+        'ref_id': item.get('refID', ''),
         'status': status,
         'type': SideOrderEnum.SELL,
-        'channel': object[0]['channel']
+        'channel': item.get('channel', '')
     }
 
 
@@ -127,25 +132,41 @@ def extract_transacion_object(object: Order):
     }
 
 
-def extract_stock_balance_object(object: list):
+def extract_stock_balance_object(object: Any):
+    if not object:
+        return {}
+        
+    item = object[0] if isinstance(object, list) and len(object) > 0 else (object if isinstance(object, dict) else {})
+    if not item: return {}
+
+    # Xử lý an toàn cho percentage_loss
+    gain_loss_per = item.get('gain_loss_per', '0')
+    if isinstance(gain_loss_per, str):
+        gain_loss_per = gain_loss_per.rstrip('%')
+    
+    try:
+        percentage_loss = float(gain_loss_per)
+    except (ValueError, TypeError):
+        percentage_loss = 0.0
+
     return {
-        'symbol': object[0]['symbol'],
-        'account': object[0]['account'],
-        'avg_price': float(object[0]['avg_price']),
-        'ceil_price': float(object[0]['ceil_price']),
-        'floor_price': float(object[0]['floor_price']),
-        'actual_vol': float(object[0]['actual_vol']),
-        'available_vol': float(object[0]['avaiable_vol']),
-        'value': float(object[0]['value']),
-        'buy_t0': float(object[0]['buy_t0']),
-        'sell_t0': float(object[0]['sell_t0']),
-        'buy_t1': float(object[0]['buy_t1']),
-        'sell_t1': float(object[0]['sell_t1']),
-        'buy_t2': float(object[0]['buy_t2']),
-        'sell_t2': float(object[0]['sell_t2']),
-        'oneday_avg_price': float(object[0]['oneday_avg_price']),
-        'percentage_loss': float(object[0]['gain_loss_per'].rstrip('%')),
-        'value_loss': float(object[0]['gain_loss_value']),
+        'symbol': item.get('symbol', ''),
+        'account': item.get('account', ''),
+        'avg_price': float(item.get('avg_price', 0)),
+        'ceil_price': float(item.get('ceil_price', 0)),
+        'floor_price': float(item.get('floor_price', 0)),
+        'actual_vol': float(item.get('actual_vol', 0)),
+        'available_vol': float(item.get('avaiable_vol', 0)),
+        'value': float(item.get('value', 0)),
+        'buy_t0': float(item.get('buy_t0', 0)),
+        'sell_t0': float(item.get('sell_t0', 0)),
+        'buy_t1': float(item.get('buy_t1', 0)),
+        'sell_t1': float(item.get('sell_t1', 0)),
+        'buy_t2': float(item.get('buy_t2', 0)),
+        'sell_t2': float(item.get('sell_t2', 0)),
+        'oneday_avg_price': float(item.get('oneday_avg_price', 0)),
+        'percentage_loss': percentage_loss,
+        'value_loss': float(item.get('gain_loss_value', 0)),
     }
 
 
