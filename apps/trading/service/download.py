@@ -113,9 +113,11 @@ def patch_realtime_data(df, match_price, chart_type):
         start_time = None
         
         if chart_type == CandleEnum.W1:
-            # Sử dụng to_period('W-SUN') giống hệt services.py để tìm đúng Thứ 2
-            # Cần convert 'now' (datetime) sang pd.Timestamp để dùng to_period
-            start_time = pd.Timestamp(now).to_period('W-SUN').start_time
+            # Chuyển sang naive để tránh cảnh báo từ Pandas khi dùng to_period
+            now_naive = now.replace(tzinfo=None)
+            start_time_naive = pd.Timestamp(now_naive).to_period('W-SUN').start_time
+            # Gán lại timezone để tính timestamp() chính xác
+            start_time = tz.localize(start_time_naive)
         elif chart_type == CandleEnum.D1:
             start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif chart_type == CandleEnum.H1:
@@ -132,7 +134,7 @@ def patch_realtime_data(df, match_price, chart_type):
         if start_time is None:
             return
 
-        # Đảm bảo start_time là naive timestamp đại diện cho giờ VN để khớp với services.py
+        # Đảm bảo start_time là naive timestamp đại diện cho giờ VN để khớp với hệ thống
         if hasattr(start_time, 'tzinfo') and start_time.tzinfo is not None:
             start_time = start_time.replace(tzinfo=None)
             

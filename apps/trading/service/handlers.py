@@ -797,13 +797,13 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 number_stock_existing = res_stock_balance.get('number_stock_existing', 0) if res_stock_balance else 0
                 floor_price = res_stock_balance.get('stock_balance', {}).get('floor_price', 0) if res_stock_balance else 0
                 
-                # Fetch total_market_value
+                # Fetch total_market_value & purchasing power
                 is_valid_session, session_result = validate_session(user_name, account, request_url, session, asp_net_session)
                 current_total_market_value = session_result.get("total_market_value", 0) if is_valid_session else 0
                 
                 cash_balance_res = handle_cash_balance_service(user_name, account, request_url, session, asp_net_session)
-                cash_balance = cash_balance_res.get('cash_balance', 0) if cash_balance_res else 0
-                logger.info(f"Debug Buy Session: is_valid_session={is_valid_session}, cash_balance={cash_balance}, price_set_buy={price_set_buy}")
+                cash_available = cash_balance_res.get('cash_available', 0) if cash_balance_res else 0
+                logger.info(f"Debug Buy Session: is_valid_session={is_valid_session}, cash_available={cash_available}, price_set_buy={price_set_buy}")
                 volume_to_buy = overview_config.volume_to_buy        
                 #Kiểm tra đk số cổ phiếu giới hạn, khối lượng mua còn lại, tiền mặt, và tổng giá trị thị trường
                 if current_total_market_value >= max_total_market_value:
@@ -818,17 +818,18 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     send_message_telegram(user, MessageTypeEnum.OVERALL, msg_limit)
                     send_message_telegram(user, MessageTypeEnum.ACT, msg_limit)
                     return
-                elif not cash_balance:
-                    logger.info(f'không có respon khi lấy số dư tiền mặt {symbol}')
-                    send_message_telegram(user, MessageTypeEnum.OVERALL, f'⚠️ Không lấy được số dư tiền mặt cho {symbol}. Hủy yêu cầu mua tay!')
+                elif not cash_available:
+                    logger.info(f'không có respon khi lấy sức mua (cash_available) {symbol}')
+                    send_message_telegram(user, MessageTypeEnum.OVERALL, f'⚠️ Không lấy được sức mua cho {symbol}. Hủy yêu cầu mua tay!')
                     return
                 else: 
                     volume_buy_balance =  int(volume_to_buy - stock_balance)
                     volume_calc = min(((int(volume_to_buy * percent_first_buy) + 99) // 100) * 100,(volume_buy_balance // 100) * 100)
                     
-                    # Ensure we don't exceed cash balance
-                    max_volume_by_cash = (cash_balance // price_set_buy // 100) * 100 if price_set_buy > 0 else 0
+                    # Ensure we don't exceed purchasing power
+                    max_volume_by_cash = (cash_available // price_set_buy // 100) * 100 if price_set_buy > 0 else 0
                     volume = min(volume_calc, max_volume_by_cash)
+                    current_batch_order_nums = [] # Lưu các mã lệnh của phiên hiện tại
                     
                     logger.info(f"Debug Buy Volume Calculation: volume_to_buy={volume_to_buy}, stock_balance={stock_balance}, volume_calc={volume_calc}, max_volume_by_cash={max_volume_by_cash}, final_volume={volume}")
                     buy_order_overrall_attrs = {
@@ -849,94 +850,126 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         'percent_first_buy': int(percent_first_buy*100)
                     }
 
-                    buy_messages = []
-                    buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_OVERRAL,
-                                    **buy_order_overrall_attrs })  
-                    
-                # Xử lý mua nhạy cảm 
-                    if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
-                        sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
-                        logger.info(f'sensitive_percentage {symbol}: {sensitive_percentage}')
-                        volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
-                        logger.info(f'volume_buy_sensitive {symbol}: {volume_buy_sensitive}')
-                        
-                        buy_order_attrs_send = {
-                            'stock': symbol,
-                            'price': round_to_unit(price_set_buy, step_price),
-                            'volume': int(volume_buy_sensitive)
-                        }
-                        logger.info(f'buy_order_attrs_send {symbol}: {buy_order_attrs_send}')
-                        res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
-                        if res_buy:
-                            is_send_order_buy = True
-                            buy_order_sensitive_attrs = {
-                                'stock': res_buy['symbol'],
-                                'price': round(res_buy['price'], 2),
-                                'volume': res_buy['volume'],
-                                'status': res_buy['status'],
+                    # 4. Sử dụng Redis Lock để tránh tranh chấp sức mua giữa các luồng
+                    import redis
+                    redis_client = redis.StrictRedis.from_url('redis://redis:6379/0')
+                    lock_name = f"buy_lock_{account}"
+                    redis_lock = redis_client.l                        if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
+                            sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
+                            logger.info(f'sensitive_percentage {symbol}: {sensitive_percentage}')
+                            volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
+                            logger.info(f'volume_buy_sensitive {symbol}: {volume_buy_sensitive}')
+                            
+                            buy_order_attrs_send = {
+                                'stock': symbol,
+                                'price': round_to_unit(price_set_buy, step_price),
+                                'volume': int(volume_buy_sensitive)
                             }
-                            buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
-                                            **buy_order_sensitive_attrs })
-                            volume -= int(res_buy['volume'])
-                            number_order -= 1
-                        else:
-                            msg_error = f"Error: lệnh mua nhạy cảm handle_buy_service của {symbol} có phản hồi là rỗng"
-                            logger.info(msg_error)
-                            send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
-                    else:
-                        if volume < 100:
-                            logger.info(f'Mã {symbol} đạt khối lượng tối đa hoặc khối lượng quá nhỏ (< 100)') 
-                        else:
-                            logger.info(f'Bắt đầu quy trình đặt lệnh mua chia nhỏ cho {symbol}')
-                        logger.info(f'volume_to_buy {symbol}: {volume_to_buy}')
-                        logger.info(f'volume_set_buy {symbol}: {volume}')
-                # Chia đều phần còn lại của volume to buy
-                    if volume >= 100:
-                        number_to_order = int(number_order)
-                        for i in range(number_to_order):
-                            divisor = number_to_order - i
-                            if i != number_to_order - 1:
-                                volume_buy = round_to_nearest_hundred(volume / divisor)
+                            logger.info(f'buy_order_attrs_send {symbol}: {buy_order_attrs_send}')
+                            res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
+                            if res_buy:
+                                is_send_order_buy = True
+                                buy_order_sensitive_attrs = {
+                                    'stock': res_buy['symbol'],
+                                    'price': round(res_buy['price'], 2),
+                                    'volume': res_buy['volume'],
+                                    'status': res_buy['status'],
+                                }
+                                buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
+                                                **buy_order_sensitive_attrs })
+                                current_batch_order_nums.append(res_buy['order_num'])
+                                number_order -= 1
                             else:
-                                volume_buy = round_to_nearest_hundred(volume)
+                                msg_error = f"Lệnh mua nhạy cảm cho {symbol} thất bại. Kiểm tra số dư hoặc kết nối API."
+                                logger.info(msg_error)
+                                send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
                             
-                            # Gửi các lệnh buy với ref_id duy nhất bằng cách thêm index
-                            ref_id = f"{user_name}.I.buy.{int(time.time()*1000)}.{i}"
-                            # Làm tròn giá cơ sở (snap to unit) trước khi rải để đảm bảo các mức giá khác nhau
-                            base_price_buy = round_to_unit(price_set_buy - add_price_buy, step_price)
-                            price = round_to_unit(base_price_buy - i * step_price, step_price)
-                            
-                            if price < floor_price:
-                                price = round(floor_price, 2)
-                            
-                            if volume_buy >= 100:
-                                logger.info(f"Thực hiện lệnh mua lần thứ {i+1}/{number_to_order} cho {symbol}: Price={price}, Volume={volume_buy}, RefID={ref_id}")
-                                res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price, volume_buy, ref_id)
-                                if res_buy:
-                                    is_send_order_buy = True
-                                    buy_order_details_attrs = {
-                                        'stock': res_buy['symbol'],
-                                        'price': round(res_buy['price'], 2),
-                                        'volume': res_buy['volume'],
-                                        'status': res_buy['status'],
-                                    }
-                                    buy_messages.append({
-                                        'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
-                                        **buy_order_details_attrs
-                                    })
-                                    # Chỉ trừ volume khi đặt lệnh thành công
-                                    volume -= int(res_buy['volume'])
+                            # 2. Luôn trừ khối lượng dự kiến để tránh dồn khối lượng (snowball) khi lỗi
+                            volume -= int(volume_buy_sensitive)
+                        else:
+                            if volume < 100:
+                                logger.info(f'Mã {symbol} đạt khối lượng tối đa hoặc khối lượng quá nhỏ (< 100)') 
+                            else:
+                                logger.info(f'Bắt đầu quy trình đặt lệnh mua chia nhỏ cho {symbol}')
+                            logger.info(f'volume_to_buy {symbol}: {volume_to_buy}')
+                            logger.info(f'volume_set_buy {symbol}: {volume}')
+                        # Chia đều phần còn lại của volume to buy
+                        if volume >= 100:
+                            number_to_order = int(number_order)
+                            for i in range(number_to_order):
+                                divisor = number_to_order - i
+                                if i != number_to_order - 1:
+                                    volume_buy = round_to_nearest_hundred(volume / divisor)
                                 else:
-                                    msg_error = f"Lệnh mua lần thứ {i+1} cho {symbol} thất bại (API không phản hồi hoặc trả về rỗng)"
+                                    volume_buy = round_to_nearest_hundred(volume)
+                                
+                                # Gửi các lệnh buy với ref_id duy nhất bằng cách thêm index
+                                ref_id = f"{user_name}.I.buy.{int(time.time()*1000)}.{i}"
+                                # Làm tròn giá cơ sở (snap to unit) trước khi rải để đảm bảo các mức giá khác nhau
+                                base_price_buy = round_to_unit(price_set_buy - add_price_buy, step_price)
+                                price = round_to_unit(base_price_buy - i * step_price, step_price)
+                                
+                                if price < floor_price:
+                                    price = round(floor_price, 2)
+                                
+                                if volume_buy >= 100:
+                                    logger.info(f"Thực hiện lệnh mua lần thứ {i+1}/{number_to_order} cho {symbol}: Price={price}, Volume={volume_buy}, RefID={ref_id}")
+                                    res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price, volume_buy, ref_id)
+                                    if res_buy:
+                                        is_send_order_buy = True
+                                        buy_order_details_attrs = {
+                                            'stock': res_buy['symbol'],
+                                            'price': round(res_buy['price'], 2),
+                                            'volume': res_buy['volume'],
+                                            'status': res_buy['status'],
+                                        }
+                                        buy_messages.append({
+                                            'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
+                                            **buy_order_details_attrs
+                                        })
+                                        current_batch_order_nums.append(res_buy['order_num'])
+                                    else:
+                                        msg_error = f"Lệnh mua lần thứ {i+1} cho {symbol} thất bại. Kiểm tra số dư hoặc kết nối API."
+                                        logger.error(f"Error: {msg_error}")
+                                        send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
+                                    
+                                    # 2. Luôn trừ khối lượng dự kiến để tránh dồn khối lượng (snowball) khi API lỗi
+                                    volume -= int(volume_buy)
+                                else:
+                                    logger.info(f"Bỏ qua lệnh mua lần thứ {i+1} của {symbol} do volume_buy < 100 ({volume_buy})")
+                                
+                                # Thêm delay nhỏ để tránh trùng ref_id và spam API quá nhanh
+                                time.sleep(0.2)
+                        else:
+                            logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
+                    except Exception as e:
+                        logger.error(f"Lỗi trong quá trình đặt lệnh mua tay {symbol}: {e}")
+                    finally:
+                        if redis_lock.owned():
+                            redis_lock.release()
+                   **buy_order_details_attrs
+                                    })
+                                    current_batch_order_nums.append(res_buy['order_num'])
+                                else:
+                                    msg_error = f"Lệnh mua lần thứ {i+1} cho {symbol} thất bại. Kiểm tra số dư hoặc kết nối API."
                                     logger.error(f"Error: {msg_error}")
                                     send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
+                                
+                                # 2. Luôn trừ khối lượng dự kiến để tránh dồn khối lượng (snowball) khi API lỗi
+                                volume -= int(volume_buy)
                             else:
                                 logger.info(f"Bỏ qua lệnh mua lần thứ {i+1} của {symbol} do volume_buy < 100 ({volume_buy})")
                             
                             # Thêm delay nhỏ để tránh trùng ref_id và spam API quá nhanh
                             time.sleep(0.2)
-                    else:
-                        logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
+                        else:
+                            logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
+                    except Exception as e:
+                        logger.error(f"Lỗi trong quá trình đặt lệnh mua tay {symbol}: {e}")
+                    finally:
+                        if redis_lock.owned():
+                            redis_lock.release()
+
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh mua
                 if is_send_order_buy:
                     send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_buy, **buy_attrs)
@@ -973,7 +1006,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             # 1. Kiểm tra nếu đã khớp hết thì thoát sớm
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B')
+                                res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B')
+                                res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
                                 if res_matcheds:
                                     msg_match = f'🎯 [{symbol}] Tất cả các lệnh mua tay đã khớp hết.'
                                     logger.info(msg_match)
@@ -1073,7 +1107,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 # Tổng kết cuối cùng
                 try:
                     time.sleep(2)
-                    res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
+                    res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
+                    res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
                     if res_matcheds:
                         time_now = datetime.now(timezone)
                         start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
@@ -1436,6 +1471,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                     **sell_order_overrall_attrs })
             
                 if volume >= 100:
+                    current_batch_order_nums = [] # Lưu các mã lệnh của phiên hiện tại
                 # Xử lý bán nhạy cảm 
                     if trading_config.stock_config_is_mode_sensitive_sell:
                         sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
@@ -1458,6 +1494,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             }
                             sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
                                                 **sell_order_sensitive_attrs })
+                            current_batch_order_nums.append(res_sell['order_num'])
                             volume -= int(res_sell['volume'])
                             number_order -= 1
                         else:
@@ -1498,6 +1535,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                     })
                                     # Chỉ trừ volume khi đặt lệnh thành công
                                     volume -= int(res_sell['volume'])
+                                    current_batch_order_nums.append(res_sell['order_num'])
                                 else:
                                     msg_error = f"Lệnh bán lần thứ {i+1} cho {symbol} thất bại (API không phản hồi hoặc trả về rỗng)"
                                     logger.error(f"Error: {msg_error}")
@@ -1542,7 +1580,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             # 1. Kiểm tra trạng thái khớp (PENDING)
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
+                                res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
+                                res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
                                 if res_matcheds:
                                     msg_match = f'🎯 [{symbol}] Tất cả các lệnh bán tay đã khớp hết.'
                                     logger.info(msg_match)
@@ -1639,7 +1678,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
 
                 #Tổng kết các lệnh đã khớp theo symbol để send telegram 
                 try:          
-                    res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
+                    res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
+                    res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
                     if res_matcheds:
                         logger.info(f'danh sách các lệnh bán {symbol} đã khớp: {res_matcheds}')
                         message_sell_matched = []
@@ -1699,6 +1739,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         session = vps_account.vps_session_id
         request_url = api.TRADING_URL
         ref_id = f"{user_name}.I.test.{int(time.time() * 1000)}"
+        current_batch_order_nums = [] # Lưu các mã lệnh của phiên hiện tại
         
         # Lấy tên luồng hiện tại
         current_thread_name = threading.current_thread().name
@@ -1756,6 +1797,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
 
     #HANDLE BUY
         is_time_valid_to_buy = is_valid_time_to_buy(following_config)
+        is_send_order_buy = False
         if not is_block_buy_stock and is_time_valid_to_buy:
             # Tải dữ liệu lần 1
             vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following = download_data(
@@ -2015,6 +2057,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                 buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
                                                 **buy_order_sensitive_attrs })
                                 volume -= int(res_buy['volume'])
+                                current_batch_order_nums.append(res_buy['order_num'])
                                 number_order -= 1
                             else:
                                 logger.info(f"Lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng") 
@@ -2042,6 +2085,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                         }                
                                         buy_messages.append({'status_signal': SignalTelegramEnum.BUY_ORDER_DETAIL,
                                                         **buy_order_details_attrs })                            
+                                        current_batch_order_nums.append(res_buy['order_num'])
                                 else:
                                     logger.info(f"Error: lệnh mua lần thứ {i+1} hàm handle_buy_service  của {symbol} có phản hồi là rỗng") 
                                 volume -= volume_buy  
@@ -2094,14 +2138,17 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             # Tối ưu: Bỏ qua sleep nếu đã khớp hết
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                msg_match = f"🎯 [{symbol}] Tất cả các lệnh mua đã khớp hết."
-                                logger.info(msg_match)
-                                send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
-                                send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
-                                is_matched_all = True
-                                should_break_loop = True
-                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
-                                break
+                                res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B')
+                                res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
+                                if res_matcheds:
+                                    msg_match = f"🎯 [{symbol}] Tất cả các lệnh mua đã khớp hết."
+                                    logger.info(msg_match)
+                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
+                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
+                                    is_matched_all = True
+                                    should_break_loop = True
+                                    time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
+                                    break
                         except Exception as e:
                             logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
 
@@ -2284,49 +2331,55 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     logger.info(f"[{symbol}] Vượt giới hạn thời gian đặt lệnh tối đa.")
                     cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn thời gian đặt lệnh tối đa', "B")
 
-                #Tổng kết các lệnh đã khớp theo symbol để send telegram   
-                res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
-                if res_matcheds:
-                    logger.info(f'danh sách các lệnh mua {symbol} đã khớp: {res_matcheds}')
-                    time_now = datetime.now(timezone)
-                    start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-                    message_buy_matched = []
-                    buy_matched_overrall_attrs = {
-                        'user_account': account,
-                        'stock': symbol,
-                        'number_order': len(res_matcheds),
-                        'start_time_order': start_time_order,
-                        } 
-                    message_buy_matched.append({
-                        'status_signal': SignalTelegramEnum.BUY_MATCHED_OVERRAL,
-                        **buy_matched_overrall_attrs
-                        })
-                    for order in res_matcheds:
-                        buy_matched_details_attrs = {
-                            'stock': order['symbol'],
-                            'price': order['showPrice'],
-                            'volume': order['volume'],
-                            'status': order['status']
-                            }
-                        message_buy_matched.append({
-                            'status_signal': SignalTelegramEnum.BUY_MATCHED_DETAIL,
-                            **buy_matched_details_attrs
-                            })
-                    if message_buy_matched:
-                        send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_buy_matched)
-                        send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_matched)
-                else:
-                    message_buy_matched_fail = f'Không lấy được danh sách đã khớp lệnh của mã {symbol } từ sàn.'
-                    send_message_telegram(user, MessageTypeEnum.OVERALL, message_buy_matched_fail)
-                    send_message_telegram(user, MessageTypeEnum.ACT, message_buy_matched_fail)
-                    cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Đảm bảo hết lệnh còn đặt khi kết thúc mỗi vòng mua', "B")
-                
+                # Tổng kết các lệnh đã khớp theo symbol để send telegram   
+                if is_send_order_buy:
+                    try:
+                        time.sleep(2) # Chờ 2s để VPS đồng bộ
+                        res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
+                        res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
+                        if res_matcheds:
+                            logger.info(f'danh sách các lệnh mua {symbol} đã khớp: {res_matcheds}')
+                            time_now = datetime.now(timezone)
+                            start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
+                            message_buy_matched = []
+                            buy_matched_overrall_attrs = {
+                                'user_account': account,
+                                'stock': symbol,
+                                'number_order': len(res_matcheds),
+                                'start_time_order': start_time_order,
+                            } 
+                            message_buy_matched.append({'status_signal': SignalTelegramEnum.BUY_MATCHED_OVERRAL, **buy_matched_overrall_attrs})
+                            for order in res_matcheds:
+                                message_buy_matched.append({
+                                    'status_signal': SignalTelegramEnum.BUY_MATCHED_DETAIL,
+                                    'stock': order['symbol'],
+                                    'price': order['showPrice'],
+                                    'volume': order['volume'],
+                                    'status': order['status']
+                                })
+                            send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_buy_matched)
+                            send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_matched)
+                        else:
+                            logger.info(f'Không có lệnh mua {symbol} nào khớp trong đợt này.')
+                        
+                        # Luôn hủy các lệnh mua còn sót lại sau mỗi đợt
+                        cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Dọn dẹp lệnh mua sau phiên trade', "B")
+                        
+                        # Thông báo hoàn tất pha mua
+                        msg_end_buy = f'✅ Hoàn tất pha mua tự động mã {symbol}.'
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, msg_end_buy)
+                        send_message_telegram(user, MessageTypeEnum.ACT, msg_end_buy)
+
+                    except Exception as e:
+                        logger.error(f"Lỗi tổng kết matched orders (BUY) cho {symbol}: {e}")
+
                 # Mở chốt lãi lần 1 và lần 2
                 logger.info('Tiến hành mở chốt lãi lần 1 và lần 2') 
                 ConfigurationServices.update_all_take_profit_flags_true(user, stock_id)
 
 
     #HANDLE SELL
+        is_send_order_sell = False
         is_time_valid_to_sell  = is_valid_time_to_sell(following_config)
         if not is_block_sell_stock and is_time_valid_to_sell  and symbol in symbols_existing and volume_balance_trade > 0:
             logger.info(f'bắt đầu hàm kiểm tra thực hiện sell {symbol}')
@@ -2646,6 +2699,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
                                                 **sell_order_sensitive_attrs })
                             volume -= int(res_sell['volume'])
+                            current_batch_order_nums.append(res_sell['order_num'])
                             number_order -= 1
                         else:
                             logger.info(f"Error: lệnh bán nhạy cảm handle_sell_service  của {symbol} phản hồi là rỗng") 
@@ -2674,6 +2728,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                 }                
                                 sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
                                                     **sell_order_details_attrs })
+                                current_batch_order_nums.append(res_sell['order_num'])
                         else:
                             logger.info(f"Error: lệnh bán lần thứ {i+1} hàm handle_sell_service  của {symbol} có phản hồi là rỗng") 
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
@@ -2715,11 +2770,14 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             # Tối ưu: Bỏ qua sleep nếu đã khớp hết
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"[{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Chờ 2s để VPS đồng bộ trước khi tổng kết.")
-                                is_matched_all = True
-                                should_break_loop = True
-                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
-                                break
+                                res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
+                                res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
+                                if res_matcheds:
+                                    logger.info(f"[{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Chờ 2s để VPS đồng bộ trước khi tổng kết.")
+                                    is_matched_all = True
+                                    should_break_loop = True
+                                    time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
+                                    break
                         except Exception as e:
                             logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
 
@@ -2766,35 +2824,42 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     logger.info(f"[{symbol}] Vượt giới hạn thời gian đặt lệnh tối đa.")
                     cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn thời gian đặt lệnh tối đa', "S")
              #Tổng kết các lệnh đã khớp theo symbol để send telegram           
-                res_matcheds = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
-                if res_matcheds:
-                    logger.info(f'danh sách các lệnh bán {symbol} đã khớp: {res_matcheds}')
-                    # time_now = datetime.now(timezone)
-                    # start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-                    message_sell_matched = []
-                    sell_matched_overrall_attrs = {
-                        'user_account': account,
-                        'stock': symbol,
-                        'number_order': len(res_matcheds),
-                        } 
-                    message_sell_matched.append({
-                        'status_signal': SignalTelegramEnum.SELL_MATCHED_OVERRAL,
-                        **sell_matched_overrall_attrs
-                        })
-                    for order in res_matcheds:
-                        sell_matched_details_attrs = {
-                            'stock': order['symbol'],
-                            'price': order['showPrice'],
-                            'volume': order['volume'],
-                            'status': order['status']
-                            }
-                        message_sell_matched.append({
-                            'status_signal': SignalTelegramEnum.SELL_MATCHED_DETAIL,
-                            **sell_matched_details_attrs
-                            })
-                    if message_sell_matched:
-                        send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_sell_matched)
-                        send_telegram_message_batch(user, MessageTypeEnum.ACT, message_sell_matched)
+                if is_send_order_sell:
+                    try:
+                        time.sleep(2) # Chờ 2s để VPS đồng bộ
+                        res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
+                        res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
+                        if res_matcheds:
+                            logger.info(f'danh sách các lệnh bán {symbol} đã khớp: {res_matcheds}')
+                            message_sell_matched = []
+                            sell_matched_overrall_attrs = {
+                                'user_account': account,
+                                'stock': symbol,
+                                'number_order': len(res_matcheds),
+                            } 
+                            message_sell_matched.append({'status_signal': SignalTelegramEnum.SELL_MATCHED_OVERRAL, **sell_matched_overrall_attrs})
+                            for order in res_matcheds:
+                                message_sell_matched.append({
+                                    'status_signal': SignalTelegramEnum.SELL_MATCHED_DETAIL,
+                                    'stock': order['symbol'],
+                                    'price': order['showPrice'],
+                                    'volume': order['volume'],
+                                    'status': order['status']
+                                })
+                            send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_sell_matched)
+                            send_telegram_message_batch(user, MessageTypeEnum.ACT, message_sell_matched)
+                        else:
+                            logger.info(f'Không có lệnh bán {symbol} nào khớp trong đợt này.')
+                        
+                        # Hủy các lệnh bán còn sót lại
+                        cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Dọn dẹp lệnh bán sau phiên trade', "S")
+
+                        # Thông báo hoàn tất pha bán
+                        msg_end_sell = f'✅ Hoàn tất pha bán tự động mã {symbol}.'
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, msg_end_sell)
+                        send_message_telegram(user, MessageTypeEnum.ACT, msg_end_sell)
+                    except Exception as e:
+                        logger.error(f"Lỗi tổng kết matched orders (SELL) cho {symbol}: {e}")
 
              #Trả lại trạng thái
                 if status_sell == SignalTelegramEnum.TAKEPROFIT and take_profit_type != 'Bán hết theo phần trăm lời': 
