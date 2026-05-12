@@ -854,7 +854,25 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     import redis
                     redis_client = redis.StrictRedis.from_url('redis://redis:6379/0')
                     lock_name = f"buy_lock_{account}"
-                    redis_lock = redis_client.l                        if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
+                    redis_lock = redis_client.lock(lock_name, timeout=10, blocking_timeout=15)
+
+                    try:
+                        acquired = redis_lock.acquire(blocking=True)
+                        if not acquired:
+                            msg_lock = f"⚠️ {symbol}: Quá giờ chờ quyền đặt lệnh (Lock) cho tài khoản {account}. Bỏ qua lượt mua tay này."
+                            logger.warning(msg_lock)
+                            send_message_telegram(user, MessageTypeEnum.OVERALL, msg_lock)
+                            return
+                        
+                        # Tải lại sức mua ngay trước khi đặt lệnh để đảm bảo số liệu mới nhất sau khi lock
+                        cash_balance_latest = handle_cash_balance_service(user_name, account, request_url, session, asp_net_session)
+                        cash_available_latest = cash_balance_latest.get('cash_available', 0) if cash_balance_latest else 0
+                        if cash_available_latest < volume * price_set_buy:
+                            logger.info(f'Sức mua không đủ sau khi lock, điều chỉnh lại volume {symbol}')
+                            volume = int((cash_available_latest / price_set_buy // 100) * 100)
+
+                        # Xử lý mua nhạy cảm 
+                        if volume >=100 and trading_config.stock_config_is_mode_sensitive_buy:
                             sensitive_percentage = trading_config.stock_config_percent_sensitive_buy
                             logger.info(f'sensitive_percentage {symbol}: {sensitive_percentage}')
                             volume_buy_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
@@ -893,6 +911,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                 logger.info(f'Bắt đầu quy trình đặt lệnh mua chia nhỏ cho {symbol}')
                             logger.info(f'volume_to_buy {symbol}: {volume_to_buy}')
                             logger.info(f'volume_set_buy {symbol}: {volume}')
+                        
                         # Chia đều phần còn lại của volume to buy
                         if volume >= 100:
                             number_to_order = int(number_order)
@@ -947,28 +966,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     finally:
                         if redis_lock.owned():
                             redis_lock.release()
-                   **buy_order_details_attrs
-                                    })
-                                    current_batch_order_nums.append(res_buy['order_num'])
-                                else:
-                                    msg_error = f"Lệnh mua lần thứ {i+1} cho {symbol} thất bại. Kiểm tra số dư hoặc kết nối API."
-                                    logger.error(f"Error: {msg_error}")
-                                    send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
-                                
-                                # 2. Luôn trừ khối lượng dự kiến để tránh dồn khối lượng (snowball) khi API lỗi
-                                volume -= int(volume_buy)
-                            else:
-                                logger.info(f"Bỏ qua lệnh mua lần thứ {i+1} của {symbol} do volume_buy < 100 ({volume_buy})")
-                            
-                            # Thêm delay nhỏ để tránh trùng ref_id và spam API quá nhanh
-                            time.sleep(0.2)
-                        else:
-                            logger.info(f'Mã {symbol} đạt khối lượng tối đa') 
-                    except Exception as e:
-                        logger.error(f"Lỗi trong quá trình đặt lệnh mua tay {symbol}: {e}")
-                    finally:
-                        if redis_lock.owned():
-                            redis_lock.release()
+
 
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh mua
                 if is_send_order_buy:
@@ -1470,81 +1468,100 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_OVERRAL,
                                     **sell_order_overrall_attrs })
             
-                if volume >= 100:
-                    current_batch_order_nums = [] # Lưu các mã lệnh của phiên hiện tại
-                # Xử lý bán nhạy cảm 
-                    if trading_config.stock_config_is_mode_sensitive_sell:
-                        sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
-                        volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
-                        volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100                        
-                        sell_order_attrs_send = {
-                            'stock': symbol,
-                            'price': round_to_unit(price_set_sell, step_price),
-                            'volume': int(volume_sell_sensitive)
-                        }
-                        logger.info(f"Thực hiện lệnh bán nhạy cảm cho {symbol}: Price={sell_order_attrs_send['price']}, Volume={sell_order_attrs_send['volume']}, RefID={ref_id}")
-                        res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
-                        if res_sell:
-                            is_send_order_sell = True
-                            sell_order_sensitive_attrs = {
-                                'stock': res_sell['symbol'],
-                                'price': round(res_sell['price'], 2),
-                                'volume': res_sell['volume'],
-                                'status': res_sell['status'],
-                            }
-                            sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
-                                                **sell_order_sensitive_attrs })
-                            current_batch_order_nums.append(res_sell['order_num'])
-                            volume -= int(res_sell['volume'])
-                            number_order -= 1
-                        else:
-                            logger.info(f"Error: lệnh bán nhạy cảm handle_sell_service  của {symbol} phản hồi là rỗng") 
-                # Chia đều phần còn lại của volume to sell
-                    if volume >= 100:
-                        number_to_order = int(number_order)
-                        for i in range(number_to_order):
-                            divisor = number_to_order - i
-                            if i != number_to_order - 1:
-                                volume_sell_step = round_to_nearest_hundred(volume / divisor)
-                            else:
-                                volume_sell_step = int(volume)
-                            
-                            # Gửi các lệnh sell với ref_id duy nhất
-                            ref_id = f"{user_name}.I.sell.{int(time.time()*1000)}.{i}"
-                            # Làm tròn giá cơ sở (snap to unit) trước khi rải để đảm bảo các mức giá khác nhau
-                            base_price_sell = round_to_unit(price_set_sell + add_price_sell, step_price)
-                            price = round_to_unit(base_price_sell + i * step_price, step_price)
-                            
-                            if price > ceil_price:
-                                price = round(ceil_price, 2)
-                                
-                            if volume_sell_step >= 100:
-                                logger.info(f"Thực hiện lệnh bán lần thứ {i+1}/{number_to_order} cho {symbol}: Price={price}, Volume={volume_sell_step}, RefID={ref_id}")
-                                res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price, volume_sell_step, ref_id)
+                # 4. Sử dụng Redis Lock để tránh tranh chấp dữ liệu giữa các luồng
+                import redis
+                redis_client = redis.StrictRedis.from_url('redis://redis:6379/0')
+                lock_name = f"sell_lock_{account}"
+                redis_lock = redis_client.lock(lock_name, timeout=10, blocking_timeout=15)
+
+                try:
+                    acquired = redis_lock.acquire(blocking=True)
+                    if not acquired:
+                        msg_lock = f"⚠️ {symbol}: Quá giờ chờ quyền đặt lệnh (Lock) cho tài khoản {account}. Bỏ qua lượt bán tay này."
+                        logger.warning(msg_lock)
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, msg_lock)
+                        return
+
+                        if volume >= 100:
+                            current_batch_order_nums = [] # Lưu các mã lệnh của phiên hiện tại
+                            # Xử lý bán nhạy cảm 
+                            if trading_config.stock_config_is_mode_sensitive_sell:
+                                sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
+                                volume_sell_sensitive = round_to_nearest_hundred(float(volume) * sensitive_percentage)
+                                volume_sell_sensitive = volume_sell_sensitive if volume_sell_sensitive >= 100 else 100                        
+                                sell_order_attrs_send = {
+                                    'stock': symbol,
+                                    'price': round_to_unit(price_set_sell, step_price),
+                                    'volume': int(volume_sell_sensitive)
+                                }
+                                logger.info(f"Thực hiện lệnh bán nhạy cảm cho {symbol}: Price={sell_order_attrs_send['price']}, Volume={sell_order_attrs_send['volume']}, RefID={ref_id}")
+                                res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
                                 if res_sell:
                                     is_send_order_sell = True
-                                    sell_order_details_attrs = {
+                                    sell_order_sensitive_attrs = {
                                         'stock': res_sell['symbol'],
                                         'price': round(res_sell['price'], 2),
                                         'volume': res_sell['volume'],
                                         'status': res_sell['status'],
                                     }
-                                    sell_messages.append({
-                                        'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
-                                        **sell_order_details_attrs
-                                    })
-                                    # Chỉ trừ volume khi đặt lệnh thành công
-                                    volume -= int(res_sell['volume'])
+                                    sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
+                                                        **sell_order_sensitive_attrs })
                                     current_batch_order_nums.append(res_sell['order_num'])
+                                    volume -= int(res_sell['volume'])
+                                    number_order -= 1
                                 else:
-                                    msg_error = f"Lệnh bán lần thứ {i+1} cho {symbol} thất bại (API không phản hồi hoặc trả về rỗng)"
-                                    logger.error(f"Error: {msg_error}")
-                                    send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
-                            else:
-                                logger.info(f"Bỏ qua lệnh bán lần thứ {i+1} của {symbol} do volume_sell < 100 ({volume_sell_step})")
-                            
-                            # Thêm delay nhỏ
-                            time.sleep(0.2)
+                                    logger.info(f"Error: lệnh bán nhạy cảm handle_sell_service  của {symbol} phản hồi là rỗng") 
+                            # Chia đều phần còn lại của volume to sell
+                            if volume >= 100:
+                                number_to_order = int(number_order)
+                                for i in range(number_to_order):
+                                    divisor = number_to_order - i
+                                    if i != number_to_order - 1:
+                                        volume_sell_step = round_to_nearest_hundred(volume / divisor)
+                                    else:
+                                        volume_sell_step = int(volume)
+                                    
+                                    # Gửi các lệnh sell với ref_id duy nhất
+                                    ref_id = f"{user_name}.I.sell.{int(time.time()*1000)}.{i}"
+                                    # Làm tròn giá cơ sở (snap to unit) trước khi rải để đảm bảo các mức giá khác nhau
+                                    base_price_sell = round_to_unit(price_set_sell + add_price_sell, step_price)
+                                    price = round_to_unit(base_price_sell + i * step_price, step_price)
+                                    
+                                    if price > ceil_price:
+                                        price = round(ceil_price, 2)
+                                        
+                                    if volume_sell_step >= 100:
+                                        logger.info(f"Thực hiện lệnh bán lần thứ {i+1}/{number_to_order} cho {symbol}: Price={price}, Volume={volume_sell_step}, RefID={ref_id}")
+                                        res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price, volume_sell_step, ref_id)
+                                        if res_sell:
+                                            is_send_order_sell = True
+                                            sell_order_details_attrs = {
+                                                'stock': res_sell['symbol'],
+                                                'price': round(res_sell['price'], 2),
+                                                'volume': res_sell['volume'],
+                                                'status': res_sell['status'],
+                                            }
+                                            sell_messages.append({
+                                                'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
+                                                **sell_order_details_attrs
+                                            })
+                                            # Chỉ trừ volume khi đặt lệnh thành công
+                                            volume -= int(res_sell['volume'])
+                                            current_batch_order_nums.append(res_sell['order_num'])
+                                        else:
+                                            msg_error = f"Lệnh bán lần thứ {i+1} cho {symbol} thất bại (API không phản hồi hoặc trả về rỗng)"
+                                            logger.error(f"Error: {msg_error}")
+                                            send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
+                                    else:
+                                        logger.info(f"Bỏ qua lệnh bán lần thứ {i+1} của {symbol} do volume_sell < 100 ({volume_sell_step})")
+                                    
+                                    # Thêm delay nhỏ
+                                    time.sleep(0.2)
+                    except Exception as e:
+                        logger.error(f"Lỗi trong quá trình đặt lệnh bán tay {symbol}: {e}")
+                    finally:
+                        if redis_lock.owned():
+                            redis_lock.release()
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
                     if is_send_order_sell:
                         send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)
