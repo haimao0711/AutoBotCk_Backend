@@ -67,6 +67,9 @@ services:
                gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 120"
     networks:
       - backend_net
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     logging: *logging
 
   redis:
@@ -110,6 +113,9 @@ services:
       - .:/app
     networks:
       - backend_net
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     deploy:
       replicas: 2
     logging: *logging
@@ -135,6 +141,9 @@ services:
       - .:/app
     networks:
       - backend_net
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     logging: *logging
 
   celery-flower:

@@ -115,6 +115,11 @@ def send_telegram_message_batch(user, message_type: MessageTypeEnum, batch_messa
 
         for message in batch_messages:
             try:
+                # Kiểm tra an toàn: message phải là dict
+                if not isinstance(message, dict):
+                    print(f"[Warning] Bỏ qua tin nhắn không hợp lệ (không phải dict): {message}")
+                    continue
+                    
                 status_signal = message.get('status_signal')
                 message_kwargs = {key: value for key, value in message.items() if key != 'status_signal'}
 
@@ -703,7 +708,7 @@ def  should_buy(
         # Tính toán kết quả cho following và following_second
         following, following_reasons = should_buy_chart(
             following_config, data_following_df, config_type)
-        following_second, following_reasons_second = False, []
+        following_second, following_reasons_second = False, {}
         if is_use_candle_following_second and chart_following_second != 'OFF' and data_following_df_second is not None:
             following_second, following_reasons_second = should_buy_chart(
                 following_config, data_following_df_second, config_type)
@@ -711,7 +716,7 @@ def  should_buy(
         # Tính toán kết quả cho trading và trading_second
         trading, trading_reasons = should_buy_chart_trading(
             trading_config, data_trading_df, config_type )
-        trading_second, trading_reasons_second = False, []
+        trading_second, trading_reasons_second = False, {}
         if is_use_candle_trading_second and chart_trading_second != 'OFF' and data_trading_df_second is not None:
             trading_second, trading_reasons_second = should_buy_chart_trading(
                 trading_config, data_trading_df_second, config_type)
@@ -807,7 +812,7 @@ def  should_buy_following(
         # Tính toán kết quả cho following và following_second
         following, following_reasons = should_buy_chart(
             following_config, data_following_df, config_type)
-        following_second, following_reasons_second = False, []
+        following_second, following_reasons_second = False, {}
         if is_use_candle_following_second and chart_following_second != 'OFF' and data_following_df_second is not None:
             following_second, following_reasons_second = should_buy_chart(
                 following_config, data_following_df_second, config_type)
@@ -874,7 +879,7 @@ def  should_buy_trading(
     # Tính toán kết quả cho trading và trading_second
     trading, trading_reasons = should_buy_chart_trading(
         trading_config, data_trading_df, config_type)
-    trading_second, trading_reasons_second = False, []
+    trading_second, trading_reasons_second = False, {}
     if is_use_candle_trading_second and chart_trading_second != 'OFF' and data_trading_df_second is not None:
         trading_second, trading_reasons_second = should_buy_chart_trading(
             trading_config, data_trading_df_second, config_type)
@@ -1175,12 +1180,19 @@ def should_take_profit_bolinger(
 
 def render_message(obj, trading_chart_value: str, following_chart_type: str, trading_chart_value_second: str = None, following_chart_type_second: str = None):
     messages = ''
+    if not isinstance(obj, dict):
+        return messages
+
     for key, value in obj.items():
+        if not isinstance(value, dict):
+            continue
+            
         if key == 'following':
             header = render_type(ChartType.Following, following_chart_type).rstrip('\n')
             messages += header
             for f_key, f_value in value.items():
                 if f_key == 'failed':
+                    if not isinstance(f_value, dict): continue
                     for f_failed_key, f_failed_value in f_value.items():
                         if f_failed_key == 'obligatory':
                             for key_word, last_previous, previous, current in f_failed_value:
@@ -1210,6 +1222,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                 message_cleaned = message.lstrip('\n').rstrip()
                                 messages += '  \n' + message_cleaned + ' ❌'
                 elif f_key == 'success':
+                    if not isinstance(f_value, dict): continue
                     for f_success_key, f_success_value in f_value.items():
                         if f_success_key == 'obligatory':
                             for key_word, last_previous, previous, current in f_success_value:
@@ -1243,6 +1256,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
             messages += '  \n' + header
             for f_key, f_value in value.items():
                 if f_key == 'failed':
+                    if not isinstance(f_value, dict): continue
                     for f_failed_key, f_failed_value in f_value.items():
                         if f_failed_key == 'obligatory':
                             for key_word, last_previous, previous, current in f_failed_value:
@@ -1272,6 +1286,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                 message_cleaned = message.lstrip('\n').rstrip()
                                 messages += '  \n' + message_cleaned + ' ❌'
                 elif f_key == 'success':
+                    if not isinstance(f_value, dict): continue
                     for f_success_key, f_success_value in f_value.items():
                         if f_success_key == 'obligatory':
                             for key_word, last_previous, previous, current in f_success_value:
@@ -1305,6 +1320,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
             messages += '  \n' + header
             for f_key, f_value in value.items():
                 if f_key == 'failed':
+                    if not isinstance(f_value, dict): continue
                     for f_failed_key, f_failed_value in f_value.items():
                         if f_failed_key == 'obligatory':
                             for key_word, last_previous, previous, current in f_failed_value:
@@ -1334,6 +1350,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                 message_cleaned = message.lstrip('\n').rstrip()
                                 messages += '  \n' + message_cleaned + ' ❌'
                 elif f_key == 'success':
+                    if not isinstance(f_value, dict): continue
                     for f_success_key, f_success_value in f_value.items():
                         if f_success_key == 'obligatory':
                             for key_word, last_previous, previous, current in f_success_value:
@@ -1367,6 +1384,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
             messages += '  \n' + header
             for f_key, f_value in value.items():
                 if f_key == 'failed':
+                    if not isinstance(f_value, dict): continue
                     for f_failed_key, f_failed_value in f_value.items():
                         if f_failed_key == 'obligatory':
                             for key_word, last_previous, previous, current in f_failed_value:
@@ -1396,6 +1414,7 @@ def render_message(obj, trading_chart_value: str, following_chart_type: str, tra
                                 message_cleaned = message.lstrip('\n').rstrip()
                                 messages += '  \n' + message_cleaned + ' ❌'
                 elif f_key == 'success':
+                    if not isinstance(f_value, dict): continue
                     for f_success_key, f_success_value in f_value.items():
                         if f_success_key == 'obligatory':
                             for key_word, last_previous, previous, current in f_success_value:
