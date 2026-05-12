@@ -1557,18 +1557,18 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                     
                                     # Thêm delay nhỏ
                                     time.sleep(0.2)
-                    except Exception as e:
-                        logger.error(f"Lỗi trong quá trình đặt lệnh bán tay {symbol}: {e}")
-                    finally:
-                        if redis_lock.owned():
-                            redis_lock.release()
+                except Exception as e:
+                    logger.error(f"Lỗi trong quá trình đặt lệnh bán tay {symbol}: {e}")
+                finally:
+                    if redis_lock.owned():
+                        redis_lock.release()
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
-                    if is_send_order_sell:
-                        send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)
-                        send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_sell, **sell_attrs)
-                        send_telegram_message_batch(user, MessageTypeEnum.OVERALL, sell_messages)
-                        send_telegram_message_batch(user, MessageTypeEnum.ACT, sell_messages) 
-                logger.info('kết thúc hàm đặt lệnh sell')     
+                if is_send_order_sell:
+                    send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)
+                    send_telegram_message(user, MessageTypeEnum.ACT, status_signal=status_sell, **sell_attrs)
+                    send_telegram_message_batch(user, MessageTypeEnum.OVERALL, sell_messages)
+                    send_telegram_message_batch(user, MessageTypeEnum.ACT, sell_messages) 
+                logger.info('kết thúc hàm đặt lệnh sell')
         
             if is_send_order_sell:
                 limited_times = time_to_sell // sleeping_time_sell
