@@ -137,14 +137,7 @@ def trading_request_task(self, user_id, stock_id, symbol, request_buy, request_s
         type_request_trading = 'Mua tay' if request_buy else 'Bán tay'
         if is_within_range_time(now, morning_start, morning_end) or is_within_range_time(now, afternoon_start, afternoon_end):
             url = api.TRADING_URL
-            is_valid_session, _ = validate_session(account_name, account_num, url, session_id, '')
-            
-            if not is_valid_session:
-                message = 'Session chưa hợp lệ. Bot không thực hiện trading được!'
-                send_message_telegram(user, MessageTypeEnum.OVERALL, message)  
-                return False
-                
-            if session_id != 'stop_trading' and res_validate_session:
+            if session_id != 'stop_trading':
                 logger.info(f'Yêu cầu {type_request_trading} mã {symbol} user {user.username} BẮT ĐẦU thực hiện!')
                 
                 # Chạy trading_request trong Celery task

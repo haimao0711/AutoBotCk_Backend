@@ -312,19 +312,20 @@ def validate_session(user_account: str, trade_account: str, url: str, session: s
     
     # print('check account_status_object: ', account_status_object)
     # print('check response_type: ', response_type)
-    if response_type == None:
+    if response_type != ResponseAPISmartOneEnum.SUCCESS:
+        logger.error(f"API Account Status Error: {account_status_object.get('rs')} (rc: {account_status_object.get('rc')})")
         return False, {}
-    else:    
-        data = account_status_object.get("data", {})
-        if isinstance(data, list):
-            data = data[0] if data else {}
-        result = {
-            "total_equity": int(data.get("total_equity", 0)),  # Tổng tiền hiện có
-            "cash_balance": int(data.get("cash_balance", 0)),  # Số tiền mặt có thể rút
-            "total_market_value": int(data.get("total_market_value", 0)),  # Giá trị cổ phiếu
-            "cash_available": int(data.get("cash_avai", 0)),  # Số tiền có thể mua cổ phiếu
-            "gain_loss_value": int(data.get("gain_loss_value", 0)),  # Lãi/lỗ danh mục
-            "gain_loss_oneday_value": int(data.get("gain_loss_oneday_value", 0)),  # Lãi/lỗ hôm nay
-        }
+    
+    data = account_status_object.get("data", {})
+    if isinstance(data, list):
+        data = data[0] if data else {}
+    result = {
+        "total_equity": int(data.get("total_equity", 0)),  # Tổng tiền hiện có
+        "cash_balance": int(data.get("cash_balance", 0)),  # Số tiền mặt có thể rút
+        "total_market_value": int(data.get("total_market_value", 0)),  # Giá trị cổ phiếu
+        "cash_available": int(data.get("cash_avai", 0)),  # Số tiền có thể mua cổ phiếu
+        "gain_loss_value": int(data.get("gain_loss_value", 0)),  # Lãi/lỗ danh mục
+        "gain_loss_oneday_value": int(data.get("gain_loss_oneday_value", 0)),  # Lãi/lỗ hôm nay
+    }
     return True, result
 
