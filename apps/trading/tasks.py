@@ -8,7 +8,6 @@ from apps import api
 import pytz
 from datetime import datetime, time
 from apps.trading.helper import is_within_range_time
-from common.api.smartone.handler import validate_session
 from apps.telegram.sender import send_message_telegram, send_message
 from apps.telegram.enum.enums import MessageTypeEnum
 from common.errors.messages import ErrorMessages
@@ -51,16 +50,13 @@ def user_trading_task(self, user_id):
                 'username': user.username
             }
             send_message(user, MessageTypeEnum.OVERALL, SignalTelegramEnum.NOTIFY_RUNNING.value, **notify_running_data)
-        is_validate_session = False
-        if is_within_range_time(now, morning_start, morning_end) or is_within_range_time(now, afternoon_start, afternoon_end):
-            url = api.TRADING_URL
-            is_validate_session, res_validate_session = validate_session(account_name, account_num, url, session_id, '')
-            
-            if not is_validate_session:                  
-                message = 'Mã phiên giao dịch chưa hợp lệ. Vui lòng nhập lại OTP!'
-                send_message_telegram(user, MessageTypeEnum.OVERALL, message)  
-                
-        if session_id != 'stop_trading' and is_validate_session:
+        is_market_time = is_within_range_time(now, morning_start, morning_end) or is_within_range_time(now, afternoon_start, afternoon_end)
+        
+        if not is_market_time:
+            logger.info(f"Ngoài giờ giao dịch cho user {user.username}. Bỏ qua lượt chạy.")
+            return
+
+        if session_id != 'stop_trading':
             notify_running(user)
             logger.info(f'📢📢📢Job trading của user {user.username} BẮT ĐẦU lượt chạy mới!')
             trading(user=user, vps_account=vps_account, symbol='All')
