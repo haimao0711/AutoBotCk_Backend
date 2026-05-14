@@ -194,6 +194,7 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
 
     message_buy_update = []
 
+    new_order_nums = []
     if res_not_matcheds:
         logger.info(f"Đã có danh sách chưa khớp để update buy stock {symbol}: {res_not_matcheds}")
         buy_update_overrall_attrs = {        
@@ -224,6 +225,10 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
                     )
                     
                     if res_update_order:
+                        # Lưu mã lệnh mới để theo dõi
+                        if isinstance(res_update_order, dict) and res_update_order.get('orderNo'):
+                            new_order_nums.append(res_update_order['orderNo'])
+                        
                         buy_update_details_attrs = {
                             'stock': order['symbol'],
                             'old_price': old_price,
@@ -272,7 +277,7 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
     else:
         logger.info(f"Không có danh sách chưa khớp để update buy stock {symbol}. Ngưng update lệnh")
 
-    return message_buy_update
+    return message_buy_update, new_order_nums
 
 
 def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, request_url: str, session: str, reason: str, side: str):
@@ -342,6 +347,7 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
     start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")    
     
     message_sell_update = []
+    new_order_nums = []
     logger.info(f'Nhắc lại giới hạn update lệnh bán {symbol}: {limited_price}')
     
     # Sử dụng helper function với retry
@@ -368,8 +374,7 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
                 try:
                     old_price = float(show_price)
                 except (ValueError, TypeError):
-                    logger.warning(f"Giá không hợp lệ cho {symbol}: {show_price}")
-                    continue
+                    old_price = 0
                     
                 update_price = round(old_price - step_price, 2)      
                 update_volume = int(order.get('volume', 0))
@@ -387,6 +392,10 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
                     )
                     
                     if res_update_order:
+                        # Lưu mã lệnh mới để theo dõi
+                        if isinstance(res_update_order, dict) and res_update_order.get('orderNo'):
+                            new_order_nums.append(res_update_order['orderNo'])
+                        
                         message_sell_update.append({
                             'status_signal': SignalTelegramEnum.SELL_UPDATE_DETAIL,
                             'stock': symbol,
@@ -416,7 +425,7 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
     else: 
         logger.info(f'chưa lấy được res danh sach chưa khơp to update sell {symbol} ' )
 
-    return message_sell_update  
+    return message_sell_update, new_order_nums
 
 def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, reason: str, side: str):
     logger.info(f'Bắt đầu chạy hàm cancel lệnh sell {symbol}')
@@ -1109,8 +1118,11 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             limited_price_to_buy = start_price_tmp - add_price_buy + slippage_buy
                         
                         times_update = i + 1
-                        message_update = update_buy_order(user_name, account, symbol, request_url, session, asp_net_session, "B", 
+                        message_update, new_order_nums = update_buy_order(user_name, account, symbol, request_url, session, asp_net_session, "B", 
                                                             step_price, limited_price_to_buy, times_update)
+                        if new_order_nums:
+                            current_batch_order_nums.extend(new_order_nums)
+                            
                         if message_update:
                             send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
                             send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
@@ -1719,7 +1731,10 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
 
                     status_sell = SignalTelegramEnum.SELL_SUCCESS
                     times_update = i + 1
-                    message_update = update_sell_order(user_name, account, symbol, request_url, session, asp_net_session, "S", step_price, limited_price_to_sell, times_update)
+                    message_update, new_order_nums = update_sell_order(user_name, account, symbol, request_url, session, asp_net_session, "S", step_price, limited_price_to_sell, times_update)
+                    if new_order_nums:
+                        current_batch_order_nums.extend(new_order_nums)
+                        
                     if message_update:
                         send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
                         send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
@@ -1746,30 +1761,35 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                     res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
                     if res_matcheds:
                         logger.info(f'danh sách các lệnh bán {symbol} đã khớp: {res_matcheds}')
+                        time_now = datetime.now(timezone)
+                        start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
                         message_sell_matched = []
                         sell_matched_overrall_attrs = {
                             'user_account': account,
                             'stock': symbol,
                             'number_order': len(res_matcheds),
+                            'start_time_order': start_time_order,
                             } 
                         message_sell_matched.append({
                             'status_signal': SignalTelegramEnum.SELL_MATCHED_OVERRAL,
                             **sell_matched_overrall_attrs
                             })
                         for order in res_matcheds:
-                            sell_matched_details_attrs = {
+                            message_sell_matched.append({
+                                'status_signal': SignalTelegramEnum.SELL_MATCHED_DETAIL,
                                 'stock': order['symbol'],
                                 'price': order['showPrice'],
                                 'volume': order['volume'],
                                 'status': order['status']
-                                }
-                            message_sell_matched.append({
-                                'status_signal': SignalTelegramEnum.SELL_MATCHED_DETAIL,
-                                **sell_matched_details_attrs
                                 })
                         if message_sell_matched:
                             send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_sell_matched)
                             send_telegram_message_batch(user, MessageTypeEnum.ACT, message_sell_matched)
+
+                    # Thông báo hoàn tất
+                    msg_end = f'✅ Hoàn tất tiến trình bán tay mã {symbol}.'
+                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_end)
+                    send_message_telegram(user, MessageTypeEnum.ACT, msg_end)
 
                 except Exception as e:
                     logger.info(f"Lỗi khi xử lý matched orders: {e}")
@@ -2404,10 +2424,13 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         break
 
                     times_update = i + 1
-                    message_update = update_buy_order(
+                    message_update, new_order_nums = update_buy_order(
                         user_name, account, symbol, request_url, session, asp_net_session, "B",
                         step_price, limited_price_to_buy, times_update
                     )
+                    if new_order_nums:
+                        current_batch_order_nums.extend(new_order_nums)
+                        
                     if message_update:
                         send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
                         send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
@@ -2899,7 +2922,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         break
 
                     times_update = i + 1
-                    message_update = update_sell_order(user_name, account, symbol, request_url, session, asp_net_session, "S", step_price, limited_price_to_sell, times_update)
+                    message_update, new_order_nums = update_sell_order(user_name, account, symbol, request_url, session, asp_net_session, "S", step_price, limited_price_to_sell, times_update)
+                    if new_order_nums:
+                        current_batch_order_nums.extend(new_order_nums)
+                        
                     if message_update:
                         send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
                         send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
@@ -2917,11 +2943,14 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
                         if res_matcheds:
                             logger.info(f'danh sách các lệnh bán {symbol} đã khớp: {res_matcheds}')
+                            time_now = datetime.now(timezone)
+                            start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
                             message_sell_matched = []
                             sell_matched_overrall_attrs = {
                                 'user_account': account,
                                 'stock': symbol,
                                 'number_order': len(res_matcheds),
+                                'start_time_order': start_time_order,
                             } 
                             message_sell_matched.append({'status_signal': SignalTelegramEnum.SELL_MATCHED_OVERRAL, **sell_matched_overrall_attrs})
                             for order in res_matcheds:

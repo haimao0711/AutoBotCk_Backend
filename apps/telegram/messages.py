@@ -85,10 +85,10 @@ BUY_CANCEL_OVERRAL = dedent('''
 ''')
 
 BUY_MATCHED_OVERRAL = dedent('''
-💰💰💰 *{start_time_order}*
-🔔 **Tài khoản {user_account}**:
-- Các lệnh mua đã khớp: **{stock}**
-- Số lượng lệnh: **{number_order}**
+{start_time_order}
+🔔 Tài khoản {user_account}:
+Các lệnh mua đã khớp: {stock}
+Số lượng lệnh: {number_order}
 ''')
 
 BUY_ORDER_DETAIL = '''
@@ -101,7 +101,7 @@ BUY_CANCEL_DETAIL = '''
 Hủy lệnh  MUA: **{stock}** - Giá: **{price}** - KL: **{volume}** - Trạng thái: **{status}**
 '''
 BUY_MATCHED_DETAIL = '''
-Lệnh  MUA: **{stock}** - Giá: **{price}** - KL: **{volume}** - Trạng thái: **{status}**
+Lệnh MUA: {stock} - Giá: {price} - KL: {volume} - Trạng thái: {status}
 '''
 
 SELL_SIGNAL = dedent('''
@@ -144,10 +144,10 @@ SELL_CANCEL_OVERRAL = dedent('''
 - Số lượng lệnh dự kiến: **{number_order}**
 ''')
 SELL_MATCHED_OVERRAL = dedent('''
-💰💰💰
-🔔 **Tài khoản {user_account}**:
-- Lệnh bán đã khớp: **{stock}**
-- Số lượng lệnh: **{number_order}**
+{start_time_order}
+🔔 Tài khoản {user_account}:
+Các lệnh bán đã khớp: {stock}
+Số lượng lệnh: {number_order}
 ''')
 
 SELL_ORDER_DETAIL = '''
@@ -160,7 +160,7 @@ SELL_CANCEL_DETAIL = '''
 Hủy lệnh BÁN: **{stock}** - Giá: **{price}** - KL: **{volume}** - Trạng thái: **{status}**
 '''
 SELL_MATCHED_DETAIL = '''
-Lệnh BÁN: **{stock}** - Giá: **{price}** - KL: **{volume}** - Trạng thái: **{status}**
+Lệnh BÁN: {stock} - Giá: {price} - KL: {volume} - Trạng thái: {status}
 '''
 
 
