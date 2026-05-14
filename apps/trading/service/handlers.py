@@ -2169,7 +2169,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             buy_order_attrs_send = {
                                 'stock': symbol,
                                 # 'price': round(float(high_last_row - add_price_buy), 2) if round(float(high_last_row - add_price_buy), 2) > floor_price else round(floor_price, 2),
-                                'price': round(price_set_buy, 2),
+                                'price': round_to_unit(price_set_buy, step_price),
                                 'volume': int(volume_buy_sensitive)
                             }
                             res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
@@ -2187,7 +2187,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                 current_batch_order_nums.append(res_buy['order_num'])
                                 number_order -= 1
                             else:
-                                logger.info(f"Lệnh mua nhạy cảm handle_buy_service  của {symbol} có phản hồi là rỗng") 
+                                logger.info(f"Lệnh mua nhạy cảm handle_buy_service của {symbol} thất bại")
                         # Chia đều phần còn lại của volume to buy
                         number_order = min(number_order, volume // 100)
                         if volume >=100:
@@ -2197,9 +2197,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                     volume_buy = round_to_nearest_hundred(volume / divisor)
                                 else:
                                     volume_buy = round_to_nearest_hundred(volume)
-                            #Gửi các lệnh buy
+                                # Gửi các lệnh buy sử dụng round_to_unit
                                 ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                                price = round(price_set_buy - add_price_buy - i*step_price, 2) if round(start_price - add_price_buy - i*step_price, 2) > floor_price else round(floor_price, 2)
+                                price = round_to_unit(price_set_buy - add_price_buy - i*step_price, step_price)
+                                if price < floor_price:
+                                    price = round(floor_price, 2)
                                 if volume_buy >= 100:
                                     res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_buy, ref_id)
                                     if res_buy:
@@ -2214,7 +2216,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                                         **buy_order_details_attrs })                            
                                         current_batch_order_nums.append(res_buy['order_num'])
                                 else:
-                                    logger.info(f"Error: lệnh mua lần thứ {i+1} hàm handle_buy_service  của {symbol} có phản hồi là rỗng") 
+                                        logger.info(f"Error: lệnh mua lần thứ {i+1} hàm handle_buy_service của {symbol} thất bại")
                                 volume -= volume_buy  
                 
                         # Send telegram tổng hợp khi thực hiện đặt xong các lệnh mua
@@ -2272,10 +2274,38 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                     logger.info(msg_match)
                                     send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
                                     send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
-                                    is_matched_all = True
-                                    should_break_loop = True
-                                    time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
-                                    break
+
+                                    # Gửi chi tiết lệnh khớp ngay lập tức
+                                    time_now = datetime.now(timezone)
+                                    start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
+                                    message_buy_matched = []
+                                    buy_matched_overrall_attrs = {
+                                        'user_account': account,
+                                        'stock': symbol,
+                                        'number_order': len(res_matcheds),
+                                        'start_time_order': start_time_order,
+                                    } 
+                                    message_buy_matched.append({'status_signal': SignalTelegramEnum.BUY_MATCHED_OVERRAL, **buy_matched_overrall_attrs})
+                                    for order in res_matcheds:
+                                        message_buy_matched.append({
+                                            'status_signal': SignalTelegramEnum.BUY_MATCHED_DETAIL,
+                                            'stock': order['symbol'],
+                                            'price': order['showPrice'],
+                                            'volume': order['volume'],
+                                            'status': order['status']
+                                        })
+                                    send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_buy_matched)
+                                    send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_matched)
+                                else:
+                                    msg_cancel = f'⚠️ [{symbol}] Các lệnh mua đã bị hủy bởi hệ thống.'
+                                    logger.info(msg_cancel)
+                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_cancel)
+                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_cancel)
+
+                                is_matched_all = True
+                                should_break_loop = True
+                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
+                                break
                         except Exception as e:
                             logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
 
@@ -2814,7 +2844,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         sell_order_attrs_send = {
                             'stock': symbol,
                             # 'price': round(float(low_last_row + add_price_sell), 2) if round(float(low_last_row + add_price_sell), 2) < ceil_price else round(ceil_price, 2) , 
-                            'price': round(price_set_sell, 2), 
+                            'price': round_to_unit(price_set_sell, step_price), 
                             'volume': int(volume_sell_sensitive)
                         }
                         res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, sell_order_attrs_send['price'],  sell_order_attrs_send['volume'], ref_id)
@@ -2843,9 +2873,11 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         else:
                             volume_sell = round_to_nearest_hundred(volume / divisor) if volume % 100 != 0 else int(volume)
                         volume -= volume_sell
-                        #Gửi các lệnh sell
+                        # Gửi các lệnh sell sử dụng round_to_unit
                         ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                        price = round(price_set_sell + add_price_sell + i*step_price, 2) if round(price_set_sell + add_price_sell + i*step_price, 2) < ceil_price else round(ceil_price, 2)
+                        price = round_to_unit(price_set_sell + add_price_sell + i*step_price, step_price)
+                        if price > ceil_price:
+                            price = round(ceil_price, 2)
                         if volume_sell >= 100:
                             res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price,  volume_sell, ref_id)
                             if res_sell:
@@ -2859,8 +2891,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                 sell_messages.append({'status_signal': SignalTelegramEnum.SELL_ORDER_DETAIL,
                                                     **sell_order_details_attrs })
                                 current_batch_order_nums.append(res_sell['order_num'])
-                        else:
-                            logger.info(f"Error: lệnh bán lần thứ {i+1} hàm handle_sell_service  của {symbol} có phản hồi là rỗng") 
+                            else:
+                                logger.info(f"Error: lệnh bán lần thứ {i+1} hàm handle_sell_service của {symbol} thất bại") 
                 # Send telegram tổng hợp khi thực hiện đặt xong các lệnh bán
                 if is_send_order_sell:
                     if status_sell == SignalTelegramEnum.TAKEPROFIT: 
@@ -2906,8 +2938,38 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                     logger.info(f"[{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Chờ 2s để VPS đồng bộ trước khi tổng kết.")
                                     is_matched_all = True
                                     should_break_loop = True
-                                    time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
-                                    break
+
+                                    # Gửi chi tiết lệnh khớp ngay lập tức
+                                    time_now = datetime.now(timezone)
+                                    start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
+                                    message_sell_matched = []
+                                    sell_matched_overrall_attrs = {
+                                        'user_account': account,
+                                        'stock': symbol,
+                                        'number_order': len(res_matcheds),
+                                        'start_time_order': start_time_order,
+                                    } 
+                                    message_sell_matched.append({'status_signal': SignalTelegramEnum.SELL_MATCHED_OVERRAL, **sell_matched_overrall_attrs})
+                                    for order in res_matcheds:
+                                        message_sell_matched.append({
+                                            'status_signal': SignalTelegramEnum.SELL_MATCHED_DETAIL,
+                                            'stock': order['symbol'],
+                                            'price': order['showPrice'],
+                                            'volume': order['volume'],
+                                            'status': order['status']
+                                        })
+                                    send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_sell_matched)
+                                    send_telegram_message_batch(user, MessageTypeEnum.ACT, message_sell_matched)
+                                else:
+                                    msg_cancel = f'⚠️ [{symbol}] Các lệnh bán đã bị hủy bởi hệ thống.'
+                                    logger.info(msg_cancel)
+                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_cancel)
+                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_cancel)
+
+                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
+                                is_matched_all = True
+                                should_break_loop = True
+                                break
                         except Exception as e:
                             logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
 
