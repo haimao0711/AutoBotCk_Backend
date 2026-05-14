@@ -604,9 +604,16 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
 
             if not is_use_chart_action:
                 logger.info(f'Xu ly lenh mua ngay {symbol}')
+                
+                # Làm mới cấu hình để nhận các thay đổi mới nhất từ người dùng trước khi Mua Ngay
+                conf_tmp = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
+                if conf_tmp:
+                    trading_config = conf_tmp.get("trading_config", trading_config)
+                    overview_config = conf_tmp.get("overview_config", overview_config)
+
                 vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following, stock_data_trading_second, stock_data_following_second = prepare_data_for_buy()
                 
-                if stock_data_trading is None:
+                if stock_data_trading is None or stock_data_trading.empty:
                     logger.info('Download data không thành công (Mua ngay), bỏ qua!')
                     message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu mua tay. Vui lòng thử lại sau ít phút'
                     send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
@@ -768,6 +775,10 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_REQUEST_SUCCESS:
                 logger.info(f'bắt đầu hàm đặt lệnh mua tay {symbol}')
+                
+                # Refresh dữ liệu ngay trước khi đặt lệnh để lấy giá khớp mới nhất (đặc biệt quan trọng cho Mua Ngay)
+                vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following, stock_data_trading_second, stock_data_following_second = prepare_data_for_buy()
+
                 buy_messages = [] # Danh sách lưu trữ các tin nhắn chi tiết của lô lệnh
                 timezone = pytz.timezone('Asia/Ho_Chi_Minh')
                 if stock_data_trading is None or stock_data_trading.empty:
@@ -806,6 +817,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     price_set_buy = min(start_price, price_current, start_price_second)
                 else:
                     price_set_buy = min(start_price, price_current)
+                
+                price_set_buy = round_to_unit(price_set_buy, step_price)
                 percent_first_buy = trading_config.stock_config_percent_first_buy                
                 logger.info(f'percent_first_buy {symbol}: {percent_first_buy}')
                 number_order = trading_config.stock_config_number_pid_buy_once_time
@@ -958,7 +971,10 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                 
                                 # Gửi các lệnh buy tương tự process_trading
                                 ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                                price = round(price_set_buy - add_price_buy - i*step_price, 2) if round(price_set_buy - add_price_buy - i*step_price, 2) > floor_price else round(floor_price, 2)
+                                raw_price = price_set_buy - add_price_buy - i*step_price
+                                price = round_to_unit(raw_price, step_price)
+                                if price < floor_price:
+                                    price = round(floor_price, 2)
                                 
                                 if volume_buy >= 100:
                                     logger.info(f"Thực hiện lệnh mua lần thứ {i+1}/{number_to_order} cho {symbol}: Price={price}, Volume={volume_buy}, RefID={ref_id}")
@@ -1282,9 +1298,16 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
 
             if not is_use_chart_action:
                 logger.info(f'Xu ly lenh ban ngay {symbol}')
+                
+                # Làm mới cấu hình để nhận các thay đổi mới nhất từ người dùng trước khi Bán Ngay
+                conf_tmp = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
+                if conf_tmp:
+                    trading_config = conf_tmp.get("trading_config", trading_config)
+                    overview_config = conf_tmp.get("overview_config", overview_config)
+                    
                 vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following, stock_data_trading_second, stock_data_following_second = prepare_data_for_sell()
 
-                if stock_data_trading is None:
+                if stock_data_trading is None or stock_data_trading.empty:
                     logger.info('Download data không thành công (Bán ngay), bỏ qua!')
                     message_download = f'Không tải được dữ liệu mã {symbol}, hủy yêu cầu bán tay. Vui lòng thử lại sau ít phút!'
                     send_message_telegram(user, MessageTypeEnum.OVERALL, message_download)
@@ -1386,22 +1409,9 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                         sell_reason, trading_chart_value=trading_candle_sell, trading_chart_value_second=trading_candle_sell_second, following_chart_type=following_candle_sell, following_chart_type_second=following_candle_sell_second
                     )
 
-                    time_now = datetime.now(timezone)
-                    start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-                    sell_attrs = {
-                        "user_account": account,
-                        "platform_trading": "Smart One",
-                        "stock": stock.name,
-                        "volume": 0,
-                        "price": price_to_start,
-                        "message": messages_to_sell,
-                        "start_time_order": start_time_order,
-                    }
-                    send_telegram_message(user, MessageTypeEnum.OVERALL, status_signal=status_sell, **sell_attrs)    
-                
                     if status_sell == SignalTelegramEnum.SELL_REQUEST_SUCCESS:              
-                        logger.info('Dừng vòng lặp do  điều kiện bán thỏa mãn.')
-                        break 
+                        logger.info('Dừng vòng lặp do điều kiện bán thỏa mãn.')
+                        break
 
                 time.sleep(3) 
 
@@ -1440,7 +1450,11 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                     logger.info(f"❌ Lỗi khi gửi tin nhắn: {e}") 
             is_send_order_sell = False   
             if status_sell == SignalTelegramEnum.SELL_REQUEST_SUCCESS:
-                logger.info(f'bắt đầu đặt lệnh sell request {symbol}')        
+                logger.info(f'bắt đầu đặt lệnh sell request {symbol}')
+                
+                # Refresh dữ liệu ngay trước khi đặt lệnh để lấy giá khớp mới nhất (đặc biệt quan trọng cho Bán Ngay)
+                vnindex_data_trading, vnindex_data_following, stock_data_trading, stock_data_following, stock_data_trading_second, stock_data_following_second = prepare_data_for_sell()
+                
                 timezone = pytz.timezone('Asia/Ho_Chi_Minh')
                 if stock_data_trading is None or stock_data_trading.empty:
                     logger.info('Không có dữ liệu trading để xác định giá, hủy lệnh bán tay.')
@@ -1478,6 +1492,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                     price_set_sell = max(start_price, price_current, start_price_second)
                 else:
                     price_set_sell = max(start_price, price_current)
+                
+                price_set_sell = round_to_unit(price_set_sell, step_price)
                 number_order = trading_config.stock_config_number_pid_sell_once_time 
                 start_time_order = datetime.now(timezone).strftime("%H:%M:%S ngày %d-%m-%Y")
                 slippage_sell = trading_config.stock_config_slippage_sell
@@ -1554,7 +1570,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             
                             # Gửi lệnh bán nhạy cảm tương tự process_trading
                             ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                            price = round(price_set_sell, 2)
+                            price = round_to_unit(price_set_sell, step_price)
                             
                             logger.info(f"Thực hiện lệnh bán nhạy cảm cho {symbol}: Price={price}, Volume={volume_sell_sensitive}, RefID={ref_id}")
                             res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price, int(volume_sell_sensitive), ref_id)
@@ -1586,7 +1602,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                 
                                 # Gửi các lệnh sell tương tự process_trading
                                 ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
-                                price = round(price_set_sell + add_price_sell + i * step_price, 2)
+                                raw_price = price_set_sell + add_price_sell + i * step_price
+                                price = round_to_unit(raw_price, step_price)
                                 if price > ceil_price:
                                     price = round(ceil_price, 2)
                                     
