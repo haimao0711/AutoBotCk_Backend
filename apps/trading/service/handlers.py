@@ -531,19 +531,24 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
             stock_data_following_second = None
             
             logger.info(f"DEBUG: Entering process_buy_request try block for {symbol}")
-            update_status, update_data = ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
-            logger.info(f"DEBUG: update_status={update_status}, expected={SuccessType.UPDATED_SUCCESS}")
+            # Thử chiếm quyền giao dịch (Lock) với retry để tránh xung đột với tiến trình tự động vừa kết thúc
+            max_retries = 3
+            for retry_count in range(max_retries):
+                update_status, update_data = ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
+                if update_status == SuccessType.UPDATED_SUCCESS:
+                    is_update_success = True
+                    break
+                
+                if retry_count < max_retries - 1:
+                    logger.info(f"[{symbol}] Đang đợi luồng khác kết thúc để chiếm lock (Lần {retry_count + 1})...")
+                    time.sleep(2)
             
-            if update_status != SuccessType.UPDATED_SUCCESS:
+            if not is_update_success:
                 logger.error(f'Failed to update is_trading for {symbol}: {update_data}')
-                message_fail = f'⚠️ Đưa {symbol} vào danh sách đang hoạt động thất bại. Hủy yêu cầu mua tay!'
+                message_fail = f'⚠️ Yêu cầu mua tay {symbol} không thành công vì mã đang chạy trong luồng auto. Vui lòng thử lại sau!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_fail)
                 send_message_telegram(user, MessageTypeEnum.ACT, message_fail)
                 return
-            
-            # Đã lock thành công
-            # Đã lock thành công
-            is_update_success = True
             
             # --- CHUẨN BỊ DỮ LIỆU CHUNG ---
             def prepare_data_for_buy():
@@ -847,7 +852,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         "stock": stock.name,
                         "level": level,
                         "price": price_set_buy,
-                        "message": "Yêu cầu mua tay thành công, bắt đầu đặt lệnh...",
+                        "message": "Yêu cầu mua ngay, bắt đầu đặt lệnh...",
                         "start_time_order": start_time_order,
                     }
                     buy_order_overrall_attrs = {
@@ -1211,15 +1216,24 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
         stock_data_trading_second = None
         stock_data_following_second = None
         try:
-            update_status, update_data = ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
-            if update_status != SuccessType.UPDATED_SUCCESS:
+            # Thử chiếm quyền giao dịch (Lock) với retry để tránh xung đột với tiến trình tự động vừa kết thúc
+            max_retries = 3
+            for retry_count in range(max_retries):
+                update_status, update_data = ConfigurationServices.update_is_trading_configuration(user, stock_id, True)
+                if update_status == SuccessType.UPDATED_SUCCESS:
+                    is_update_success = True
+                    break
+                
+                if retry_count < max_retries - 1:
+                    logger.info(f"[{symbol}] Đang đợi luồng khác kết thúc để chiếm lock (Lần {retry_count + 1})...")
+                    time.sleep(2)
+            
+            if not is_update_success:
                 logger.error(f'Failed to update is_trading for {symbol}: {update_data}')
-                message_fail = f'⚠️ Đưa {symbol} vào danh sách đang hoạt động thất bại. Hủy yêu cầu bán tay!'
+                message_fail = f'⚠️ Yêu cầu bán tay {symbol} không thành công vì mã đang chạy trong luồng auto. Vui lòng thử lại sau!'
                 send_message_telegram(user, MessageTypeEnum.OVERALL, message_fail)
                 send_message_telegram(user, MessageTypeEnum.ACT, message_fail)
                 return
-            
-            is_update_success = True
             
             # --- CHUẨN BỊ DỮ LIỆU CHUNG ---
             def prepare_data_for_sell():
@@ -2949,18 +2963,9 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     # Đóng kết nối cũ để đảm bảo có kết nối mới sạch sẽ cho việc reset trạng thái
                     close_old_connections()
                     
-                    is_manual_final = False
-                    config_final = ConfigurationServices.get_user_configuration_by_stock_symbol(user, symbol)
-                    if config_final:
-                        overview_final = config_final.get("overview_config")
-                        if overview_final and (overview_final.is_buy_hand or overview_final.is_sell_hand):
-                             is_manual_final = True
-                    
-                    if not is_manual_final:
-                         ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
-                         logger.info(f"Đã reset is_trading cho {symbol} trong finally block")
-                    else:
-                         logger.info(f"Giữ is_trading=True cho {symbol} trong finally block vì đang Mua/Bán Tay")
+                    # Luôn reset is_trading=False để giải phóng lock cho các tiến trình khác (bao gồm cả Mua/Bán tay đang đợi)
+                    ConfigurationServices.update_is_trading_configuration(user, stock_id, False)
+                    logger.info(f"Đã reset is_trading cho {symbol} trong finally block")
                     
                     # Nếu thành công thì thoát vòng lặp retry
                     break
@@ -3095,7 +3100,12 @@ def trading(user: User, vps_account: Account, symbol: str) -> None:
     send_message_telegram(user, MessageTypeEnum.OVERALL, message_is_trading) 
     configurations_handle_trading = [
         config for config in user_configurations
-        if (trading_config := config.get("trading_config")) and trading_config.is_trading is False
+        if (trading_config := config.get("trading_config")) 
+        and trading_config.is_trading is False
+        and not (
+            (overview_config := config.get("overview_config")) 
+            and (overview_config.is_buy_hand or overview_config.is_sell_hand)
+        )
     ]
     list_symbol_not_trading  = [
         config["stock"].name
