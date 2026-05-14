@@ -30,7 +30,7 @@ def handle_buy_service(user_account: str, trade_account: str, url: str, symbol: 
     else:
         logger.error(f"API Buy Error: {buy_object.get('rs')} (rc: {buy_object.get('rc')}) for {symbol}")
         request_new_session()
-        return {}
+        return {"error": buy_object.get('rs'), "rc": buy_object.get('rc')}
 
 
 def handle_sell_service(user_account: str, trade_account: str, url: str, symbol: str, session: str, asp_net_session: str, price: float, volume: float, ref_id: str):
@@ -49,7 +49,7 @@ def handle_sell_service(user_account: str, trade_account: str, url: str, symbol:
     else:
         logger.error(f"API Sell Error: {sell_object.get('rs')} (rc: {sell_object.get('rc')}) for {symbol}")
         request_new_session()
-        return {}
+        return {"error": sell_object.get('rs'), "rc": sell_object.get('rc')}
 
 
 def handle_update_order_service(user_account, trade_account, url, symbol, session,

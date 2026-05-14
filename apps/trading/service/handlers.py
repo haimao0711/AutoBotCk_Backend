@@ -932,7 +932,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             }
                             logger.info(f'buy_order_attrs_send {symbol}: {buy_order_attrs_send}')
                             res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, buy_order_attrs_send['price'],  buy_order_attrs_send['volume'], ref_id)
-                            if res_buy:
+                            if res_buy and res_buy.get('order_num'):
                                 is_send_order_buy = True
                                 buy_order_sensitive_attrs = {
                                     'stock': res_buy['symbol'],
@@ -945,9 +945,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                 current_batch_order_nums.append(res_buy['order_num'])
                                 number_order -= 1
                             else:
-                                msg_error = f"Lệnh mua nhạy cảm cho {symbol} thất bại. Kiểm tra số dư hoặc kết nối API."
-                                logger.info(msg_error)
-                                send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
+                                error_msg = res_buy.get('error') if (res_buy and isinstance(res_buy, dict)) else "API không phản hồi"
+                                logger.info(f"Lệnh mua nhạy cảm handle_buy_service của {symbol} thất bại: {error_msg}")
+                                send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ Lệnh mua nhạy cảm cho {symbol} thất bại: {error_msg}")
                             
                             # 2. Luôn trừ khối lượng dự kiến để tránh dồn khối lượng (snowball) khi lỗi
                             volume -= int(volume_buy_sensitive)
@@ -979,7 +979,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                 if volume_buy >= 100:
                                     logger.info(f"Thực hiện lệnh mua lần thứ {i+1}/{number_to_order} cho {symbol}: Price={price}, Volume={volume_buy}, RefID={ref_id}")
                                     res_buy = handle_buy_service(user_name, account, request_url, symbol, session, asp_net_session, price, volume_buy, ref_id)
-                                    if res_buy:
+                                    if res_buy and res_buy.get('order_num'):
                                         is_send_order_buy = True
                                         buy_order_details_attrs = {
                                             'stock': res_buy['symbol'],
@@ -992,12 +992,13 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                             **buy_order_details_attrs
                                         })
                                         current_batch_order_nums.append(res_buy['order_num'])
+                                        volume -= int(res_buy['volume'])
                                     else:
-                                        msg_error = f"Lệnh mua lần thứ {i+1} cho {symbol} thất bại. Kiểm tra số dư hoặc kết nối API."
+                                        error_msg = res_buy.get('error') if (res_buy and isinstance(res_buy, dict)) else "API không phản hồi"
+                                        msg_error = f"Lệnh mua lần thứ {i+1} cho {symbol} thất bại: {error_msg}"
                                         logger.error(f"Error: {msg_error}")
                                         send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
-                                    
-                                    volume -= int(volume_buy)
+                                        volume -= int(volume_buy)
                                 else:
                                     logger.info(f"Bỏ qua lệnh mua lần thứ {i+1} của {symbol} do volume_buy < 100 ({volume_buy})")
                                 
@@ -1574,7 +1575,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             
                             logger.info(f"Thực hiện lệnh bán nhạy cảm cho {symbol}: Price={price}, Volume={volume_sell_sensitive}, RefID={ref_id}")
                             res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price, int(volume_sell_sensitive), ref_id)
-                            if res_sell:
+                            if res_sell and res_sell.get('order_num'):
                                 is_send_order_sell = True
                                 sell_order_sensitive_attrs = {
                                     'stock': res_sell['symbol'],
@@ -1588,7 +1589,9 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                 volume -= int(res_sell['volume'])
                                 number_order -= 1
                             else:
-                                logger.info(f"Error: lệnh bán nhạy cảm handle_sell_service  của {symbol} phản hồi là rỗng") 
+                                error_msg = res_sell.get('error') if (res_sell and isinstance(res_sell, dict)) else "API không phản hồi"
+                                logger.info(f"Lệnh bán nhạy cảm handle_sell_service của {symbol} thất bại: {error_msg}")
+                                send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ Lệnh bán nhạy cảm cho {symbol} thất bại: {error_msg}")
 
                         # Chia đều phần còn lại của volume to sell
                         number_to_order = min(int(number_order), volume // 100)
@@ -1610,7 +1613,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                 if volume_sell_step >= 100:
                                     logger.info(f"Thực hiện lệnh bán lần thứ {i+1}/{number_to_order} cho {symbol}: Price={price}, Volume={volume_sell_step}, RefID={ref_id}")
                                     res_sell = handle_sell_service(user_name, account, request_url, symbol, session, asp_net_session, price, volume_sell_step, ref_id)
-                                    if res_sell:
+                                    if res_sell and res_sell.get('order_num'):
                                         is_send_order_sell = True
                                         sell_order_details_attrs = {
                                             'stock': res_sell['symbol'],
@@ -1625,7 +1628,8 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                         volume -= int(res_sell['volume'])
                                         current_batch_order_nums.append(res_sell['order_num'])
                                     else:
-                                        msg_error = f"Lệnh bán lần thứ {i+1} cho {symbol} thất bại (API không phản hồi hoặc trả về rỗng)"
+                                        error_msg = res_sell.get('error') if (res_sell and isinstance(res_sell, dict)) else "API không phản hồi"
+                                        msg_error = f"Lệnh bán lần thứ {i+1} cho {symbol} thất bại: {error_msg}"
                                         logger.error(f"Error: {msg_error}")
                                         send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ {msg_error}")
                                 
