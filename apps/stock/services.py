@@ -806,27 +806,45 @@ class StockService:
 
                 new_count = 0
                 for item in data:
-                    # API VPS dùng field 'stock_code' và 'name_vn'
                     symbol = item.get('stock_code')
                     name = item.get('name_vn')
+                    asset_type = item.get('type') # S: Stock, W: Warrant, T: Bond, D: Derivative, E: ETF/Fund
                     
                     if not symbol:
                         continue
                     
-                    # Đảm bảo name không vượt quá 50 ký tự (giới hạn của DB)
-                    if name and len(name) > 50:
-                        name = name[:47] + "..."
+                    # Lọc: Chỉ lấy Cổ phiếu (S) và ETF/Chứng chỉ quỹ (E) 
+                    # Nếu bạn muốn lấy cả Trái phiếu (T) thì bỏ dòng check type này
+                    if asset_type not in ['S', 'E']:
+                        continue
+
+                    # Kiểm tra xem mã này đã tồn tại chưa
+                    if Stock.objects.filter(symbol=symbol).exists():
+                        continue
                     
-                    # Sử dụng get_or_create để chỉ thêm nếu chưa tồn tại
-                    obj, created = Stock.objects.get_or_create(
-                        symbol=symbol,
-                        defaults={
-                            'name': name if name else symbol,
-                            'margin': 0
-                        }
-                    )
-                    if created:
+                    # Xử lý tên để đảm bảo Unique và độ dài 50
+                    final_name = name if name else symbol
+                    if len(final_name) > 50:
+                        final_name = final_name[:47] + "..."
+                    
+                    # Nếu tên này đã bị mã khác chiếm mất (Lỗi Unique Name)
+                    if Stock.objects.filter(name=final_name).exists():
+                        # Thử kết hợp Mã - Tên
+                        final_name = f"{symbol} - {name}"[:50]
+                        # Nếu vẫn trùng (trường hợp cực hiếm), dùng luôn mã làm tên
+                        if Stock.objects.filter(name=final_name).exists():
+                            final_name = symbol
+                    
+                    try:
+                        Stock.objects.create(
+                            symbol=symbol,
+                            name=final_name,
+                            margin=0
+                        )
                         new_count += 1
+                    except Exception as e:
+                        print(f"⚠️ Could not add {symbol}: {str(e)}")
+                        continue
                 
                 msg = f"✅ Sync completed (VPS). Added {new_count} new stocks."
                 print(msg)
