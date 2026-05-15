@@ -786,28 +786,38 @@ class StockService:
     @staticmethod
     def sync_stocks_from_exchange():
         """
-        Đồng bộ danh sách mã cổ phiếu từ VNDirect API vào database.
+        Đồng bộ danh sách mã cổ phiếu từ VPS API vào database.
         Chỉ thêm mã mới, không xóa mã cũ.
+        Dùng nguồn VPS: https://bgapidatafeed.vps.com.vn/getlistallstock
         """
-        url = "https://finfo-api.vndirect.com.vn/v4/stocks?q=type:STOCK,IFIS,ETF&fields=code,name&size=3000"
+        url = "https://bgapidatafeed.vps.com.vn/getlistallstock"
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         try:
-            print(f"🔄 Starting sync stocks from exchange at {datetime.now()}...")
-            response = requests.get(url, headers=headers, timeout=15)
+            print(f"🔄 Starting sync stocks from VPS exchange at {datetime.now()}...")
+            response = requests.get(url, headers=headers, timeout=20)
             if response.status_code == 200:
-                data = response.json().get('data', [])
+                data = response.json()
+                if not isinstance(data, list):
+                    msg = f"❌ Failed to sync stocks. API response is not a list."
+                    print(msg)
+                    return msg
+
                 new_count = 0
                 for item in data:
-                    symbol = item.get('code')
-                    name = item.get('name')
+                    # API VPS dùng field 'stock_code' và 'name_vn'
+                    symbol = item.get('stock_code')
+                    name = item.get('name_vn')
                     
                     if not symbol:
                         continue
-                        
+                    
+                    # Đảm bảo name không vượt quá 50 ký tự (giới hạn của DB)
+                    if name and len(name) > 50:
+                        name = name[:47] + "..."
+                    
                     # Sử dụng get_or_create để chỉ thêm nếu chưa tồn tại
-                    # Không xóa bất kỳ mã nào cũ
                     obj, created = Stock.objects.get_or_create(
                         symbol=symbol,
                         defaults={
@@ -818,15 +828,15 @@ class StockService:
                     if created:
                         new_count += 1
                 
-                msg = f"✅ Sync completed. Added {new_count} new stocks."
+                msg = f"✅ Sync completed (VPS). Added {new_count} new stocks."
                 print(msg)
                 return msg
             else:
-                msg = f"❌ Failed to sync stocks. API returned status {response.status_code}"
+                msg = f"❌ Failed to sync stocks. VPS API returned status {response.status_code}"
                 print(msg)
                 return msg
         except Exception as e:
-            msg = f"❌ Error syncing stocks: {str(e)}"
+            msg = f"❌ Error syncing stocks from VPS: {str(e)}"
             print(msg)
             return msg
 
