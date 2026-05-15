@@ -237,7 +237,8 @@ class SetupStockSchedulesView(APIView):
                         'download_stock_data_h1',
                         'download_stock_data_m15',
                         'download_stock_data_m5',
-                        'download_stock_data_m1'
+                        'download_stock_data_m1',
+                        'sync_stocks_from_exchange'
                     ]
                 }, status=status.HTTP_200_OK)
             else:
@@ -248,6 +249,28 @@ class SetupStockSchedulesView(APIView):
                 
         except Exception as e:
             logger.error(f'Error setting up stock schedules: {e}')
+            return Response({
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class SyncStockView(APIView):
+    """
+    API endpoint để đồng bộ danh sách mã cổ phiếu thủ công
+    POST /api/stock/sync/
+    """
+    permission_classes = [StockPermission]
+    
+    def post(self, request):
+        try:
+            logger.info('🔄 API request to sync stocks from exchange...')
+            result = StockService.sync_stocks_from_exchange()
+            return Response({
+                'success': True,
+                'message': result
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f'Error syncing stocks: {e}')
             return Response({
                 'success': False,
                 'message': f'Error: {str(e)}'

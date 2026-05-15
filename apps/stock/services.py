@@ -783,3 +783,50 @@ class StockService:
                 except Exception as e:
                     print(f"An error occurred: {e}")
 
+    @staticmethod
+    def sync_stocks_from_exchange():
+        """
+        Đồng bộ danh sách mã cổ phiếu từ VNDirect API vào database.
+        Chỉ thêm mã mới, không xóa mã cũ.
+        """
+        url = "https://finfo-api.vndirect.com.vn/v4/stocks?q=type:STOCK,IFIS,ETF&fields=code,name&size=3000"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        try:
+            print(f"🔄 Starting sync stocks from exchange at {datetime.now()}...")
+            response = requests.get(url, headers=headers, timeout=15)
+            if response.status_code == 200:
+                data = response.json().get('data', [])
+                new_count = 0
+                for item in data:
+                    symbol = item.get('code')
+                    name = item.get('name')
+                    
+                    if not symbol:
+                        continue
+                        
+                    # Sử dụng get_or_create để chỉ thêm nếu chưa tồn tại
+                    # Không xóa bất kỳ mã nào cũ
+                    obj, created = Stock.objects.get_or_create(
+                        symbol=symbol,
+                        defaults={
+                            'name': name if name else symbol,
+                            'margin': 0
+                        }
+                    )
+                    if created:
+                        new_count += 1
+                
+                msg = f"✅ Sync completed. Added {new_count} new stocks."
+                print(msg)
+                return msg
+            else:
+                msg = f"❌ Failed to sync stocks. API returned status {response.status_code}"
+                print(msg)
+                return msg
+        except Exception as e:
+            msg = f"❌ Error syncing stocks: {str(e)}"
+            print(msg)
+            return msg
+

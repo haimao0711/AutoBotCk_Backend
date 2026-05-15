@@ -162,3 +162,20 @@ def delete_old_stock_records_task(self):
         raise self.retry(exc=exc)
     finally:
         close_old_connections()
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=300)
+def sync_stocks_from_exchange_task(self):
+    """
+    Celery task để đồng bộ danh sách mã cổ phiếu từ sàn chứng khoán.
+    Chạy định kỳ để cập nhật các mã mới niêm yết.
+    """
+    try:
+        logger.info('Celery job sync stocks from exchange is running...')
+        result = StockService.sync_stocks_from_exchange()
+        logger.info(f'Celery job sync stocks completed: {result}')
+        return result
+    except Exception as exc:
+        logger.error(f'Error in sync_stocks_from_exchange_task: {exc}')
+        raise self.retry(exc=exc)
+    finally:
+        close_old_connections()

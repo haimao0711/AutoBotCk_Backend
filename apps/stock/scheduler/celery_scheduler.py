@@ -172,6 +172,18 @@ def setup_stock_schedules():
             queue='default'
         )
         
+        # 8. Sync Stocks - Hàng ngày lúc 1:00 sáng
+        schedule_sync = get_or_create_crontab(
+            minute='0',
+            hour='1'
+        )
+        create_or_update_periodic_task(
+            name='sync_stocks_from_exchange',
+            crontab=schedule_sync,
+            task='apps.stock.tasks.sync_stocks_from_exchange_task',
+            queue='default'
+        )
+        
         logger.info("✅ Stock schedules created successfully!")
         logger.info("Scheduled tasks:")
         logger.info("  - delete_old_stock_records: Every hour from 9:00-15:00")
@@ -181,6 +193,7 @@ def setup_stock_schedules():
         logger.info("  - download_stock_data_m15: Every 15 minutes from 9:00-15:00")
         logger.info("  - download_stock_data_m5: Every 5 minutes from 9:00-15:00")
         logger.info("  - download_stock_data_m1: Every minute from 9:00-15:00")
+        logger.info("  - sync_stocks_from_exchange: Every day at 1:00")
         
         return True
         
