@@ -188,6 +188,7 @@ def handle_orders_matched(user_account, trade_account, symbol, url, valid_sessio
                 "symbol": order["symbol"],
                 "showPrice": order["showPrice"],
                 "volume": order["volume"],
+                "orderTime": order.get("orderTime", ""),
                 "status": 'Đã khớp'
             }
             for order in orders_matcheds if order.get("symbol") == symbol and order.get("side") == side

@@ -866,6 +866,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     max_volume_by_cash = (cash_available // price_set_buy // 100) * 100 if price_set_buy > 0 else 0
                     volume = min(volume_calc, max_volume_by_cash)
                     current_batch_order_nums = [] # Lưu các mã lệnh của phiên hiện tại
+                    round_start_time_str = datetime.now(pytz.timezone('Asia/Ho_Chi_Minh')).strftime("%H:%M:%S")
                     
                     logger.info(f"Debug Buy Volume Calculation: volume_to_buy={volume_to_buy}, stock_balance={stock_balance}, volume_calc={volume_calc}, max_volume_by_cash={max_volume_by_cash}, final_volume={volume}")
                     buy_attrs = {
@@ -1052,7 +1053,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
                                 res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B')
-                                res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
+                                res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
                                 if res_matcheds:
                                     msg_match = f'🎯 [{symbol}] Tất cả các lệnh mua tay đã khớp hết.'
                                     logger.info(msg_match)
@@ -1156,7 +1157,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 try:
                     time.sleep(2)
                     res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
-                    res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
+                    res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
                     if res_matcheds:
                         time_now = datetime.now(timezone)
                         start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
@@ -1563,6 +1564,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
 
                     if volume >= 100:
                         current_batch_order_nums = [] # Lưu các mã lệnh của phiên hiện tại
+                        round_start_time_str = datetime.now(pytz.timezone('Asia/Ho_Chi_Minh')).strftime("%H:%M:%S")
                         # Xử lý bán nhạy cảm 
                         if trading_config.stock_config_is_mode_sensitive_sell:
                             sensitive_percentage = trading_config.stock_config_percent_sensitive_sell
@@ -1678,7 +1680,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
                                 res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
-                                res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
+                                res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
                                 if res_matcheds:
                                     msg_match = f'🎯 [{symbol}] Tất cả các lệnh bán tay đã khớp hết.'
                                     logger.info(msg_match)
@@ -1779,7 +1781,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 #Tổng kết các lệnh đã khớp theo symbol để send telegram 
                 try:          
                     res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
-                    res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
+                    res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
                     if res_matcheds:
                         logger.info(f'danh sách các lệnh bán {symbol} đã khớp: {res_matcheds}')
                         time_now = datetime.now(timezone)
@@ -1845,6 +1847,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         request_url = api.TRADING_URL
         ref_id = f"{user_name}.I.test.{int(time.time() * 1000)}"
         current_batch_order_nums = [] # Lưu các mã lệnh của phiên hiện tại
+        round_start_time_str = datetime.now(timezone).strftime("%H:%M:%S")
         
         # Lấy tên luồng hiện tại
         current_thread_name = threading.current_thread().name
@@ -2046,6 +2049,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             is_send_order_buy = False   
             if status_buy == SignalTelegramEnum.BUY_SUCCESS:
                 logger.info(f'bắt đầu hàm đặt lệnh buy {symbol} (Đã có lock từ đầu)')                
+                round_start_time_str = datetime.now(timezone).strftime("%H:%M:%S")
                 
                 import redis
                 redis_client = redis.StrictRedis.from_url('redis://redis:6379/0')
@@ -2268,7 +2272,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
                                 res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B')
-                                res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
+                                res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
                                 if res_matcheds:
                                     msg_match = f"🎯 [{symbol}] Tất cả các lệnh mua đã khớp hết."
                                     logger.info(msg_match)
@@ -2496,7 +2500,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     try:
                         time.sleep(2) # Chờ 2s để VPS đồng bộ
                         res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
-                        res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
+                        res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
                         if res_matcheds:
                             logger.info(f'danh sách các lệnh mua {symbol} đã khớp: {res_matcheds}')
                             time_now = datetime.now(timezone)
@@ -2773,6 +2777,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
             if status_sell in [SignalTelegramEnum.SELL_SUCCESS, SignalTelegramEnum.TAKEPROFIT]:
                 logger.info(f'bắt đầu đặt lệnh sell {symbol} (Đã có lock từ đầu)')                
                 timezone = pytz.timezone('Asia/Ho_Chi_Minh')
+                round_start_time_str = datetime.now(timezone).strftime("%H:%M:%S")
                 if stock_data_trading is None or stock_data_trading.empty:
                     logger.info('Không có dữ liệu trading để xác định giá, hủy lệnh bán ở process_trading.')
                     send_message_telegram(user, MessageTypeEnum.OVERALL, f'Không tải được dữ liệu giá từ API cho {symbol}. Hủy yêu cầu bán tự động.')
@@ -2933,7 +2938,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
                                 res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
-                                res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
+                                res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
                                 if res_matcheds:
                                     logger.info(f"[{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Chờ 2s để VPS đồng bộ trước khi tổng kết.")
                                     is_matched_all = True
@@ -3023,7 +3028,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                     try:
                         time.sleep(2) # Chờ 2s để VPS đồng bộ
                         res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
-                        res_matcheds = [o for o in res_matcheds_raw if o['orderNo'] in current_batch_order_nums] if res_matcheds_raw else []
+                        res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
                         if res_matcheds:
                             logger.info(f'danh sách các lệnh bán {symbol} đã khớp: {res_matcheds}')
                             time_now = datetime.now(timezone)
@@ -3336,4 +3341,7 @@ def trading_request(user: User, vps_account: Account, stock_id: str, symbol: str
     else:
         logger.info("Không có dữ liệu trong prepared_configs, bỏ qua process_trade_request.")
         return False
+
+
+
 

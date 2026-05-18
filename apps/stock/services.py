@@ -822,18 +822,8 @@ class StockService:
                     if Stock.objects.filter(symbol=symbol).exists():
                         continue
                     
-                    # Xử lý tên để đảm bảo Unique và độ dài 50
-                    final_name = name if name else symbol
-                    if len(final_name) > 50:
-                        final_name = final_name[:47] + "..."
-                    
-                    # Nếu tên này đã bị mã khác chiếm mất (Lỗi Unique Name)
-                    if Stock.objects.filter(name=final_name).exists():
-                        # Thử kết hợp Mã - Tên
-                        final_name = f"{symbol} - {name}"[:50]
-                        # Nếu vẫn trùng (trường hợp cực hiếm), dùng luôn mã làm tên
-                        if Stock.objects.filter(name=final_name).exists():
-                            final_name = symbol
+                    # Gán tên bằng đúng ký hiệu mã (Symbol) theo yêu cầu của bạn
+                    final_name = symbol
                     
                     try:
                         Stock.objects.create(
