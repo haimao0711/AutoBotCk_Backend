@@ -1122,7 +1122,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         if stock_data_trading_tmp is not None and not stock_data_trading_tmp.empty:
                             last_row_tmp = stock_data_trading_tmp.iloc[-1]
                             start_price_tmp = round_up_to_unit(last_row_tmp.get('open', 0), last_row_tmp.get('close', 0), step_price)
-                            limited_price_to_buy = start_price_tmp - add_price_buy + slippage_buy
+                            limited_price_to_buy = start_price - add_price_buy + slippage_buy
                         
                         times_update = i + 1
                         message_update, new_order_nums = update_buy_order(user_name, account, symbol, request_url, session, asp_net_session, "B", 
@@ -1717,7 +1717,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                 close_last_row_tmp = last_row_tmp.get('close', 0)
                                 open_last_row_tmp = last_row_tmp.get('open', 0)
                                 
-                                start_price = round_up_to_unit(open_last_row_tmp, close_last_row_tmp, step_price)
+                                start_price_tmp = round_up_to_unit(open_last_row_tmp, close_last_row_tmp, step_price)
                                 price_current = close_last_row_tmp
                                 
                                 limited_price_to_sell = start_price + add_price_sell - slippage_sell
@@ -2357,7 +2357,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             close_last_row_tmp = last_row_tmp.get('close', 0)
                             open_last_row_tmp = last_row_tmp.get('open', 0)
                             
-                            start_price = round_up_to_unit(open_last_row_tmp, close_last_row_tmp, step_price)
+                            start_price_tmp = round_up_to_unit(open_last_row_tmp, close_last_row_tmp, step_price)
                             price_current = close_last_row_tmp
                             
                             limited_price_to_buy = start_price - add_price_buy + slippage_buy
