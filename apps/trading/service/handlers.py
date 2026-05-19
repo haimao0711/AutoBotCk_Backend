@@ -1052,18 +1052,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             # 1. Kiểm tra nếu đã khớp hết thì thoát sớm
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B')
-                                res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
-                                if res_matcheds:
-                                    msg_match = f'🎯 [{symbol}] Tất cả các lệnh mua tay đã khớp hết.'
-                                    logger.info(msg_match)
-                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
-                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
-                                else:
-                                    msg_cancel = f'⚠️ [{symbol}] Các lệnh mua tay đã bị hủy bởi hệ thống.'
-                                    logger.info(msg_cancel)
-                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_cancel)
-                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_cancel)
+                                logger.info(f"🎯 [{symbol}] Tất cả các lệnh mua tay đã khớp hết. Chuyển sang tổng kết.")
                                 is_matched_all = True
                                 should_break_loop = True
                                 time.sleep(2)
@@ -1158,6 +1147,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                     time.sleep(2)
                     res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
                     res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
+                    msg_end = f'✅ Hoàn tất tiến trình mua tay mã {symbol}.'
                     if res_matcheds:
                         time_now = datetime.now(timezone)
                         start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
@@ -1173,18 +1163,17 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                 'stock': order['symbol'], 'price': order['showPrice'],
                                 'volume': order['volume'], 'status': order['status']
                             })
+                        message_buy_matched.append({'raw_text': msg_end})
                         send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_buy_matched)
                         send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_matched)
+                    else:
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, msg_end)
+                        send_message_telegram(user, MessageTypeEnum.ACT, msg_end)
                     
                     # Mở chốt lãi
                     ConfigurationServices.update_all_take_profit_flags_true(user, stock_id)
                     # Hủy lệnh sót
                     cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Hủy các lệnh mua còn sót lại', "B")
-                    
-                    # Thông báo kết thúc tiến trình
-                    msg_end = f'✅ Hoàn tất tiến trình mua tay mã {symbol}.'
-                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_end)
-                    send_message_telegram(user, MessageTypeEnum.ACT, msg_end)
                 except Exception as e:
                     logger.error(f"Lỗi tổng kết matched orders cho {symbol}: {e}")
         except Exception as e:
@@ -1679,18 +1668,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                             # 1. Kiểm tra trạng thái khớp (PENDING)
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
-                                res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
-                                if res_matcheds:
-                                    msg_match = f'🎯 [{symbol}] Tất cả các lệnh bán tay đã khớp hết.'
-                                    logger.info(msg_match)
-                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
-                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
-                                else:
-                                    msg_cancel = f'⚠️ [{symbol}] Các lệnh bán tay đã bị hủy bởi hệ thống.'
-                                    logger.info(msg_cancel)
-                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_cancel)
-                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_cancel)
+                                logger.info(f"🎯 [{symbol}] Tất cả các lệnh bán tay đã khớp hết. Chuyển sang tổng kết.")
                                 is_matched_all = True
                                 should_break_loop = True
                                 break
@@ -1782,6 +1760,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                 try:          
                     res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
                     res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
+                    msg_end = f'✅ Hoàn tất tiến trình bán tay mã {symbol}.'
                     if res_matcheds:
                         logger.info(f'danh sách các lệnh bán {symbol} đã khớp: {res_matcheds}')
                         time_now = datetime.now(timezone)
@@ -1805,14 +1784,12 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                                 'volume': order['volume'],
                                 'status': order['status']
                                 })
-                        if message_sell_matched:
-                            send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_sell_matched)
-                            send_telegram_message_batch(user, MessageTypeEnum.ACT, message_sell_matched)
-
-                    # Thông báo hoàn tất
-                    msg_end = f'✅ Hoàn tất tiến trình bán tay mã {symbol}.'
-                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_end)
-                    send_message_telegram(user, MessageTypeEnum.ACT, msg_end)
+                        message_sell_matched.append({'raw_text': msg_end})
+                        send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_sell_matched)
+                        send_telegram_message_batch(user, MessageTypeEnum.ACT, message_sell_matched)
+                    else:
+                        send_message_telegram(user, MessageTypeEnum.OVERALL, msg_end)
+                        send_message_telegram(user, MessageTypeEnum.ACT, msg_end)
 
                 except Exception as e:
                     logger.info(f"Lỗi khi xử lý matched orders: {e}")
@@ -2271,41 +2248,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             # Tối ưu: Bỏ qua sleep nếu đã khớp hết
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B')
-                                res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
-                                if res_matcheds:
-                                    msg_match = f"🎯 [{symbol}] Tất cả các lệnh mua đã khớp hết."
-                                    logger.info(msg_match)
-                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_match)
-                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_match)
-
-                                    # Gửi chi tiết lệnh khớp ngay lập tức
-                                    time_now = datetime.now(timezone)
-                                    start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-                                    message_buy_matched = []
-                                    buy_matched_overrall_attrs = {
-                                        'user_account': account,
-                                        'stock': symbol,
-                                        'number_order': len(res_matcheds),
-                                        'start_time_order': start_time_order,
-                                    } 
-                                    message_buy_matched.append({'status_signal': SignalTelegramEnum.BUY_MATCHED_OVERRAL, **buy_matched_overrall_attrs})
-                                    for order in res_matcheds:
-                                        message_buy_matched.append({
-                                            'status_signal': SignalTelegramEnum.BUY_MATCHED_DETAIL,
-                                            'stock': order['symbol'],
-                                            'price': order['showPrice'],
-                                            'volume': order['volume'],
-                                            'status': order['status']
-                                        })
-                                    send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_buy_matched)
-                                    send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_matched)
-                                else:
-                                    msg_cancel = f'⚠️ [{symbol}] Các lệnh mua đã bị hủy bởi hệ thống.'
-                                    logger.info(msg_cancel)
-                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_cancel)
-                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_cancel)
-
+                                logger.info(f"🎯 [{symbol}] Tất cả các lệnh mua đã khớp hết. Chuyển sang tổng kết.")
                                 is_matched_all = True
                                 should_break_loop = True
                                 time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
@@ -2501,6 +2444,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         time.sleep(2) # Chờ 2s để VPS đồng bộ
                         res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'B') 
                         res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
+                        msg_end_buy = f'✅ Hoàn tất pha mua tự động mã {symbol}.'
                         if res_matcheds:
                             logger.info(f'danh sách các lệnh mua {symbol} đã khớp: {res_matcheds}')
                             time_now = datetime.now(timezone)
@@ -2521,18 +2465,16 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                     'volume': order['volume'],
                                     'status': order['status']
                                 })
+                            message_buy_matched.append({'raw_text': msg_end_buy})
                             send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_buy_matched)
                             send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_matched)
                         else:
                             logger.info(f'Không có lệnh mua {symbol} nào khớp trong đợt này.')
+                            send_message_telegram(user, MessageTypeEnum.OVERALL, msg_end_buy)
+                            send_message_telegram(user, MessageTypeEnum.ACT, msg_end_buy)
                         
                         # Luôn hủy các lệnh mua còn sót lại sau mỗi đợt
                         cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Dọn dẹp lệnh mua sau phiên trade', "B")
-                        
-                        # Thông báo hoàn tất pha mua
-                        msg_end_buy = f'✅ Hoàn tất pha mua tự động mã {symbol}.'
-                        send_message_telegram(user, MessageTypeEnum.OVERALL, msg_end_buy)
-                        send_message_telegram(user, MessageTypeEnum.ACT, msg_end_buy)
 
                     except Exception as e:
                         logger.error(f"Lỗi tổng kết matched orders (BUY) cho {symbol}: {e}")
@@ -2937,43 +2879,10 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             # Tối ưu: Bỏ qua sleep nếu đã khớp hết
                             pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
                             if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
-                                res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
-                                if res_matcheds:
-                                    logger.info(f"[{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Chờ 2s để VPS đồng bộ trước khi tổng kết.")
-                                    is_matched_all = True
-                                    should_break_loop = True
-
-                                    # Gửi chi tiết lệnh khớp ngay lập tức
-                                    time_now = datetime.now(timezone)
-                                    start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y")
-                                    message_sell_matched = []
-                                    sell_matched_overrall_attrs = {
-                                        'user_account': account,
-                                        'stock': symbol,
-                                        'number_order': len(res_matcheds),
-                                        'start_time_order': start_time_order,
-                                    } 
-                                    message_sell_matched.append({'status_signal': SignalTelegramEnum.SELL_MATCHED_OVERRAL, **sell_matched_overrall_attrs})
-                                    for order in res_matcheds:
-                                        message_sell_matched.append({
-                                            'status_signal': SignalTelegramEnum.SELL_MATCHED_DETAIL,
-                                            'stock': order['symbol'],
-                                            'price': order['showPrice'],
-                                            'volume': order['volume'],
-                                            'status': order['status']
-                                        })
-                                    send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_sell_matched)
-                                    send_telegram_message_batch(user, MessageTypeEnum.ACT, message_sell_matched)
-                                else:
-                                    msg_cancel = f'⚠️ [{symbol}] Các lệnh bán đã bị hủy bởi hệ thống.'
-                                    logger.info(msg_cancel)
-                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_cancel)
-                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_cancel)
-
-                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
+                                logger.info(f"🎯 [{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Chuyển sang tổng kết.")
                                 is_matched_all = True
                                 should_break_loop = True
+                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
                                 break
                         except Exception as e:
                             logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
@@ -3029,6 +2938,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         time.sleep(2) # Chờ 2s để VPS đồng bộ
                         res_matcheds_raw = handle_orders_matched(user_name, account, symbol, request_url, session, '', 'S')
                         res_matcheds = [o for o in res_matcheds_raw if o.get('orderTime', '') >= round_start_time_str] if res_matcheds_raw else []
+                        msg_end_sell = f'✅ Hoàn tất pha bán tự động mã {symbol}.'
                         if res_matcheds:
                             logger.info(f'danh sách các lệnh bán {symbol} đã khớp: {res_matcheds}')
                             time_now = datetime.now(timezone)
@@ -3049,18 +2959,16 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                                     'volume': order['volume'],
                                     'status': order['status']
                                 })
+                            message_sell_matched.append({'raw_text': msg_end_sell})
                             send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_sell_matched)
                             send_telegram_message_batch(user, MessageTypeEnum.ACT, message_sell_matched)
                         else:
                             logger.info(f'Không có lệnh bán {symbol} nào khớp trong đợt này.')
+                            send_message_telegram(user, MessageTypeEnum.OVERALL, msg_end_sell)
+                            send_message_telegram(user, MessageTypeEnum.ACT, msg_end_sell)
                         
                         # Hủy các lệnh bán còn sót lại
                         cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Dọn dẹp lệnh bán sau phiên trade', "S")
-
-                        # Thông báo hoàn tất pha bán
-                        msg_end_sell = f'✅ Hoàn tất pha bán tự động mã {symbol}.'
-                        send_message_telegram(user, MessageTypeEnum.OVERALL, msg_end_sell)
-                        send_message_telegram(user, MessageTypeEnum.ACT, msg_end_sell)
                     except Exception as e:
                         logger.error(f"Lỗi tổng kết matched orders (SELL) cho {symbol}: {e}")
 

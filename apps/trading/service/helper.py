@@ -121,10 +121,13 @@ def send_telegram_message_batch(user, message_type: MessageTypeEnum, batch_messa
                     continue
                     
                 status_signal = message.get('status_signal')
-                message_kwargs = {key: value for key, value in message.items() if key != 'status_signal'}
+                raw_text = message.get('raw_text')
+                message_kwargs = {key: value for key, value in message.items() if key not in ['status_signal', 'raw_text']}
 
-                # Chỉ xử lý khi có status_signal hợp lệ
-                if status_signal:
+                # Chỉ xử lý khi có status_signal hợp lệ hoặc raw_text
+                if raw_text:
+                    combined_message += f"{raw_text}"
+                elif status_signal:
                     formatted_message = define_message(status_signal.value, kwargs=message_kwargs)
                     combined_message += f"{formatted_message}" 
             except Exception as e:
