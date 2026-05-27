@@ -113,13 +113,13 @@ def handle_orders_not_matched(user_account, trade_account, symbol, url, valid_se
         user_account, trade_account, url, valid_session, asp_net_session, "PENDING" )
     if data_res is None:
         print("Không nhận được phản hồi từ API get_orders_status.")
-        return []
+        return None
     data_text = data_res.text
     try:
         data_object = json.loads(data_res.text)
     except Exception as e:
         print("Lỗi khi parse JSON từ phản hồi:", e)
-        return []
+        return None
     response_type = validate_response(data_object)
     
     if response_type == ResponseAPISmartOneEnum.SUCCESS:
@@ -167,7 +167,7 @@ def handle_orders_not_matched(user_account, trade_account, symbol, url, valid_se
         return orders_detail
     else:
         request_new_session()
-        return []
+        return None
 
 def handle_orders_matched(user_account, trade_account, symbol, url, valid_session, asp_net_session, side):   
     data_res = get_orders_status(

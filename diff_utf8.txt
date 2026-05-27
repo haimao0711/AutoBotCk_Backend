@@ -1,0 +1,287 @@
+diff --git a/apps/trading/service/handlers.py b/apps/trading/service/handlers.py
+index 1b502c6..e8af0f3 100644
+--- a/apps/trading/service/handlers.py
++++ b/apps/trading/service/handlers.py
+@@ -143,18 +143,19 @@ def get_orders_not_matched_with_retry(user_name, account, symbol, request_url, s
+     retry_count = 0
+     res_not_matcheds = None
+     
+-    while not res_not_matcheds and retry_count < max_retry:
++    while res_not_matcheds is None and retry_count < max_retry:
+         try:
+             res_not_matcheds = handle_orders_not_matched(user_name, account, symbol, request_url, session, '', side)
+         except Exception as e:
+             logger.error(f"Lỗi khi gọi handle_orders_not_matched (Lần {retry_count + 1}/{max_retry}): {e}")
+             res_not_matcheds = None
+ 
+-        if not res_not_matcheds:
++        if res_not_matcheds is None:
+             retry_count += 1
+             if retry_count < max_retry:
+-                logger.info(f"Lần thử {retry_count}/{max_retry}: Chưa có danh sách chưa khớp cho symbol {symbol}. Thử lại sau {retry_delay} giây...")
+-                time.sleep(retry_delay)
++                current_delay = retry_delay * (2 ** (retry_count - 1))
++                logger.info(f"Lần thử {retry_count}/{max_retry}: Lỗi kết nối hoặc API VPS lỗi. Thử lại sau {current_delay} giây...")
++                time.sleep(current_delay)
+     
+     return res_not_matcheds
+ 
+@@ -195,7 +196,9 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
+     message_buy_update = []
+ 
+     new_order_nums = []
+-    if res_not_matcheds:
++    if res_not_matcheds is None:
++        logger.error(f"❌ Lỗi API khi cập nhật lệnh mua {symbol}: Không thể lấy danh sách lệnh chờ khớp.")
++    elif len(res_not_matcheds) > 0:
+         logger.info(f"Đã có danh sách chưa khớp để update buy stock {symbol}: {res_not_matcheds}")
+         buy_update_overrall_attrs = {        
+             'user_account': account,
+@@ -280,7 +283,7 @@ def update_buy_order(user_name: str, account: str, symbol: str, request_url: str
+     return message_buy_update, new_order_nums
+ 
+ 
+-def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, request_url: str, session: str, reason: str, side: str):
++def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, request_url: str, session: str, reason: str, side: str) -> bool:
+     logger.info(f'Bắt đầu chạy hàm cancel buy oders {symbol} ' )
+     ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
+     # start_time_cancel = datetime.now(timezone)
+@@ -288,10 +291,18 @@ def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, reque
+     start_time_cancel = datetime.now(tz).strftime("%H:%M:%S ngày %d-%m-%Y")
+     message_buy_cancel = []
+     
+-    # Sử dụng helper function với retry
+-    res_not_matcheds = get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, 'B')
++    # Sử dụng helper function với retry (max_retry = 5 cho dọn dẹp hủy lệnh)
++    res_not_matcheds = get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, 'B', max_retry=5)
+         
+-    if res_not_matcheds:
++    if res_not_matcheds is None:
++        logger.error(f'❌ Lỗi API: Không thể lấy danh sách lệnh mua để hủy cho {symbol}')
++        if reason and reason not in ['Hủy các lệnh mua còn sót lại', 'Đảm bảo hết lệnh còn đặt khi kết thúc mỗi vòng mua']:
++            msg_notify = f'⚠️ **{symbol}**: {reason} (Gặp lỗi kết nối sàn/API VPS, không thể kiểm tra lệnh treo!)'
++            send_message_telegram(user, MessageTypeEnum.OVERALL, msg_notify)
++            send_message_telegram(user, MessageTypeEnum.ACT, msg_notify)
++        return False
++        
++    elif len(res_not_matcheds) > 0:
+         logger.info(f'Da co danh sach chua khop to cancel buy stock {symbol}: {res_not_matcheds}')
+         buy_cancel_overrall_attrs = {        
+             'user_account': account,
+@@ -305,6 +316,7 @@ def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, reque
+             **buy_cancel_overrall_attrs
+         })            
+ 
++        all_success = True
+         for order in res_not_matcheds:  
+             # Sử dụng helper execute_action_with_retry
+             res_cancel = execute_action_with_retry(
+@@ -327,18 +339,23 @@ def cancel_buy_order(user: User,user_name: str, account: str, symbol: str, reque
+                 })
+             else:
+                 logger.info(f'Chua huy duoc lenh mua {symbol}')
++                all_success = False
+ 
+         if message_buy_cancel:
+             send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_buy_cancel)
+             send_telegram_message_batch(user, MessageTypeEnum.ACT, message_buy_cancel)
++            
++        logger.info(f'Kết thúc chạy hàm cancel lệnh mua {symbol} ' )
++        return all_success
+     else:
+-        logger.info(f'Chua lay duoc danh sach chua khop to cancel buy {symbol}')  
++        logger.info(f'Không có danh sách chưa khớp to cancel buy {symbol}')  
+         # Thông báo cho người dùng lý do dừng nếu có lý do cụ thể và không phải là dọn dẹp định kỳ
+         if reason and reason not in ['Hủy các lệnh mua còn sót lại', 'Đảm bảo hết lệnh còn đặt khi kết thúc mỗi vòng mua']:
+             msg_notify = f'🔔 **{symbol}**: {reason} (Không còn lệnh PENDING để hủy)'
+             send_message_telegram(user, MessageTypeEnum.OVERALL, msg_notify)
+             send_message_telegram(user, MessageTypeEnum.ACT, msg_notify)
+-    logger.info(f'Kết thúc chạy hàm cancel lệnh mua {symbol} ' )
++        logger.info(f'Kết thúc chạy hàm cancel lệnh mua {symbol} ' )
++        return True
+ 
+ def update_sell_order(user_name: str, account: str, symbol: str, request_url: str, session: str, asp_net_session: str, side: str, step_price: float, limited_price: float, times_update: int):
+     logger.info(f'Bắt đầu chạy hàm update lệnh bán {symbol} ' )      
+@@ -353,7 +370,9 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
+     # Sử dụng helper function với retry
+     res_not_matcheds = get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, 'S')
+          
+-    if res_not_matcheds:
++    if res_not_matcheds is None:
++        logger.error(f"❌ Lỗi API khi cập nhật lệnh bán {symbol}: Không thể lấy danh sách lệnh chờ khớp.")
++    elif len(res_not_matcheds) > 0:
+         logger.info(f'da co danh sach chưa khơp to update stock {symbol}: {res_not_matcheds}') 
+         sell_update_overrall_attrs = {        
+             'user_account': account,
+@@ -423,11 +442,11 @@ def update_sell_order(user_name: str, account: str, symbol: str, request_url: st
+             except Exception as e:
+                 logger.error(f"Lỗi khi xử lý sửa lệnh đơn lẻ {symbol}: {e}")
+     else: 
+-        logger.info(f'chưa lấy được res danh sach chưa khơp to update sell {symbol} ' )
++        logger.info(f"Không có danh sách chưa khớp để update sell {symbol}. Ngưng update lệnh")
+ 
+     return message_sell_update, new_order_nums
+ 
+-def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, reason: str, side: str):
++def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, request_url: str, session: str, reason: str, side: str) -> bool:
+     logger.info(f'Bắt đầu chạy hàm cancel lệnh sell {symbol}')
+     ref_id = f"{user_name}.I.test.{int(time.time()*1000)}"
+     tz = pytz.timezone("Asia/Ho_Chi_Minh")
+@@ -435,10 +454,17 @@ def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, req
+     start_time_order = time_now.strftime("%H:%M:%S ngày %d-%m-%Y") 
+     message_cancel = []
+     
+-    # Sử dụng helper function với retry
+-    res_not_matcheds = get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, 'S')
++    # Sử dụng helper function với retry (max_retry = 5 cho dọn dẹp hủy lệnh)
++    res_not_matcheds = get_orders_not_matched_with_retry(user_name, account, symbol, request_url, session, 'S', max_retry=5)
+        
+-    if res_not_matcheds:
++    if res_not_matcheds is None:
++        logger.error(f'❌ Lỗi API: Không thể lấy danh sách lệnh bán để hủy cho {symbol}')
++        if reason and reason not in ['Hủy các lệnh bán còn sót lại', 'Đảm bảo hết lệnh còn đặt khi kết thúc mỗi vòng bán']:
++            msg_notify = f'⚠️ **{symbol}**: {reason} (Gặp lỗi kết nối sàn/API VPS, không thể kiểm tra lệnh treo!)'
++            send_message_telegram(user, MessageTypeEnum.OVERALL, msg_notify)
++            send_message_telegram(user, MessageTypeEnum.ACT, msg_notify)
++        return False
++    elif len(res_not_matcheds) > 0:
+         logger.info(f'Da co danh sach chua khop to cancel sell stock {symbol}: {res_not_matcheds}')
+         sell_cancel_overrall_attrs = {        
+             'user_account': account,
+@@ -452,6 +478,7 @@ def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, req
+             **sell_cancel_overrall_attrs
+         })            
+         
++        all_success = True
+         for order in res_not_matcheds: 
+             try:
+                 # Sử dụng helper execute_action_with_retry
+@@ -472,14 +499,18 @@ def cancel_sell_order(user: User, user_name: str, account: str, symbol: str, req
+                     })
+                 else:
+                     logger.info(f'Chua huy duoc lenh sell {symbol}')
++                    all_success = False
+             except Exception as e:
+                 logger.error(f"Lỗi khi hủy lệnh đơn lẻ {symbol}: {e}")
++                all_success = False
+         # Send telegram   
+         if message_cancel:
+             send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_cancel)
+             send_telegram_message_batch(user, MessageTypeEnum.ACT, message_cancel)
++        return all_success
+     else:
+-        logger.info(f'Chua lay duoc danh sach chua khop to cancel sell {symbol}')  
++        logger.info(f'Không có danh sách chưa khớp to cancel sell {symbol}')  
++        return True
+ 
+ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_account: Account, stock_id: str, limit_number_stocks: int, limit_total_market_value: int, request_buy: bool, request_sell: bool, is_use_chart_action: bool):
+     # Các giá trị mặc định
+@@ -525,6 +556,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
+     if is_time_valid_to_buy:
+         # Gán is_update_success = False ở đây để finally dùng được
+         is_update_success = False 
++        is_cancel_success = True 
+         try:
+             # Xác định thời gian bắt đầu và thời gian kết thúc (sau 2 tiếng)
+             start_time = datetime.now()
+@@ -1048,30 +1080,8 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
+                             break
+                         time.sleep(sleep_time)
+ 
+-                        try:
+-                            # 1. Kiểm tra nếu đã khớp hết thì thoát sớm
+-                            pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
+-                            if isinstance(pending_orders, list) and len(pending_orders) == 0:
+-                                logger.info(f"🎯 [{symbol}] Tất cả các lệnh mua tay đã khớp hết. Chuyển sang tổng kết.")
+-                                is_matched_all = True
+-                                should_break_loop = True
+-                                time.sleep(2)
+-                                break
+-                            
+-                            # 2. Kiểm tra giới hạn giá trị thị trường
+-                            current_time = time.time()
+-                            if current_time - last_general_check >= interval_check:
+-                                last_general_check = current_time
+-                                logger.info(f"[{symbol}] Đang trong chu kỳ chờ sửa lệnh. Đã qua {int(current_time - start_sleep)}s / {int(sleeping_time_buy)}s")
+-                                
+-                                is_valid_loop, session_result_loop = validate_session(user_name, account, request_url, session, asp_net_session)
+-                                loop_total_market_value = session_result_loop.get("total_market_value", 0) if is_valid_loop else 0
+-                                if loop_total_market_value >= max_total_market_value:
+-                                    msg_limit_loop = f'⚠️ {symbol} vượt giới hạn giá trị cổ phiếu tối đa ({loop_total_market_value:,.0f}/{max_total_market_value:,.0f}), dừng mua tay.'
+-                                    logger.info(msg_limit_loop)
+-                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_limit_loop)
+-                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_limit_loop)
+-                                    cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn giá trị cổ phiếu tối đa', "B")
++                                                           if cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn giá trị cổ phiếu tối đa', "B") is False:
++                                        is_cancel_success = False
+                                     should_break_loop = True
+                                     break
+                                 
+@@ -1080,6 +1090,29 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
+                                 loop_number_stock = res_stock_loop.get('number_stock_existing', 0) if res_stock_loop else 0
+                                 loop_stock_balance = res_stock_loop.get('stock_balance', {}).get('actual_vol', 0) if res_stock_loop else 0
+                                 
++                                if loop_number_stock >= max_stock_existing and loop_stock_balance == 0:
++                                    msg_limit_stock = f'⚠️ {symbol} chưa có trong danh mục và tài khoản đã đạt giới hạn số mã cổ phiếu ({loop_number_stock}/{max_stock_existing}). Dừng mua tay!'
++                                    logger.info(msg_limit_stock)
++                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_limit_stock)
++                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_limit_stock)
++                                    if cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn số lượng mã cổ phiếu', "B") is False:
++                                        is_cancel_success = False
++                                    should_break_loop = True
++                                    break
++ 
++                                # 3. Kiểm tra nếu tín hiệu mua tay (Chart Action) bị tắt hoặc hết hạn
++                                if is_use_chart_action:
++                                    conf_tmp = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
++                                    if not conf_tmp.get("overview_config").is_buy_hand:
++                                        logger.info(f'Dừng mua tay {symbol} do flag is_buy_hand đã tắt.')
++                                        if cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Người dùng dừng mua tay', "B") is False:
++                                            is_cancel_success = False
++                                        should_break_loop = True
++                                        break��ng mã cổ phiếu (max_stock_existing)
++                                res_stock_loop = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
++                                loop_number_stock = res_stock_loop.get('number_stock_existing', 0) if res_stock_loop else 0
++                                loop_stock_balance = res_stock_loop.get('stock_balance', {}).get('actual_vol', 0) if res_stock_loop else 0
++                                
+                                 if loop_number_stock >= max_stock_existing and loop_stock_balance == 0:
+                                     msg_limit_stock = f'⚠️ {symbol} chưa có trong danh mục và tài khoản đã đạt giới hạn số mã cổ phiếu ({loop_number_stock}/{max_stock_existing}). Dừng mua tay!'
+                                     logger.info(msg_limit_stock)
+@@ -2052,7 +2085,7 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
+                     
+                     # 2. Kiểm Tra Cửa Vào Cuối Cùng
+                     if current_total_market_value >= vps_account.limit_total_market_value:
+-                        msg_limit_val = f"🚫 Mã {symbol} không thể mua vì vượt giới hạn giá trị thị trường ({current_total_market_value:,.0f}/{vps_account.limit_total_market_value:,.0f})!"
++                        msg_limit_val = f"🚫 Mã {symbol} không thể mua vì vượt giới hạn giá trị cổ phiếu tối đa ({current_total_market_value:,.0f}/{vps_account.limit_total_market_value:,.0f})!"
+                         logger.info(msg_limit_val)
+                         send_message_telegram(user, MessageTypeEnum.OVERALL, msg_limit_val)
+                         send_message_telegram(user, MessageTypeEnum.ACT, msg_limit_val)
+diff --git a/common/api/smartone/handler.py b/common/api/smartone/handler.py
+index 41d3503..e44aaf8 100644
+--- a/common/api/smartone/handler.py
++++ b/common/api/smartone/handler.py
+@@ -113,13 +113,13 @@ def handle_orders_not_matched(user_account, trade_account, symbol, url, valid_se
+         user_account, trade_account, url, valid_session, asp_net_session, "PENDING" )
+     if data_res is None:
+         print("Không nhận được phản hồi từ API get_orders_status.")
+-        return []
++        return None
+     data_text = data_res.text
+     try:
+         data_object = json.loads(data_res.text)
+     except Exception as e:
+         print("Lỗi khi parse JSON từ phản hồi:", e)
+-        return []
++        return None
+     response_type = validate_response(data_object)
+     
+     if response_type == ResponseAPISmartOneEnum.SUCCESS:
+@@ -167,7 +167,7 @@ def handle_orders_not_matched(user_account, trade_account, symbol, url, valid_se
+         return orders_detail
+     else:
+         request_new_session()
+-        return []
++        return None
+ 
+ def handle_orders_matched(user_account, trade_account, symbol, url, valid_session, asp_net_session, side):   
+     data_res = get_orders_status(
