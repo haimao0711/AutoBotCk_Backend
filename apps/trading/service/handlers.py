@@ -1079,8 +1079,30 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         if sleep_time <= 0:
                             break
                         time.sleep(sleep_time)
-
-                                                           if cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn giá trị cổ phiếu tối đa', "B") is False:
+                        try:
+                            # 1. Kiểm tra nếu đã khớp hết thì thoát sớm
+                            pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
+                            if isinstance(pending_orders, list) and len(pending_orders) == 0:
+                                logger.info(f"🎯 [{symbol}] Tất cả các lệnh mua tay đã khớp hết. Chuyển sang tổng kết.")
+                                is_matched_all = True
+                                should_break_loop = True
+                                time.sleep(2)
+                                break
+                            
+                            # 2. Kiểm tra giới hạn giá trị thị trường
+                            current_time = time.time()
+                            if current_time - last_general_check >= interval_check:
+                                last_general_check = current_time
+                                logger.info(f"[{symbol}] Đang trong chu kỳ chờ sửa lệnh. Đã qua {int(current_time - start_sleep)}s / {int(sleeping_time_buy)}s")
+                                
+                                is_valid_loop, session_result_loop = validate_session(user_name, account, request_url, session, asp_net_session)
+                                loop_total_market_value = session_result_loop.get("total_market_value", 0) if is_valid_loop else 0
+                                if loop_total_market_value >= max_total_market_value:
+                                    msg_limit_loop = f'⚠️ {symbol} vượt giới hạn giá trị cổ phiếu tối đa ({loop_total_market_value:,.0f}/{max_total_market_value:,.0f}), dừng mua tay.'
+                                    logger.info(msg_limit_loop)
+                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_limit_loop)
+                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_limit_loop)
+                                    if cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn giá trị cổ phiếu tối đa', "B") is False:
                                         is_cancel_success = False
                                     should_break_loop = True
                                     break
@@ -1108,35 +1130,14 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                                         if cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Người dùng dừng mua tay', "B") is False:
                                             is_cancel_success = False
                                         should_break_loop = True
-                                        break��ng mã cổ phiếu (max_stock_existing)
-                                res_stock_loop = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
-                                loop_number_stock = res_stock_loop.get('number_stock_existing', 0) if res_stock_loop else 0
-                                loop_stock_balance = res_stock_loop.get('stock_balance', {}).get('actual_vol', 0) if res_stock_loop else 0
-                                
-                                if loop_number_stock >= max_stock_existing and loop_stock_balance == 0:
-                                    msg_limit_stock = f'⚠️ {symbol} chưa có trong danh mục và tài khoản đã đạt giới hạn số mã cổ phiếu ({loop_number_stock}/{max_stock_existing}). Dừng mua tay!'
-                                    logger.info(msg_limit_stock)
-                                    send_message_telegram(user, MessageTypeEnum.OVERALL, msg_limit_stock)
-                                    send_message_telegram(user, MessageTypeEnum.ACT, msg_limit_stock)
-                                    cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn số lượng mã cổ phiếu', "B")
-                                    should_break_loop = True
-                                    break
-
-                                # 3. Kiểm tra nếu tín hiệu mua tay (Chart Action) bị tắt hoặc hết hạn
-                                if is_use_chart_action:
-                                    conf_tmp = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
-                                    if not conf_tmp.get("overview_config").is_buy_hand:
-                                        logger.info(f'Dừng mua tay {symbol} do flag is_buy_hand đã tắt.')
-                                        cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Người dùng dừng mua tay', "B")
-                                        should_break_loop = True
                                         break
                         except Exception as e:
                             logger.warning(f"Lỗi khi kiểm tra trạng thái trong lúc chờ mua tay {symbol}: {e}")
                             continue
-                    
+
                     if should_break_loop:
                         break
-                        
+
                     # === THỰC HIỆN CẬP NHẬT GIÁ VÀ SỬA LỆNH ===
                     try:
                         # Làm mới cấu hình để nhận add_price, slippage mới nhất
