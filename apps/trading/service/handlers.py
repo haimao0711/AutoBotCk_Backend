@@ -1080,16 +1080,7 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                             break
                         time.sleep(sleep_time)
                         try:
-                            # 1. Kiểm tra nếu đã khớp hết thì thoát sớm
-                            pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
-                            if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"🎯 [{symbol}] Tất cả các lệnh mua tay đã khớp hết. Chuyển sang tổng kết.")
-                                is_matched_all = True
-                                should_break_loop = True
-                                time.sleep(2)
-                                break
-                            
-                            # 2. Kiểm tra giới hạn giá trị thị trường
+                            # 1. Kiểm tra giới hạn giá trị thị trường
                             current_time = time.time()
                             if current_time - last_general_check >= interval_check:
                                 last_general_check = current_time
@@ -1699,15 +1690,7 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
                         
                         logger.info(f"[{symbol}] Đang trong chu kỳ chờ sửa lệnh bán. Đã qua {int(time.time() - start_sleep_time)}s / {int(sleeping_time_sell)}s")
                         try:
-                            # 1. Kiểm tra trạng thái khớp (PENDING)
-                            pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
-                            if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"🎯 [{symbol}] Tất cả các lệnh bán tay đã khớp hết. Chuyển sang tổng kết.")
-                                is_matched_all = True
-                                should_break_loop = True
-                                break
-                            
-                            # 2. Kiểm tra cấu hình và lệnh dừng
+                            # 1. Kiểm tra cấu hình và lệnh dừng
                             configuration = ConfigurationServices.get_user_configuration_by_stock_symbol(user=user, stock_symbol=symbol)
                             if configuration:
                                 overview_config = configuration.get("overview_config", {})
@@ -2277,18 +2260,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             break
                         
                         time.sleep(sleep_time)
-
-                        try:
-                            # Tối ưu: Bỏ qua sleep nếu đã khớp hết
-                            pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
-                            if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"🎯 [{symbol}] Tất cả các lệnh mua đã khớp hết. Chuyển sang tổng kết.")
-                                is_matched_all = True
-                                should_break_loop = True
-                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
-                                break
-                        except Exception as e:
-                            logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
 
                         res_stock = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'B')
                         number_stock_existing = res_stock.get('number_stock_existing', 0) if res_stock else 0
@@ -2908,18 +2879,6 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                             break
                             
                         time.sleep(sleep_time)                        
-
-                        try:
-                            # Tối ưu: Bỏ qua sleep nếu đã khớp hết
-                            pending_orders = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
-                            if isinstance(pending_orders, list) and len(pending_orders) == 0:
-                                logger.info(f"🎯 [{symbol}] Không còn lệnh bán PENDING, đã khớp hết. Chuyển sang tổng kết.")
-                                is_matched_all = True
-                                should_break_loop = True
-                                time.sleep(2)  # Nghỉ 2s để hệ thống của VPS đồng bộ trạng thái MATCHED
-                                break
-                        except Exception as e:
-                            logger.error(f"Lỗi kiểm tra PENDING {symbol}: {e}")
 
                         # 🔄 Lấy lại prepared mới mỗi lần lặp để cập nhật cấu hình mới nhất
                         try:
