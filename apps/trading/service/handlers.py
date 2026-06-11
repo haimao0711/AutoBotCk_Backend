@@ -1069,6 +1069,9 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                 for i in range(int(limited_times)):
                     if should_break_loop:
                         break
+                    if is_matched_all:
+                        logger.info(f"[{symbol}] Tất cả lệnh mua tay đã khớp, bỏ qua sửa lệnh.")
+                        break
                     start_sleep = time.time()
                     last_general_check = time.time()
                     
@@ -1158,6 +1161,19 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
                         if message_update:
                             send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
                             send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
+                        else:
+                            # Kiểm tra kỹ nguyên nhân không sửa được lệnh
+                            pending_check = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
+                            if isinstance(pending_check, list) and len(pending_check) == 0:
+                                logger.info(f"[{symbol}] Đã khớp hết toàn bộ lệnh trong quá trình sửa.")
+                                is_matched_all = True
+                                break
+                            else:
+                                # Đây có thể là lỗi API hoặc Session
+                                logger.error(f"[{symbol}] Sửa lệnh thất bại và không tìm thấy lệnh PENDING. Có thể do lỗi API.")
+                                send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ **Thông báo {symbol}**: Không tìm thấy lệnh chờ để sửa (có thể đã khớp hoặc API lỗi). Bot sẽ dừng kiểm tra.")
+                                cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Lỗi không sửa được lệnh mua tay', "B")
+                                break
                     except Exception as e:
                         logger.error(f"Lỗi khi thực hiện sửa lệnh mua tay cho {symbol}: {e}")
                 
@@ -2438,7 +2454,18 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
                         send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
                     else:
-                        break
+                        # Kiểm tra kỹ nguyên nhân không sửa được lệnh
+                        pending_check = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'B')
+                        if isinstance(pending_check, list) and len(pending_check) == 0:
+                            logger.info(f"[{symbol}] Đã khớp hết toàn bộ lệnh trong quá trình sửa.")
+                            is_matched_all = True
+                            break
+                        else:
+                            # Đây có thể là lỗi API hoặc Session
+                            logger.error(f"[{symbol}] Sửa lệnh thất bại và không tìm thấy lệnh PENDING. Có thể do lỗi API.")
+                            send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ **Thông báo {symbol}**: Không tìm thấy lệnh chờ để sửa (có thể đã khớp hoặc API lỗi). Bot sẽ dừng kiểm tra.")
+                            cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Lỗi không sửa được lệnh mua', "B")
+                            break
                 else:
                     logger.info(f"[{symbol}] Vượt giới hạn thời gian đặt lệnh tối đa.")
                     cancel_buy_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn thời gian đặt lệnh tối đa', "B")
@@ -2920,8 +2947,18 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
                         send_telegram_message_batch(user, MessageTypeEnum.OVERALL, message_update)
                         send_telegram_message_batch(user, MessageTypeEnum.ACT, message_update)
                     else:
-                        cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lỗi không sửa được lệnh bán', "S")
-                        break  
+                        # Kiểm tra kỹ nguyên nhân không sửa được lệnh
+                        pending_check = handle_orders_not_matched(user_name, account, symbol, request_url, session, asp_net_session, 'S')
+                        if isinstance(pending_check, list) and len(pending_check) == 0:
+                            logger.info(f"[{symbol}] Đã khớp hết toàn bộ lệnh trong quá trình sửa.")
+                            is_matched_all = True
+                            break
+                        else:
+                            # Đây có thể là lỗi API hoặc Session
+                            logger.error(f"[{symbol}] Sửa lệnh thất bại và không tìm thấy lệnh PENDING. Có thể do lỗi API.")
+                            send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ **Thông báo {symbol}**: Không tìm thấy lệnh chờ để sửa (có thể đã khớp hoặc API lỗi). Bot sẽ dừng kiểm tra.")
+                            cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Lỗi không sửa được lệnh bán', "S")
+                            break  
                 else:
                     logger.info(f"[{symbol}] Vượt giới hạn thời gian đặt lệnh tối đa.")
                     cancel_sell_order(user, user_name, account, symbol, request_url, session, 'Vượt giới hạn thời gian đặt lệnh tối đa', "S")
