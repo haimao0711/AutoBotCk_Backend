@@ -110,33 +110,34 @@ def patch_realtime_data(df, match_price, chart_type):
         tz = pytz.timezone('Asia/Ho_Chi_Minh')
         now = datetime.now(tz)
         
-        start_time = None
+        chart_type_val = chart_type.value if isinstance(chart_type, CandleEnum) else chart_type
         
-        if chart_type == CandleEnum.W1:
+        if chart_type_val == CandleEnum.W1.value:
             # Chuyển sang naive để tránh cảnh báo từ Pandas khi dùng to_period
             now_naive = now.replace(tzinfo=None)
             start_time_naive = pd.Timestamp(now_naive).to_period('W-SUN').start_time
             # Gán lại timezone để tính timestamp() chính xác
             start_time = tz.localize(start_time_naive)
-        elif chart_type == CandleEnum.D1:
+        elif chart_type_val == CandleEnum.D1.value:
             start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        elif chart_type == CandleEnum.H1:
+        elif chart_type_val == CandleEnum.H1.value:
             start_time = now.replace(minute=0, second=0, microsecond=0)
-        elif chart_type == CandleEnum.M15:
+        elif chart_type_val == CandleEnum.M15.value:
             minute = (now.minute // 15) * 15
             start_time = now.replace(minute=minute, second=0, microsecond=0)
-        elif chart_type == CandleEnum.M5:
+        elif chart_type_val == CandleEnum.M5.value:
             minute = (now.minute // 5) * 5
             start_time = now.replace(minute=minute, second=0, microsecond=0)
-        elif chart_type == CandleEnum.M1:
+        elif chart_type_val == CandleEnum.M1.value:
             start_time = now.replace(second=0, microsecond=0)
         
         if start_time is None:
             return
 
-        # Đảm bảo start_time là naive timestamp đại diện cho giờ VN để khớp với hệ thống
-        if hasattr(start_time, 'tzinfo') and start_time.tzinfo is not None:
-            start_time = start_time.replace(tzinfo=None)
+        # Đảm bảo start_time là naive timestamp đại diện cho giờ VN để khớp với hệ thống (ngoại trừ W1)
+        if chart_type_val != CandleEnum.W1.value:
+            if hasattr(start_time, 'tzinfo') and start_time.tzinfo is not None:
+                start_time = start_time.replace(tzinfo=None)
             
         current_candle_ts = int(start_time.timestamp())
         
