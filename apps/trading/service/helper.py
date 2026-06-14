@@ -8,6 +8,12 @@ from ta.trend import MACD
 from ta.momentum import RSIIndicator
 from datetime import datetime
 
+# Import CandleEnum để phân biệt timeframe khi tính indicator
+try:
+    from apps.configuration.candle.enums import CandleEnum as _CandleEnum
+except ImportError:
+    _CandleEnum = None
+
 from apps.telegram.sender import (send_message, send_message_telegram, define_message)
 from apps.trading.enum.enums import ChartType
 from apps.trading.service.utils import (get_current_value_from_key,
@@ -38,20 +44,48 @@ def append_messages_to_return(messages: List[str], base_message: str) -> str:
     return base_message
 
 
-def adding_idicator(df: pd.DataFrame):
+def adding_idicator(df: pd.DataFrame, chart_type=None):
+    """
+    Tính toán các chỉ số kỹ thuật cho DataFrame nến.
+
+    Tham số:
+        df (pd.DataFrame): DataFrame chứa dữ liệu nến (open/high/low/close/volume).
+        chart_type: CandleEnum hoặc string timeframe ('W1', 'D1', 'H1', 'M15', 'M5', 'M1').
+                    Dùng để điều chỉnh volume_ma theo timeframe. Mặc định None (tương đương D1).
+
+    Ghi chú thiết kế:
+        - RSI(14), StochRSI(14,3,3), MACD(12,26,9), Bollinger(20) giữ nguyên window
+          cho MỌI timeframe — đây là tiêu chuẩn TradingView (window tính theo 'số nến',
+          không scale theo thời gian thực).
+        - volume_ma điều chỉnh: D1/intraday dùng 4 nến (~1 tuần), W1 dùng 4 nến (~1 tháng)
+          — về mặt kỹ thuật giống nhau nên vẫn dùng window=4.
+        - Để chỉ số W1 chính xác, cần fetch đủ lịch sử: ít nhất 300 tuần (~2100 ngày D1)
+          để EMA của MACD và StochRSI warm-up đầy đủ.
+    """
     if df is None or df.empty:
         return
+
+    # Xác định xem có phải nến tuần không
+    is_weekly = False
+    if chart_type is not None:
+        chart_type_val = chart_type.value if hasattr(chart_type, 'value') else str(chart_type)
+        is_weekly = (chart_type_val == 'W1')
+
+    # ── RSI(14) ────────────────────────────────────────────────────────────────
+    # Chuẩn TradingView: window=14 cho mọi timeframe
     length_rsi = 14
     rsi = RSIIndicator(close=df["close"], window=length_rsi)
     rsi_values = rsi.rsi()
     df["rsi"] = rsi_values
 
+    # ── Stochastic RSI(14, 14, 3, 3) ───────────────────────────────────────────
+    # Chuẩn TradingView: stoch_window=14, smoothK=3, smoothD=3 cho mọi timeframe
     length_stoch = 14
     df['min_rsi'] = df['rsi'].rolling(window=length_stoch).min()
     df['max_rsi'] = df['rsi'].rolling(window=length_stoch).max()
-  
+
     df['stoch_rsi_k'] = np.where(
-        (df['max_rsi'] - df['min_rsi']) == 0, 
+        (df['max_rsi'] - df['min_rsi']) == 0,
         0,  # Gán giá trị mặc định nếu mẫu số bằng 0
         100 * (df['rsi'] - df['min_rsi']) / (df['max_rsi'] - df['min_rsi'])
     )
@@ -62,14 +96,23 @@ def adding_idicator(df: pd.DataFrame):
     df['stoch_rsi_d'] = df['stoch_rsi_k_smooth'].rolling(window=smoothD).mean()
     df["stoch_rsi"] = df['stoch_rsi_k_smooth']
 
+    # ── Volume MA ──────────────────────────────────────────────────────────────
+    # D1/intraday: 4 nến ≈ 1 tuần giao dịch
+    # W1: 4 nến = 4 tuần ≈ 1 tháng — cùng logic tương đối, window giữ nguyên
     length_volume = 4
     df['volume_ma'] = df['volume'].rolling(window=length_volume).mean()
 
+    # ── MACD(12, 26, 9) ────────────────────────────────────────────────────────
+    # Chuẩn TradingView: fast=12, slow=26, signal=9 cho mọi timeframe.
+    # Lưu ý quan trọng: MACD dùng EMA — cần đủ lịch sử để EMA hội tụ.
+    # W1 cần ít nhất 35 tuần warm-up (slow=26 + signal=9) => fetch >= 300 tuần D1.
     macd = MACD(df["close"])
     df["macd"] = macd.macd()
     df["signal_line"] = macd.macd_signal()
     df['histogram'] = df['macd'] - df['signal_line']
 
+    # ── Bollinger Bands(20, 2) ─────────────────────────────────────────────────
+    # Chuẩn TradingView: window=20, std=2 cho mọi timeframe
     df['sma'] = df['close'].rolling(window=20).mean()
     df['std'] = df['close'].rolling(window=20).std()
     df['upper_bolinger'] = df['sma'] + (df['std'] * 2)

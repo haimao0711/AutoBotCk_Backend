@@ -135,15 +135,16 @@ class DownloadService:
             return 0, DataParamsTimeEnums.D1.value
 
     @staticmethod
-    def download_data_weekly(stock, download_status, max_retries: int = 3, timeout_per_request: int = 3):       
+    def download_data_weekly(stock, download_status, max_retries: int = 3, timeout_per_request: int = 10):       
         """
-        Download data weekly với retry mechanism và timeout tổng cộng không quá 10s
+        Download data weekly với retry mechanism và timeout tổng cộng không quá 20s.
+        Lưu ý: W1 cần fetch ~3000 ngày D1 nên timeout cần lớn hơn D1/H1.
         
         Args:
             stock: Stock object
             download_status: Trạng thái download
             max_retries: Số lần thử lại (default: 3)
-            timeout_per_request: Timeout cho mỗi request (default: 3s)
+            timeout_per_request: Timeout cho mỗi request (default: 10s, lớn hơn D1 vì fetch nhiều nến hơn)
         """
         API_VNDIRECT = "https://dchart-api.vndirect.com.vn/dchart/history"
 
@@ -154,7 +155,7 @@ class DownloadService:
 
         current_timestamp = datetime.now().timestamp()
         start_time = time.time()
-        max_total_time = 10  # Tổng thời gian tối đa 10s
+        max_total_time = 20  # 20s: đủ cho fetch ~3000 ngày D1 (~2050 nến) qua mạng bình thường
 
         # Lấy khoảng thời gian cần tải (vẫn dùng hàm này từ DownloadService)
         time_to_download, _ = DownloadService._convert_chart_type_to_data(

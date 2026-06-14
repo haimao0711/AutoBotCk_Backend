@@ -52,8 +52,8 @@ class VNIndexManager:
                 if vnindex_info and 'matchPrice' in vnindex_info:
                     patch_realtime_data(df, vnindex_info['matchPrice'], chart_type)
                 
-                # Tính toán chỉ số
-                adding_idicator(df)
+                # Tính toán chỉ số (truyền chart_type để phân biệt timeframe)
+                adding_idicator(df, chart_type=chart_type)
                 
                 # Cập nhật cache
                 cls._cache[chart_type] = {
@@ -93,8 +93,8 @@ def download_data_stock_only(stock: Stock, trading_chart_type: CandleEnum, follo
         except Exception as e:
             print(f"Error patching Stock realtime data: {e}")
 
-        adding_idicator(stock_data_following)
-        adding_idicator(stock_data_trading)
+        adding_idicator(stock_data_following, chart_type=following_chart_type)
+        adding_idicator(stock_data_trading, chart_type=trading_chart_type)
         
         return stock_data_trading, stock_data_following
     except Exception as e:
