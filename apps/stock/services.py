@@ -203,6 +203,11 @@ class DownloadService:
                         # Đặt time làm index để gộp theo tuần
                         df.set_index('time', inplace=True)
 
+                        # ── Loại bỏ dữ liệu cuối tuần (Thứ 7=5, CN=6) nếu có ──
+                        # Một số trường hợp API trả về candle stub cho Sat/Sun,
+                        # làm lệch close của tuần hiện tại.
+                        df = df[df.index.dayofweek < 5]
+
                         # Tính Thứ 2 đầu tuần (W-SUN period bắt đầu từ Thứ 2 và kết thúc vào Chủ Nhật)
                         # Đảm bảo Monday belongs to Monday, Sunday belongs to Previous Monday
                         df['week_start'] = df.index.to_period('W-SUN').start_time
