@@ -111,13 +111,28 @@ def patch_realtime_data(df, match_price, chart_type):
         now = datetime.now(tz)
         
         chart_type_val = chart_type.value if isinstance(chart_type, CandleEnum) else chart_type
+        start_time = None  # Khởi tạo để tránh UnboundLocalError
         
         if chart_type_val == CandleEnum.W1.value:
+            # ── W1: Chỉ patch khi thị trường đang mở (Thứ 2-Thứ 6, 9:00-15:30) ──
+            # Cuối tuần (Thứ 7, CN) hoặc ngoài giờ: nến tuần đã đóng từ Thứ 6 → KHÔNG patch
+            # để tránh làm lệch close của nến đã hoàn thành → stoch_rsi/macd/rsi tính sai,
+            # dẫn đến D2/D1/D0 hiển thị trên tin nhắn bị lệch so với TradingView.
+            weekday = now.weekday()  # 0=Mon, 5=Sat, 6=Sun
+            market_open_time = now.replace(hour=9, minute=0, second=0, microsecond=0)
+            market_close_time = now.replace(hour=15, minute=30, second=0, microsecond=0)
+            is_market_day = weekday < 5  # Thứ 2-Thứ 6
+            is_market_hours = market_open_time <= now <= market_close_time
+            
+            if not is_market_day or not is_market_hours:
+                # Ngoài giờ giao dịch / cuối tuần: không patch nến W1
+                return
+            
             # Chuyển sang naive để tránh cảnh báo từ Pandas khi dùng to_period
             now_naive = now.replace(tzinfo=None)
             start_time_naive = pd.Timestamp(now_naive).to_period('W-SUN').start_time
             # Gán lại timezone để tính timestamp() chính xác
-            start_time = tz.localize(start_time_naive)
+            start_time = tz.localize(start_time_naive).replace(second=0, microsecond=0)
         elif chart_type_val == CandleEnum.D1.value:
             start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif chart_type_val == CandleEnum.H1.value:
