@@ -524,12 +524,6 @@ def process_buy_request(prepared: dict, user: User, vnindex_stock: any, vps_acco
     stock = prepared["stock"]
     symbol = stock.name
 
-    # 0. Kiểm tra Session trước khi bắt đầu bất kỳ xử lý nào
-    is_valid_session, _ = validate_session(user_name, account, request_url, session, '')
-    if not is_valid_session:
-        logger.error(f"[{symbol}] Session không hợp lệ khi bắt đầu process_buy_request.")
-        send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ **Thông báo {symbol}**: Session VPS đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại để thực hiện mua tay.")
-        return
 
     # Lấy dữ liệu đã chuẩn bị  
     trading_candle = prepared["trading_candle"]
@@ -1532,12 +1526,6 @@ def process_sell_request(prepared: dict, user: User, vnindex_stock: any, vps_acc
             # Dao động cộng trừ     
                 add_price_sell = trading_config.stock_config_add_price_sell
 
-                # Kiểm tra tính hợp lệ của session trước khi làm bất cứ việc gì
-                is_valid_session, session_result = validate_session(user_name, account, request_url, session, asp_net_session)
-                if not is_valid_session:
-                    logger.error(f"[{symbol}] Session không hợp lệ khi chuẩn bị bán tay. Dừng tiến trình.")
-                    send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ **Thông báo {symbol}**: Session VPS đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại để thực hiện bán tay.")
-                    return
 
                 # Get stock balance to set volume
                 res_stock_balance = handle_stock_balance_service(user_name, account, symbol, request_url, session, asp_net_session, 'S')
@@ -1890,13 +1878,8 @@ def process_trading(prepared: dict, user: User, vnindex_stock: any, vps_account:
         is_block_buy_stock = overview_config.is_block_buy
         is_block_sell_stock = overview_config.is_block_sell
         stock_id = trading_config.stock_id
-        # 1. Kiểm tra tính hợp lệ của session NGAY LÚC NÀY
-        is_valid_session, session_result = validate_session(user_name, account, request_url, session, asp_net_session)
-        if not is_valid_session:
-            logger.error(f"[{symbol}] Session không hợp lệ khi bắt đầu process_trading. Dừng tiến trình.")
-            send_message_telegram(user, MessageTypeEnum.OVERALL, f"⚠️ **Thông báo {symbol}**: Session VPS đã hết hạn. Vui lòng đăng nhập lại!")
-            return
-            
+        # 1. Lấy giá trị thị trường từ session
+        _, session_result = validate_session(user_name, account, request_url, session, asp_net_session)
         current_total_market_value = session_result.get("total_market_value", 0)
 
         # 2. Get stock balance 

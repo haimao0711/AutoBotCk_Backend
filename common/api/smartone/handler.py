@@ -1,5 +1,6 @@
 from common.api.smartone.enums import ResponseAPISmartOneEnum
 import json
+import time
 import logging
 
 logger = logging.getLogger(__name__)
@@ -299,24 +300,30 @@ def handle_stock_balance_service(user_account, trade_account, symbol, url, sessi
         return {}
 
 
-def validate_session(user_account: str, trade_account: str, url: str, session: str, asp_net_session: str):
-    # default we use normal account
+def validate_session(user_account: str, trade_account: str, url: str, session: str, asp_net_session: str, retries: int = 2):
+    # Retry để tránh false-positive "session hết hạn" do API timeout tạm thời
+    account_status_res = None
+    for attempt in range(retries + 1):
+        account_status_res = get_account_status(
+            user_account, trade_account, url, session, asp_net_session)
+        if account_status_res is not None:
+            break
+        if attempt < retries:
+            logger.warning(f"API Account Status TIMEOUT (lần {attempt + 1}/{retries + 1}), thử lại...")
+            time.sleep(1)
 
-    account_status_res = get_account_status(
-        user_account, trade_account, url, session, asp_net_session)
     if account_status_res is None:
-        logger.error("API Account Status Error: Không nhận được phản hồi từ máy chủ")
+        logger.error("API Account Status TIMEOUT")
         return False, {}
+
     account_status_text = account_status_res.text
     account_status_object = json.loads(account_status_text)
     response_type = validate_response(account_status_object)
-    
-    # print('check account_status_object: ', account_status_object)
-    # print('check response_type: ', response_type)
+
     if response_type != ResponseAPISmartOneEnum.SUCCESS:
         logger.error(f"API Account Status Error: {account_status_object.get('rs')} (rc: {account_status_object.get('rc')})")
         return False, {}
-    
+
     data = account_status_object.get("data", {})
     if isinstance(data, list):
         data = data[0] if data else {}
@@ -329,4 +336,3 @@ def validate_session(user_account: str, trade_account: str, url: str, session: s
         "gain_loss_oneday_value": int(data.get("gain_loss_oneday_value", 0)),  # Lãi/lỗ hôm nay
     }
     return True, result
-
