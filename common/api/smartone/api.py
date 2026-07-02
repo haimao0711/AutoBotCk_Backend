@@ -163,8 +163,8 @@ def get_orders_status(user_account: str, trade_account: str, url: str, session: 
     # response = requests.post(url, headers=headers, data=payload)
     try:
         response = requests.post(url, headers=headers, data=payload, timeout=5)
-        print('Mã trạng thái phản hồi get_orders_status:', response.status_code)
-        print('Nội dung phản hồi get_orders_status:', response.text)
+        # print('Mã trạng thái phản hồi get_orders_status:', response.status_code)
+        # print('Nội dung phản hồi get_orders_status:', response.text)
         return response
     except requests.exceptions.RequestException as e:
         print('Đã xảy ra lỗi khi gửi yêu cầu get_orders_not_matched:', e)
