@@ -21,7 +21,7 @@ def is_valid_trend(previous_attr: float, curr_attr: float, operator_trend: str) 
     if operator_trend in ['increase', '<']:
         return curr_attr > previous_attr
     elif operator_trend in ['decrease', '>']:
-        return curr_attr <= previous_attr
+        return curr_attr < previous_attr
     else:
         return False
 
