@@ -15,6 +15,7 @@ def download_stock_data_w1_task(self):
     Chạy vào thứ 2 hàng tuần lúc 9:00
     """
     try:
+        close_old_connections()
         logger.info('Celery job download W1 is running...')
         result = StockService.download_and_imported_data_to_datbase_chart_w1()
         logger.info('Celery job download W1 completed successfully')
@@ -32,6 +33,7 @@ def download_stock_data_d1_task(self):
     Chạy hàng ngày lúc 9:00
     """
     try:
+        close_old_connections()
         logger.info('Celery job download D1 is running...')
         result = StockService.download_and_imported_data_to_datbase_chart_d1()
         logger.info('Celery job download D1 completed successfully')
@@ -49,6 +51,7 @@ def download_stock_data_h1_task(self):
     Chạy hàng giờ từ 9:00-15:00
     """
     try:
+        close_old_connections()
         logger.info('Celery job download H1 is running...')
         result = StockService.download_and_imported_data_to_datbase_chart_h1()
         logger.info('Celery job download H1 completed successfully')
@@ -66,6 +69,7 @@ def download_stock_data_m15_task(self):
     Chạy mỗi 15 phút từ 9:00-15:00
     """
     try:
+        close_old_connections()
         logger.info('Celery job download M15 is running...')
         result = StockService.download_and_imported_data_to_datbase_chart_m15()
         logger.info('Celery job download M15 completed successfully')
@@ -83,6 +87,7 @@ def download_stock_data_m5_task(self):
     Chạy mỗi 5 phút từ 9:00-15:00
     """
     try:
+        close_old_connections()
         logger.info('Celery job download M5 is running...')
         result = StockService.download_and_imported_data_to_datbase_chart_m5()
         logger.info('Celery job download M5 completed successfully')
@@ -100,6 +105,7 @@ def download_stock_data_m1_task(self):
     Chạy mỗi phút từ 9:00-15:00
     """
     try:
+        close_old_connections()
         logger.info('Celery job download M1 is running...')
         result = StockService.download_and_imported_data_to_datbase_chart_m1()
         logger.info('Celery job download M1 completed successfully')
@@ -117,6 +123,7 @@ def delete_old_stock_records_task(self):
     Chạy hàng giờ từ 9:00-15:00
     """
     try:
+        close_old_connections()
         logger.info('Celery job delete old records is running...')
         
         # Định nghĩa chính sách lưu trữ cho mỗi model (số ngày)
@@ -170,6 +177,7 @@ def sync_stocks_from_exchange_task(self):
     Chạy định kỳ để cập nhật các mã mới niêm yết.
     """
     try:
+        close_old_connections()
         logger.info('Celery job sync stocks from exchange is running...')
         result = StockService.sync_stocks_from_exchange()
         logger.info(f'Celery job sync stocks completed: {result}')
