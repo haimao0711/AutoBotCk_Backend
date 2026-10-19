@@ -317,7 +317,15 @@ def validate_session(user_account: str, trade_account: str, url: str, session: s
         return False, {}
 
     account_status_text = account_status_res.text
-    account_status_object = json.loads(account_status_text)
+    if not account_status_text:
+        logger.error("API trả về dữ liệu rỗng")
+        return False, {}
+    # account_status_object = json.loads(account_status_text)
+    try:
+        account_status_object = json.loads(account_status_text)
+    except json.JSONDecodeError as e:
+        logger.error(f"Lỗi giải mã JSON: {e} | Dữ liệu nhận được: {account_status_text}")
+        return False, {}
     response_type = validate_response(account_status_object)
 
     if response_type != ResponseAPISmartOneEnum.SUCCESS:
