@@ -21,7 +21,14 @@ def handle_buy_service(user_account: str, trade_account: str, url: str, symbol: 
         logger.error(f"API Buy Error: Không nhận được phản hồi từ máy chủ cho {symbol}")
         return {}
     buy_text = buy_res.text
-    buy_object = json.loads(buy_text)
+    if not buy_text:
+        logger.error(f"API Buy Error: Phản hồi rỗng từ máy chủ cho {symbol}")
+        return {}
+    try:
+        buy_object = json.loads(buy_text)
+    except json.JSONDecodeError as e:
+        logger.error(f"Lỗi giải mã JSON từ buy_stock cho {symbol}: {e} | Dữ liệu: {buy_text[:200]}")
+        return {}
     response_type = validate_response(buy_object)
 
     if response_type == ResponseAPISmartOneEnum.SUCCESS:
@@ -41,7 +48,14 @@ def handle_sell_service(user_account: str, trade_account: str, url: str, symbol:
         logger.error(f"API Sell Error: Không nhận được phản hồi từ máy chủ cho {symbol}")
         return {}
     sell_text = sell_res.text
-    sell_object = json.loads(sell_text)
+    if not sell_text:
+        logger.error(f"API Sell Error: Phản hồi rỗng từ máy chủ cho {symbol}")
+        return {}
+    try:
+        sell_object = json.loads(sell_text)
+    except json.JSONDecodeError as e:
+        logger.error(f"Lỗi giải mã JSON từ sell_stock cho {symbol}: {e} | Dữ liệu: {sell_text[:200]}")
+        return {}
     response_type = validate_response(sell_object)
 
     if response_type == ResponseAPISmartOneEnum.SUCCESS:
@@ -65,7 +79,15 @@ def handle_update_order_service(user_account, trade_account, url, symbol, sessio
         )
         if res is None:
             return ResponseAPISmartOneEnum.FAILED, {}
-        obj = json.loads(res.text)
+        res_text = res.text
+        if not res_text:
+            logger.error(f"API Update Order Error: Phản hồi rỗng cho {symbol}")
+            return ResponseAPISmartOneEnum.FAILED, {}
+        try:
+            obj = json.loads(res_text)
+        except json.JSONDecodeError as e:
+            logger.error(f"Lỗi giải mã JSON từ update_order cho {symbol}: {e} | Dữ liệu: {res_text[:200]}")
+            return ResponseAPISmartOneEnum.FAILED, {}
         return validate_response(obj), obj
 
     # Lần gọi đầu
@@ -99,7 +121,14 @@ def handle_cancel_order_service(user_account, url, session, asp_net_session, ord
         logger.error("API Cancel Error: Không nhận được phản hồi từ máy chủ")
         return {}
     cancel_order_text = cancel_order_res.text
-    cancel_order_object = json.loads(cancel_order_text)
+    if not cancel_order_text:
+        logger.error("API Cancel Error: Phản hồi rỗng từ máy chủ")
+        return {}
+    try:
+        cancel_order_object = json.loads(cancel_order_text)
+    except json.JSONDecodeError as e:
+        logger.error(f"Lỗi giải mã JSON từ cancel_order: {e} | Dữ liệu: {cancel_order_text[:200]}")
+        return {}
     response_type = validate_response(cancel_order_object)
 
     if response_type == ResponseAPISmartOneEnum.SUCCESS:
@@ -113,13 +142,16 @@ def handle_orders_not_matched(user_account, trade_account, symbol, url, valid_se
     data_res = get_orders_status(
         user_account, trade_account, url, valid_session, asp_net_session, "PENDING" )
     if data_res is None:
-        print("Không nhận được phản hồi từ API get_orders_status.")
+        logger.error("Không nhận được phản hồi từ API get_orders_status (PENDING).")
         return None
     data_text = data_res.text
+    if not data_text:
+        logger.error("API get_orders_status (PENDING) trả về dữ liệu rỗng")
+        return None
     try:
-        data_object = json.loads(data_res.text)
-    except Exception as e:
-        print("Lỗi khi parse JSON từ phản hồi:", e)
+        data_object = json.loads(data_text)
+    except json.JSONDecodeError as e:
+        logger.error(f"Lỗi giải mã JSON từ get_orders_status (PENDING): {e} | Dữ liệu: {data_text[:200]}")
         return None
     response_type = validate_response(data_object)
     
@@ -177,7 +209,14 @@ def handle_orders_matched(user_account, trade_account, symbol, url, valid_sessio
         logger.info("Không nhận được phản hồi từ API get_orders_status (MATCH).")
         return []
     data_text = data_res.text
-    data_object = json.loads(data_text)
+    if not data_text:
+        logger.error("API get_orders_status (MATCH) trả về dữ liệu rỗng")
+        return []
+    try:
+        data_object = json.loads(data_text)
+    except json.JSONDecodeError as e:
+        logger.error(f"Lỗi giải mã JSON từ get_orders_status (MATCH): {e} | Dữ liệu: {data_text[:200]}")
+        return []
     response_type = validate_response(data_object)
 
     if response_type == ResponseAPISmartOneEnum.SUCCESS:
@@ -208,12 +247,19 @@ def handle_transaction_service(user_account, trade_account, url, valid_session, 
     else:
         transaction_res = get_transaction(
             user_account, trade_account, url, valid_session, asp_net_session)
-    if transaction_res:
-        transaction_text = transaction_res.text
+    if transaction_res is None:
+        logger.error("API Transaction Error: Không nhận được phản hồi từ máy chủ")
+        return []
+    transaction_text = transaction_res.text
+    if not transaction_text:
+        logger.error("API Transaction Error: Phản hồi rỗng từ máy chủ")
+        return []
+    try:
         transaction_object = json.loads(transaction_text)
-        response_type = validate_response(transaction_object)
-    else:
-        pass 
+    except json.JSONDecodeError as e:
+        logger.error(f"Lỗi giải mã JSON từ get_transaction: {e} | Dữ liệu: {transaction_text[:200]}")
+        return []
+    response_type = validate_response(transaction_object)
 
     if response_type == ResponseAPISmartOneEnum.SUCCESS:
         transactions = transaction_object['data']
@@ -234,7 +280,14 @@ def handle_cash_balance_service(user_account, trade_account, url, session, asp_n
         logger.error("API Cash Balance Error: Không nhận được phản hồi từ máy chủ")
         return {}
     cash_balance_text = cash_balance_res.text
-    cash_balance_object = json.loads(cash_balance_text)
+    if not cash_balance_text:
+        logger.error("API Cash Balance Error: Phản hồi rỗng từ máy chủ")
+        return {}
+    try:
+        cash_balance_object = json.loads(cash_balance_text)
+    except json.JSONDecodeError as e:
+        logger.error(f"Lỗi giải mã JSON từ get_cash_balance: {e} | Dữ liệu: {cash_balance_text[:200]}")
+        return {}
     response_type = validate_response(cash_balance_object)
 
     if response_type == ResponseAPISmartOneEnum.SUCCESS:
@@ -253,7 +306,14 @@ def handle_stock_balance_service(user_account, trade_account, symbol, url, sessi
         logger.error("API Stock Balance Error: Không nhận được phản hồi từ máy chủ")
         return {}
     stock_balance_text = stock_balance_res.text
-    stock_balance_object = json.loads(stock_balance_text)
+    if not stock_balance_text:
+        logger.error("API Stock Balance Error: Phản hồi rỗng từ máy chủ")
+        return {}
+    try:
+        stock_balance_object = json.loads(stock_balance_text)
+    except json.JSONDecodeError as e:
+        logger.error(f"Lỗi giải mã JSON từ get_stock_balance: {e} | Dữ liệu: {stock_balance_text[:200]}")
+        return {}
     response_type = validate_response(stock_balance_object)
 
     if response_type == ResponseAPISmartOneEnum.SUCCESS:

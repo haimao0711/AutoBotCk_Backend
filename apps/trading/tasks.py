@@ -61,9 +61,14 @@ def user_trading_task(self, user_id):
             logger.info(f'📢📢📢Job trading của user {user.username} BẮT ĐẦU lượt chạy mới!')
             trading(user=user, vps_account=vps_account, symbol='All')
             
-    except Exception as exc:
-        logger.error(f'Error in user_trading_task: {exc}')
+    except (ValueError, KeyError, TypeError) as exc:
+        # Lỗi logic — có thể retry
+        logger.error(f'Error in user_trading_task (retryable): {exc}')
         raise self.retry(exc=exc)
+    except Exception as exc:
+        # Lỗi không mong muốn khác — log đầy đủ nhưng không retry để tránh spam
+        import traceback
+        logger.error(f'Error in user_trading_task (non-retryable): {exc}\n{traceback.format_exc()}')
     finally:
         # Đóng connection của task hiện tại
         from django.db import connection
