@@ -12,6 +12,23 @@ from common.api.smartone.helper import (extract_buy_object, extract_cancel_order
                     extract_update_order_object, request_new_session, validate_response)
 
 
+def _safe_parse_json(text: str, context: str, fallback):
+    """
+    Parse JSON an toàn.
+    - Nếu server trả về HTML (lỗi tạm thời): log error và trả về fallback.
+    - Nếu JSON không hợp lệ: log error và trả về fallback.
+    - Trả về (object, True) nếu thành công, (fallback, False) nếu thất bại.
+    """
+    if text.strip().startswith('<'):
+        logger.error(f"[{context}] Server trả về HTML thay vì JSON (server đang lỗi/session hết hạn) | Preview: {text[:200]}")
+        return fallback, False
+    try:
+        return json.loads(text), True
+    except json.JSONDecodeError as e:
+        logger.error(f"[{context}] Lỗi giải mã JSON: {e} | Dữ liệu: {text[:200]}")
+        return fallback, False
+
+
 def handle_buy_service(user_account: str, trade_account: str, url: str, symbol: str, session: str,
                         asp_net_session: str, price: float, volume: float, ref_id: str):
     
@@ -24,10 +41,8 @@ def handle_buy_service(user_account: str, trade_account: str, url: str, symbol: 
     if not buy_text:
         logger.error(f"API Buy Error: Phản hồi rỗng từ máy chủ cho {symbol}")
         return {}
-    try:
-        buy_object = json.loads(buy_text)
-    except json.JSONDecodeError as e:
-        logger.error(f"Lỗi giải mã JSON từ buy_stock cho {symbol}: {e} | Dữ liệu: {buy_text[:200]}")
+    buy_object, ok = _safe_parse_json(buy_text, f"buy_stock/{symbol}", {})
+    if not ok:
         return {}
     response_type = validate_response(buy_object)
 
@@ -51,10 +66,8 @@ def handle_sell_service(user_account: str, trade_account: str, url: str, symbol:
     if not sell_text:
         logger.error(f"API Sell Error: Phản hồi rỗng từ máy chủ cho {symbol}")
         return {}
-    try:
-        sell_object = json.loads(sell_text)
-    except json.JSONDecodeError as e:
-        logger.error(f"Lỗi giải mã JSON từ sell_stock cho {symbol}: {e} | Dữ liệu: {sell_text[:200]}")
+    sell_object, ok = _safe_parse_json(sell_text, f"sell_stock/{symbol}", {})
+    if not ok:
         return {}
     response_type = validate_response(sell_object)
 
@@ -83,10 +96,8 @@ def handle_update_order_service(user_account, trade_account, url, symbol, sessio
         if not res_text:
             logger.error(f"API Update Order Error: Phản hồi rỗng cho {symbol}")
             return ResponseAPISmartOneEnum.FAILED, {}
-        try:
-            obj = json.loads(res_text)
-        except json.JSONDecodeError as e:
-            logger.error(f"Lỗi giải mã JSON từ update_order cho {symbol}: {e} | Dữ liệu: {res_text[:200]}")
+        obj, ok = _safe_parse_json(res_text, f"update_order/{symbol}", {})
+        if not ok:
             return ResponseAPISmartOneEnum.FAILED, {}
         return validate_response(obj), obj
 
@@ -124,10 +135,8 @@ def handle_cancel_order_service(user_account, url, session, asp_net_session, ord
     if not cancel_order_text:
         logger.error("API Cancel Error: Phản hồi rỗng từ máy chủ")
         return {}
-    try:
-        cancel_order_object = json.loads(cancel_order_text)
-    except json.JSONDecodeError as e:
-        logger.error(f"Lỗi giải mã JSON từ cancel_order: {e} | Dữ liệu: {cancel_order_text[:200]}")
+    cancel_order_object, ok = _safe_parse_json(cancel_order_text, "cancel_order", {})
+    if not ok:
         return {}
     response_type = validate_response(cancel_order_object)
 
@@ -148,10 +157,8 @@ def handle_orders_not_matched(user_account, trade_account, symbol, url, valid_se
     if not data_text:
         logger.error("API get_orders_status (PENDING) trả về dữ liệu rỗng")
         return None
-    try:
-        data_object = json.loads(data_text)
-    except json.JSONDecodeError as e:
-        logger.error(f"Lỗi giải mã JSON từ get_orders_status (PENDING): {e} | Dữ liệu: {data_text[:200]}")
+    data_object, ok = _safe_parse_json(data_text, "get_orders_status/PENDING", None)
+    if not ok:
         return None
     response_type = validate_response(data_object)
     
@@ -212,10 +219,8 @@ def handle_orders_matched(user_account, trade_account, symbol, url, valid_sessio
     if not data_text:
         logger.error("API get_orders_status (MATCH) trả về dữ liệu rỗng")
         return []
-    try:
-        data_object = json.loads(data_text)
-    except json.JSONDecodeError as e:
-        logger.error(f"Lỗi giải mã JSON từ get_orders_status (MATCH): {e} | Dữ liệu: {data_text[:200]}")
+    data_object, ok = _safe_parse_json(data_text, "get_orders_status/MATCH", [])
+    if not ok:
         return []
     response_type = validate_response(data_object)
 
@@ -254,10 +259,8 @@ def handle_transaction_service(user_account, trade_account, url, valid_session, 
     if not transaction_text:
         logger.error("API Transaction Error: Phản hồi rỗng từ máy chủ")
         return []
-    try:
-        transaction_object = json.loads(transaction_text)
-    except json.JSONDecodeError as e:
-        logger.error(f"Lỗi giải mã JSON từ get_transaction: {e} | Dữ liệu: {transaction_text[:200]}")
+    transaction_object, ok = _safe_parse_json(transaction_text, "get_transaction", [])
+    if not ok:
         return []
     response_type = validate_response(transaction_object)
 
@@ -283,10 +286,8 @@ def handle_cash_balance_service(user_account, trade_account, url, session, asp_n
     if not cash_balance_text:
         logger.error("API Cash Balance Error: Phản hồi rỗng từ máy chủ")
         return {}
-    try:
-        cash_balance_object = json.loads(cash_balance_text)
-    except json.JSONDecodeError as e:
-        logger.error(f"Lỗi giải mã JSON từ get_cash_balance: {e} | Dữ liệu: {cash_balance_text[:200]}")
+    cash_balance_object, ok = _safe_parse_json(cash_balance_text, "get_cash_balance", {})
+    if not ok:
         return {}
     response_type = validate_response(cash_balance_object)
 
@@ -309,10 +310,8 @@ def handle_stock_balance_service(user_account, trade_account, symbol, url, sessi
     if not stock_balance_text:
         logger.error("API Stock Balance Error: Phản hồi rỗng từ máy chủ")
         return {}
-    try:
-        stock_balance_object = json.loads(stock_balance_text)
-    except json.JSONDecodeError as e:
-        logger.error(f"Lỗi giải mã JSON từ get_stock_balance: {e} | Dữ liệu: {stock_balance_text[:200]}")
+    stock_balance_object, ok = _safe_parse_json(stock_balance_text, "get_stock_balance", {})
+    if not ok:
         return {}
     response_type = validate_response(stock_balance_object)
 
@@ -361,26 +360,52 @@ def handle_stock_balance_service(user_account, trade_account, symbol, url, sessi
 
 
 def validate_session(user_account: str, trade_account: str, url: str, session: str, asp_net_session: str, retries: int = 2):
-    # Retry để tránh false-positive "session hết hạn" do API timeout tạm thời
+    # Retry để tránh false-positive "session hết hạn" do API timeout hoặc server trả về HTML lỗi tạm thời
     account_status_res = None
     for attempt in range(retries + 1):
         account_status_res = get_account_status(
             user_account, trade_account, url, session, asp_net_session)
-        if account_status_res is not None:
+
+        # Trường hợp 1: timeout hoàn toàn (None)
+        if account_status_res is None:
+            if attempt < retries:
+                logger.warning(f"API Account Status TIMEOUT (lần {attempt + 1}/{retries + 1}), thử lại...")
+                time.sleep(1)
+                continue
             break
-        if attempt < retries:
-            logger.warning(f"API Account Status TIMEOUT (lần {attempt + 1}/{retries + 1}), thử lại...")
-            time.sleep(1)
+
+        # Trường hợp 2: server trả về HTTP lỗi (4xx, 5xx)
+        if account_status_res.status_code != 200:
+            if attempt < retries:
+                logger.warning(f"API Account Status HTTP {account_status_res.status_code} (lần {attempt + 1}/{retries + 1}), thử lại...")
+                time.sleep(1)
+                continue
+            break
+
+        # Trường hợp 3: server trả về HTML thay vì JSON (server lỗi nhưng vẫn HTTP 200)
+        content_type = account_status_res.headers.get('Content-Type', '')
+        response_text = account_status_res.text.strip()
+        if 'json' not in content_type and response_text.startswith('<'):
+            if attempt < retries:
+                logger.warning(f"API Account Status trả về HTML thay vì JSON (lần {attempt + 1}/{retries + 1}), thử lại... | Preview: {response_text[:100]}")
+                time.sleep(1)
+                continue
+            # Hết retry vẫn nhận HTML → log rõ ràng
+            logger.error(f"Lỗi giải mã JSON: Server trả về HTML sau {retries + 1} lần thử. | Dữ liệu nhận được: {response_text}")
+            return False, {}
+
+        # Response hợp lệ (JSON) → thoát vòng lặp
+        break
 
     if account_status_res is None:
-        logger.error("API Account Status TIMEOUT")
+        logger.error("API Account Status TIMEOUT sau tất cả các lần thử")
         return False, {}
 
     account_status_text = account_status_res.text
     if not account_status_text:
         logger.error("API trả về dữ liệu rỗng")
         return False, {}
-    # account_status_object = json.loads(account_status_text)
+
     try:
         account_status_object = json.loads(account_status_text)
     except json.JSONDecodeError as e:
