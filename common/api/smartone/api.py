@@ -593,4 +593,3 @@ def get_account_status(
         print("=======================================\n")
 
         return None
-```
