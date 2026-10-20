@@ -278,8 +278,7 @@ def get_account_status(user_account: str, trade_account: str, url: str, session:
             "p1": trade_account,
             "p2": "",
             "p3": "",
-            "p4": "null",
-            'type': 'string'
+            "p4": "null"
         }
     })
     # print('check payload: ', payload)
@@ -290,6 +289,7 @@ def get_account_status(user_account: str, trade_account: str, url: str, session:
 
     try:
         response = requests.post(url, headers=headers, data=payload, timeout=10)
+        print('check response get_account_status: ', response)
         return response
     except requests.exceptions.RequestException as e:
         print('Đã xảy ra lỗi khi gửi yêu cầu get_account_status:', e)
