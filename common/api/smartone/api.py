@@ -312,6 +312,20 @@ def get_account_status(
     session: str,
     asp_net_session: str
 ):
+    print("\n========== Thông tin gửi lên==========")
+    print(f"user_account: {user_account}")
+    print(f"trade_account: {trade_account}")
+    print(f"session: {session}")
+    print(f"asp_net_session: {asp_net_session}")
+    logger.info(
+        "AccountStatus request: url=%s, cmd=%s, group=%s, "
+        "user=%s, trade_account=%s",
+        url,
+        payload["data"]["cmd"],
+        payload["group"],
+        user_account,
+        trade_account,
+    )
     payload = {
         "group": "Q",
         "user": user_account,
