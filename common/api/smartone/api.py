@@ -267,8 +267,52 @@ def get_stock_balance(user_account: str, trade_account: str, url: str, session: 
         print('Đã xảy ra lỗi khi gửi yêu cầu get_stock_balance:', e)
         return None
 
-def get_account_status(user_account: str, trade_account: str, url: str, session: str, asp_net_session: str):
-    payload = json.dumps({
+# def get_account_status(user_account: str, trade_account: str, url: str, session: str, asp_net_session: str):
+#     payload = json.dumps({
+#         "group": "Q",
+#         "user": user_account,
+#         "session": session,
+#         "data": {
+#             "type": "string",
+#             "cmd": "Web.Portfolio.AccountStatus",
+#             "p1": trade_account,
+#             "p2": "",
+#             "p3": "",
+#             "p4": "null"
+#         }
+#     })
+#     # print('check payload: ', payload)
+#     headers = {
+#         'Content-Type': 'application/json',
+#         'Cookie': f'ASP.NET_SessionId={asp_net_session}'
+#     }
+
+#     try:
+#         response = requests.post(url, headers=headers, data=payload, timeout=10)
+#         return response
+#     except requests.exceptions.RequestException as e:
+#         print('Đã xảy ra lỗi khi gửi yêu cầu get_account_status:', e)
+#         return None
+
+
+
+import json
+import re
+import time
+import logging
+import requests
+
+logger = logging.getLogger(__name__)
+
+
+def get_account_status(
+    user_account: str,
+    trade_account: str,
+    url: str,
+    session: str,
+    asp_net_session: str
+):
+    payload = {
         "group": "Q",
         "user": user_account,
         "session": session,
@@ -280,16 +324,83 @@ def get_account_status(user_account: str, trade_account: str, url: str, session:
             "p3": "",
             "p4": "null"
         }
-    })
-    # print('check payload: ', payload)
-    headers = {
-        'Content-Type': 'application/json',
-        'Cookie': f'ASP.NET_SessionId={asp_net_session}'
     }
 
+    headers = {
+        "Content-Type": "application/json",
+        "Cookie": f"ASP.NET_SessionId={asp_net_session}",
+        "Accept": "application/json, text/plain, */*",
+    }
+
+    start_time = time.perf_counter()
+
     try:
-        response = requests.post(url, headers=headers, data=payload, timeout=10)
+        response = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=10
+        )
+
+        elapsed = time.perf_counter() - start_time
+        response_text = response.text or ""
+        content_type = response.headers.get("Content-Type", "")
+
+        # Tìm Incident ID nếu máy chủ trả trang HTML lỗi
+        match = re.search(
+            r"incident ID is:\s*([0-9]+)",
+            response_text,
+            re.IGNORECASE
+        )
+        incident_id = match.group(1) if match else None
+
+        print("\n========== GET ACCOUNT STATUS ==========")
+        print(f"HTTP Status : {response.status_code}")
+        print(f"Request URL : {response.url}")
+        print(f"HTTP Reason : {response.reason}")
+        print(f"Elapsed     : {elapsed:.3f} seconds")
+        print(f"Content-Type: {content_type}")
+        print(f"Encoding    : {response.encoding}")
+        print(f"Body length : {len(response.content)} bytes")
+        print(f"Incident ID : {incident_id or 'Không tìm thấy'}")
+
+        # In headers phản hồi, che các thông tin nhạy cảm nếu có
+        safe_headers = dict(response.headers)
+        for key in list(safe_headers):
+            if key.lower() in ("set-cookie", "authorization"):
+                safe_headers[key] = "[REDACTED]"
+
+        print("Response headers:")
+        print(json.dumps(
+            safe_headers,
+            ensure_ascii=False,
+            indent=2
+        ))
+
+        print("\nResponse body:")
+        print(response_text if response_text else "<EMPTY BODY>")
+
+        # Thử parse JSON
+        try:
+            response_json = response.json()
+            print("\nParsed JSON:")
+            print(json.dumps(
+                response_json,
+                ensure_ascii=False,
+                indent=2
+            ))
+        except ValueError:
+            print("\nResponse không phải JSON hợp lệ.")
+
+        print("========== END GET ACCOUNT STATUS ==========\n")
+
         return response
+
     except requests.exceptions.RequestException as e:
-        print('Đã xảy ra lỗi khi gửi yêu cầu get_account_status:', e)
+        elapsed = time.perf_counter() - start_time
+        logger.exception(
+            "Lỗi request get_account_status sau %.3f giây: %s",
+            elapsed,
+            type(e).__name__
+        )
         return None

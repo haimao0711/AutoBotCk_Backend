@@ -463,19 +463,7 @@ def validate_session(
                 url,
                 session,
                 asp_net_session,
-            )
-            if account_status_res is not None:
-                print("\n========== ACCOUNT STATUS RESPONSE ==========")
-                print("Status code:", account_status_res.status_code)
-                print("URL:", account_status_res.url)
-                print("Headers:", dict(account_status_res.headers))
-                print("Content-Type:", account_status_res.headers.get("Content-Type"))
-                print("Encoding:", account_status_res.encoding)
-                print("Response body:")
-                print(account_status_res.text)
-                print("========== END RESPONSE ==========\n")
-            else:
-                print("get_account_status trả về None")            
+            )            
         except (requests.exceptions.RequestException, TimeoutError) as e:
             logger.exception(
                 "Lỗi kết nối Account Status (lần %s/%s): %s",
@@ -512,18 +500,6 @@ def validate_session(
         content_type = account_status_res.headers.get(
             "Content-Type", ""
         ).lower()
-
-        logger.warning("========== ACCOUNT STATUS RESPONSE ==========")
-        logger.warning("Attempt: %s/%s", attempt + 1, max_attempts)
-        logger.warning("HTTP Status: %s", status_code)
-        logger.warning("URL: %s", response_url)
-        logger.warning("Content-Type: %s", content_type)
-        logger.warning("Headers: %s", response_headers)
-        logger.warning(
-            "Response body:\n%s",
-            response_text if response_text else "<EMPTY BODY>",
-        )
-        logger.warning("========== END ACCOUNT STATUS RESPONSE ==========")
 
         # 3. Kiểm tra HTTP status
         if status_code != 200:
