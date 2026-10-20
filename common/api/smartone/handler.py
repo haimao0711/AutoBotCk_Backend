@@ -464,6 +464,18 @@ def validate_session(
                 session,
                 asp_net_session,
             )
+            if account_status_res is not None:
+                print("\n========== ACCOUNT STATUS RESPONSE ==========")
+                print("Status code:", account_status_res.status_code)
+                print("URL:", account_status_res.url)
+                print("Headers:", dict(account_status_res.headers))
+                print("Content-Type:", account_status_res.headers.get("Content-Type"))
+                print("Encoding:", account_status_res.encoding)
+                print("Response body:")
+                print(account_status_res.text)
+                print("========== END RESPONSE ==========\n")
+            else:
+                print("get_account_status trả về None")            
         except (requests.exceptions.RequestException, TimeoutError) as e:
             logger.exception(
                 "Lỗi kết nối Account Status (lần %s/%s): %s",

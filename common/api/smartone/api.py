@@ -289,16 +289,6 @@ def get_account_status(user_account: str, trade_account: str, url: str, session:
 
     try:
         response = requests.post(url, headers=headers, data=payload, timeout=10)
-        print("\n========== GET ACCOUNT STATUS ==========")
-        print(f"HTTP Status : {status_code}")
-        print(f"URL         : {response_url}")
-        print(f"Content-Type: {content_type}")
-        print(f"Headers     : {response_headers}")
-        print(f"Body length : {len(response_text)} characters")
-        print(f"Incident ID : {incident_id or 'Không tìm thấy'}")
-        print("Response body:")
-        print(response_text if response_text else "<EMPTY BODY>")
-        print("========== END RESPONSE ==========\n")
         return response
     except requests.exceptions.RequestException as e:
         print('Đã xảy ra lỗi khi gửi yêu cầu get_account_status:', e)
