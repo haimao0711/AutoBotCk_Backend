@@ -430,13 +430,18 @@ def handle_stock_balance_service(user_account, trade_account, symbol, url, sessi
 #     return True, result
 
 
+
+
+
+
 import json
 import re
 import time
 import random
 import logging
-
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 def validate_session(
@@ -448,9 +453,7 @@ def validate_session(
     retries: int = 2,
 ):
     max_attempts = max(1, retries + 1)
-
     retryable_status_codes = {408, 429, 500, 502, 503, 504}
-    account_status_res = None
 
     for attempt in range(max_attempts):
         try:
@@ -462,9 +465,8 @@ def validate_session(
                 asp_net_session,
             )
         except (requests.exceptions.RequestException, TimeoutError) as e:
-            logger.warning(
-                "API Account Status lỗi kết nối "
-                "(lần %s/%s): %s",
+            logger.exception(
+                "Lỗi kết nối Account Status (lần %s/%s): %s",
                 attempt + 1,
                 max_attempts,
                 str(e),
@@ -476,10 +478,10 @@ def validate_session(
 
             return False, {}
 
-        # 1. Timeout hoặc không nhận được response
+        # 1. Kiểm tra response
         if account_status_res is None:
-            logger.warning(
-                "API Account Status trả về None (lần %s/%s)",
+            logger.error(
+                "get_account_status trả về None (lần %s/%s)",
                 attempt + 1,
                 max_attempts,
             )
@@ -488,18 +490,33 @@ def validate_session(
                 time.sleep(min(2 ** attempt, 5))
                 continue
 
-            logger.error(
-                "API Account Status TIMEOUT sau %s lần thử",
-                max_attempts,
-            )
             return False, {}
 
-        # 2. Kiểm tra HTTP status
+        # 2. IN CHI TIẾT RESPONSE
         status_code = account_status_res.status_code
+        response_url = account_status_res.url
+        response_headers = dict(account_status_res.headers)
+        response_text = (account_status_res.text or "").strip()
+        content_type = account_status_res.headers.get(
+            "Content-Type", ""
+        ).lower()
 
+        logger.warning("========== ACCOUNT STATUS RESPONSE ==========")
+        logger.warning("Attempt: %s/%s", attempt + 1, max_attempts)
+        logger.warning("HTTP Status: %s", status_code)
+        logger.warning("URL: %s", response_url)
+        logger.warning("Content-Type: %s", content_type)
+        logger.warning("Headers: %s", response_headers)
+        logger.warning(
+            "Response body:\n%s",
+            response_text if response_text else "<EMPTY BODY>",
+        )
+        logger.warning("========== END ACCOUNT STATUS RESPONSE ==========")
+
+        # 3. Kiểm tra HTTP status
         if status_code != 200:
             logger.warning(
-                "API Account Status HTTP %s (lần %s/%s)",
+                "Account Status HTTP %s (lần %s/%s)",
                 status_code,
                 attempt + 1,
                 max_attempts,
@@ -512,25 +529,11 @@ def validate_session(
                 time.sleep(min(2 ** attempt, 5))
                 continue
 
-            logger.error(
-                "API Account Status thất bại với HTTP %s",
-                status_code,
-            )
             return False, {}
 
-        # 3. Kiểm tra body và Content-Type
-        response_text = (account_status_res.text or "").strip()
-        content_type = account_status_res.headers.get(
-            "Content-Type", ""
-        ).lower()
-
+        # 4. Kiểm tra body rỗng
         if not response_text:
-            logger.warning(
-                "API Account Status trả về body rỗng "
-                "(lần %s/%s)",
-                attempt + 1,
-                max_attempts,
-            )
+            logger.warning("Account Status trả về body rỗng")
 
             if attempt < max_attempts - 1:
                 time.sleep(min(2 ** attempt, 5))
@@ -538,7 +541,7 @@ def validate_session(
 
             return False, {}
 
-        # Phát hiện HTML dựa trên Content-Type hoặc nội dung
+        # 5. Phát hiện HTML, kể cả khi HTTP 200
         body_start = response_text[:1000].lstrip().lower()
 
         is_html = (
@@ -560,15 +563,13 @@ def validate_session(
                 else "N/A"
             )
 
-            logger.warning(
-                "API Account Status trả về HTML thay vì JSON "
-                "(lần %s/%s, HTTP %s, Incident ID: %s). "
-                "Preview: %s",
-                attempt + 1,
-                max_attempts,
+            logger.error(
+                "API trả về HTML thay vì JSON. "
+                "HTTP=%s, Incident ID=%s, Attempt=%s/%s",
                 status_code,
                 incident_id,
-                response_text[:300].replace("\n", " "),
+                attempt + 1,
+                max_attempts,
             )
 
             if attempt < max_attempts - 1:
@@ -576,69 +577,59 @@ def validate_session(
                 continue
 
             logger.error(
-                "API vẫn trả về HTML sau %s lần thử. "
-                "Incident ID: %s",
+                "API vẫn trả HTML sau %s lần thử. "
+                "Chưa đủ cơ sở kết luận session hết hạn. "
+                "Incident ID=%s",
                 max_attempts,
                 incident_id,
             )
             return False, {}
 
-        # 4. Parse JSON
+        # 6. Parse JSON
         try:
             account_status_object = json.loads(response_text)
         except (json.JSONDecodeError, TypeError) as e:
-            logger.warning(
-                "API Account Status JSON không hợp lệ "
-                "(lần %s/%s): %s. Preview: %s",
-                attempt + 1,
-                max_attempts,
+            logger.error(
+                "JSON không hợp lệ: %s. Response body: %s",
                 str(e),
-                response_text[:300],
+                response_text,
             )
 
             if attempt < max_attempts - 1:
                 time.sleep(min(2 ** attempt, 5))
                 continue
 
-            logger.error(
-                "Không thể giải mã JSON sau %s lần thử",
-                max_attempts,
-            )
             return False, {}
 
-        # Đã có JSON hợp lệ, thoát vòng retry
+        # JSON hợp lệ, thoát vòng retry
         break
-
     else:
         return False, {}
 
-    # 5. Đảm bảo JSON là object
+    # 7. Đảm bảo JSON là object
     if not isinstance(account_status_object, dict):
         logger.error(
-            "API trả về JSON không phải object: %s",
+            "JSON không phải object: %s",
             type(account_status_object).__name__,
         )
         return False, {}
 
-    # 6. Kiểm tra trạng thái nghiệp vụ
+    # 8. Kiểm tra trạng thái nghiệp vụ
     try:
         response_type = validate_response(account_status_object)
     except (KeyError, TypeError, ValueError, AttributeError) as e:
-        logger.error(
-            "Không thể kiểm tra response API: %s",
-            str(e),
-        )
+        logger.exception("Lỗi kiểm tra response API: %s", str(e))
         return False, {}
 
     if response_type != ResponseAPISmartOneEnum.SUCCESS:
         logger.error(
-            "API Account Status Error: rs=%s (rc: %s)",
+            "Account Status Error: rs=%s, rc=%s",
             account_status_object.get("rs"),
             account_status_object.get("rc"),
         )
         return False, {}
 
-    # 7. Kiểm tra data
+    # 9. Kiểm tra data
     data = account_status_object.get("data", {})
 
     if isinstance(data, list):
@@ -646,12 +637,12 @@ def validate_session(
 
     if not isinstance(data, dict):
         logger.error(
-            "API trả về data không hợp lệ: %s",
+            "API trả data không hợp lệ: %s",
             type(data).__name__,
         )
         return False, {}
 
-    # 8. Chuyển đổi dữ liệu số an toàn
+    # 10. Chuyển đổi dữ liệu số
     fields = {
         "total_equity": "total_equity",
         "cash_balance": "cash_balance",
@@ -667,10 +658,8 @@ def validate_session(
             for output_key, input_key in fields.items()
         }
     except (ValueError, TypeError, OverflowError) as e:
-        logger.error(
-            "Dữ liệu số tài khoản không hợp lệ: %s",
-            str(e),
-        )
+        logger.error("Dữ liệu số tài khoản không hợp lệ: %s", str(e))
         return False, {}
 
+    logger.info("Account Status parsed successfully")
     return True, result
