@@ -361,65 +361,65 @@ def handle_stock_balance_service(user_account, trade_account, symbol, url, sessi
 
 def validate_session(user_account: str, trade_account: str, url: str, session: str, asp_net_session: str, retries: int = 2):
     # Retry để tránh false-positive "session hết hạn" do API timeout hoặc server trả về HTML lỗi tạm thời
-    account_status_res = None
-    for attempt in range(retries + 1):
-        account_status_res = get_account_status(
-            user_account, trade_account, url, session, asp_net_session)
+    # account_status_res = None
+    # for attempt in range(retries + 1):
+    #     account_status_res = get_account_status(
+    #         user_account, trade_account, url, session, asp_net_session)
 
-        # Trường hợp 1: timeout hoàn toàn (None)
-        if account_status_res is None:
-            if attempt < retries:
-                logger.warning(f"API Account Status TIMEOUT (lần {attempt + 1}/{retries + 1}), thử lại...")
-                time.sleep(1)
-                continue
-            break
+    #     # Trường hợp 1: timeout hoàn toàn (None)
+    #     if account_status_res is None:
+    #         if attempt < retries:
+    #             logger.warning(f"API Account Status TIMEOUT (lần {attempt + 1}/{retries + 1}), thử lại...")
+    #             time.sleep(1)
+    #             continue
+    #         break
 
-        # Trường hợp 2: server trả về HTTP lỗi (4xx, 5xx)
-        if account_status_res.status_code != 200:
-            if attempt < retries:
-                logger.warning(f"API Account Status HTTP {account_status_res.status_code} (lần {attempt + 1}/{retries + 1}), thử lại...")
-                time.sleep(1)
-                continue
-            break
+    #     # Trường hợp 2: server trả về HTTP lỗi (4xx, 5xx)
+    #     if account_status_res.status_code != 200:
+    #         if attempt < retries:
+    #             logger.warning(f"API Account Status HTTP {account_status_res.status_code} (lần {attempt + 1}/{retries + 1}), thử lại...")
+    #             time.sleep(1)
+    #             continue
+    #         break
 
-        # Trường hợp 3: server trả về HTML thay vì JSON (server lỗi nhưng vẫn HTTP 200)
-        content_type = account_status_res.headers.get('Content-Type', '')
-        response_text = account_status_res.text.strip()
-        if 'json' not in content_type and response_text.startswith('<'):
-            if attempt < retries:
-                logger.warning(f"API Account Status trả về HTML thay vì JSON (lần {attempt + 1}/{retries + 1}), thử lại... | Preview: {response_text[:100]}")
-                time.sleep(1)
-                continue
-            # Hết retry vẫn nhận HTML → log rõ ràng
-            logger.error(f"Lỗi giải mã JSON: Server trả về HTML sau {retries + 1} lần thử. | Dữ liệu nhận được: {response_text}")
-            return False, {}
+    #     # Trường hợp 3: server trả về HTML thay vì JSON (server lỗi nhưng vẫn HTTP 200)
+    #     content_type = account_status_res.headers.get('Content-Type', '')
+    #     response_text = account_status_res.text.strip()
+    #     if 'json' not in content_type and response_text.startswith('<'):
+    #         if attempt < retries:
+    #             logger.warning(f"API Account Status trả về HTML thay vì JSON (lần {attempt + 1}/{retries + 1}), thử lại... | Preview: {response_text[:100]}")
+    #             time.sleep(1)
+    #             continue
+    #         # Hết retry vẫn nhận HTML → log rõ ràng
+    #         logger.error(f"Lỗi giải mã JSON: Server trả về HTML sau {retries + 1} lần thử. | Dữ liệu nhận được: {response_text}")
+    #         return False, {}
 
-        # Response hợp lệ (JSON) → thoát vòng lặp
-        break
+    #     # Response hợp lệ (JSON) → thoát vòng lặp
+    #     break
 
-    if account_status_res is None:
-        logger.error("API Account Status TIMEOUT sau tất cả các lần thử")
-        return False, {}
+    # if account_status_res is None:
+    #     logger.error("API Account Status TIMEOUT sau tất cả các lần thử")
+    #     return False, {}
 
-    account_status_text = account_status_res.text
-    if not account_status_text:
-        logger.error("API trả về dữ liệu rỗng")
-        return False, {}
+    # account_status_text = account_status_res.text
+    # if not account_status_text:
+    #     logger.error("API trả về dữ liệu rỗng")
+    #     return False, {}
 
-    try:
-        account_status_object = json.loads(account_status_text)
-    except json.JSONDecodeError as e:
-        logger.error(f"Lỗi giải mã JSON: {e} | Dữ liệu nhận được: {account_status_text}")
-        return False, {}
-    response_type = validate_response(account_status_object)
+    # try:
+    #     account_status_object = json.loads(account_status_text)
+    # except json.JSONDecodeError as e:
+    #     logger.error(f"Lỗi giải mã JSON: {e} | Dữ liệu nhận được: {account_status_text}")
+    #     return False, {}
+    # response_type = validate_response(account_status_object)
 
-    if response_type != ResponseAPISmartOneEnum.SUCCESS:
-        logger.error(f"API Account Status Error: {account_status_object.get('rs')} (rc: {account_status_object.get('rc')})")
-        return False, {}
+    # if response_type != ResponseAPISmartOneEnum.SUCCESS:
+    #     logger.error(f"API Account Status Error: {account_status_object.get('rs')} (rc: {account_status_object.get('rc')})")
+    #     return False, {}
 
-    data = account_status_object.get("data", {})
-    if isinstance(data, list):
-        data = data[0] if data else {}
+    # data = account_status_object.get("data", {})
+    # if isinstance(data, list):
+    #     data = data[0] if data else {}
     result = {
         "total_equity": int(data.get("total_equity", 0)),  # Tổng tiền hiện có
         "cash_balance": int(data.get("cash_balance", 0)),  # Số tiền mặt có thể rút
