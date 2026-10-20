@@ -296,7 +296,6 @@ def get_stock_balance(user_account: str, trade_account: str, url: str, session: 
 
 
 
-```python
 import json
 import re
 import time
