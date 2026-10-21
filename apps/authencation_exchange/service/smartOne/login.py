@@ -81,11 +81,32 @@ def login_smart_one_vps_step_1(client, request_verification_token, account, pass
 #             # Handle errors
 #             return ""
 
+
+import json
+import logging
+import requests
+
+logger = logging.getLogger(__name__)
+
+
 def login_get_session_vps_step_1(user_account, password):
     url = api.LOGIN_URL
-    device_info = "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
-    device_new = "xsUpL/sq1XLkHe62VR10KJ1y2TABxBTRAJJPFNGKhc7jU7WadOUla9c4I51KKeGmXdUojkuDmEUIoi5/wjdb5hH1aUuKzgDfOLPCSVMzwfGXajiYmXETFO4cmPV833B/vnM9PNMMhN4XfKwfJv1JvZyDdRO0x4e0vaPr4uaRyc4FBcDsjR1y2D0WzlnZQtLJ53hQcwiwJFHke9gvVF8vICNvrUjSOTPezYpNukS0lLWyJvyH3To="
-    deviceName ="Chrome Windows 10"
+
+    device_info = (
+        "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIs"
+        "InZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLC"
+        "JkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
+    )
+
+    device_new = (
+        "xsUpL/sq1XLkHe62VR10KJ1y2TABxBTRAJJPFNGKhc7jU7WadOUla9c4I51K"
+        "KeGmXdUojkuDmEUIoi5/wjdb5hH1aUuKzgDfOLPCSVMzwfGXajiYmXETFO4cmPV"
+        "833B/vnM9PNMMhN4XfKwfJv1JvZyDdRO0x4e0vaPr4uaRyc4FBcDsjR1y2D0Wz"
+        "lnZQtLJ53hQcwiwJFHke9gvVF8vICNvrUjSOTPezYpNukS0lLWyJvyH3To="
+    )
+
+    device_name = "Chrome Windows 10"
+
     payload = {
         "user": user_account,
         "pass": password,
@@ -96,28 +117,79 @@ def login_get_session_vps_step_1(user_account, password):
         "p6": "",
         "p7": 1,
         "deviceNew": device_new,
-        "deviceName": deviceName,
-        "deviceInfo": device_info
+        "deviceName": device_name,
+        "deviceInfo": device_info,
     }
 
     headers = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
+        "Accept": "application/json",
     }
-    print('check payload buoc 1', payload)
+
     try:
-        response = requests.post(url, headers=headers, data=payload)
-        print('check response step 1: ', response)
-        res_text = response.text
-        print("DEBUG res_text type:", type(res_text))
-        print("DEBUG res_text:", repr(res_text)[:2000])
-        res_object = json.loads(res_text)
-        print('check res_object step 1: ', res_object)
-        session_id  = res_object['data']['sid']
-        print('check session_id 1: ', session_id)
-        return session_id
-    except requests.exceptions.RequestException as e:
-        # print(f'Lỗi xảy ra khi gửi yêu cầu: {e}')
-        return {"error": str(e)}
+        # json=payload sẽ serialize payload thành JSON.
+        response = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=30,
+        )
+
+        logger.info(
+            "VPS login step 1: HTTP %s, Content-Type=%s",
+            response.status_code,
+            response.headers.get("Content-Type"),
+        )
+
+        # Kiểm tra lỗi HTTP 4xx/5xx.
+        response.raise_for_status()
+
+        # Kiểm tra nội dung có phải JSON hợp lệ không.
+        try:
+            res_object = response.json()
+        except requests.exceptions.JSONDecodeError:
+            logger.error(
+                "VPS login returned invalid JSON. Body: %r",
+                response.text[:1000],
+            )
+            return {
+                "error": "VPS trả về dữ liệu không phải JSON",
+                "status_code": response.status_code,
+            }
+
+        logger.info("VPS login step 1: JSON response received")
+
+        # Kiểm tra cấu trúc phản hồi.
+        data = res_object.get("data") if isinstance(res_object, dict) else None
+
+        if not isinstance(data, dict) or not data.get("sid"):
+            logger.warning(
+                "VPS login response missing data.sid; response keys=%s",
+                list(res_object.keys())
+                if isinstance(res_object, dict)
+                else type(res_object).__name__,
+            )
+            return {
+                "error": "Phản hồi đăng nhập VPS không có data.sid",
+            }
+
+        return data["sid"]
+
+    except requests.exceptions.Timeout:
+        logger.exception("VPS login request timed out")
+        return {"error": "Kết nối VPS bị timeout"}
+
+    except requests.exceptions.HTTPError as exc:
+        logger.error(
+            "VPS login HTTP error: %s; body=%r",
+            exc,
+            exc.response.text[:1000] if exc.response is not None else None,
+        )
+        return {"error": "VPS trả về lỗi HTTP"}
+
+    except requests.exceptions.RequestException:
+        logger.exception("VPS login request failed")
+        return {"error": "Không thể kết nối đến VPS"}
 
 def login_get_session_vps_step_2(user_account, password, otp):
         url = api.LOGIN_URL
