@@ -325,13 +325,19 @@ def get_account_status(
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/155.0.0.0 Safari/537.36"
         ),
-        "Cookie": f"ASP.NET_SessionId={asp_net_session}",
     }
 
+    if asp_net_session:
+        headers["Cookie"] = f"ASP.NET_SessionId={asp_net_session}"
+
     try:
-        print(f"\n[VPS REQUEST] user={user_account}, trade_account={trade_account}")
+        print(
+            f"\n[VPS REQUEST] user={user_account}, "
+            f"trade_account={trade_account}"
+        )
         print(f"[VPS REQUEST] url={url}")
-        print(f"[VPS REQUEST] payload={payload}")
+        print(f"[VPS REQUEST] payload={{'group': 'Q', 'user': '{user_account}', "
+              f"'session': '[REDACTED]', 'data': {payload['data']}}}")
 
         response = requests.post(
             url,
@@ -341,8 +347,21 @@ def get_account_status(
         )
 
         print(f"[VPS RESPONSE] HTTP {response.status_code}")
-        print(f"[VPS RESPONSE] Content-Type: {response.headers.get('Content-Type')}")
+        print(
+            f"[VPS RESPONSE] Content-Type: "
+            f"{response.headers.get('Content-Type')}"
+        )
         print(f"[VPS RESPONSE] Body:\n{response.text}")
+
+        try:
+            result = response.json()
+            if result.get("rs") == "FOException.InvalidSessionException":
+                print(
+                    "[VPS ERROR] InvalidSessionException: "
+                    "Hãy đăng nhập lại để lấy session hợp lệ."
+                )
+        except ValueError:
+            print("[VPS ERROR] Response không phải JSON hợp lệ.")
 
         return response
 

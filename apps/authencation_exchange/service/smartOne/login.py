@@ -108,6 +108,8 @@ def login_get_session_vps_step_1(user_account, password):
         response = requests.post(url, headers=headers, data=payload)
         print('check response step 1: ', response)
         res_text = response.text
+        print("DEBUG res_text type:", type(res_text))
+        print("DEBUG res_text:", repr(res_text)[:2000])
         res_object = json.loads(res_text)
         print('check res_object step 1: ', res_object)
         session_id  = res_object['data']['sid']
