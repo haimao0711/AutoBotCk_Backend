@@ -80,33 +80,239 @@ def login_smart_one_vps_step_1(client, request_verification_token, account, pass
 #     except subprocess.CalledProcessError as e:
 #             # Handle errors
 #             return ""
+# def login_get_session_vps_step_2(user_account, password, otp):
+#         url = api.LOGIN_URL
+#         payload = {
+#             "user": user_account,
+#             "pass": password,
+#             "channel": "I",
+#             "language": "vi",
+#             "cmd": "Web.sCheckLoginOTP",
+#             "p5": otp,
+#             "p6": '',
+#             "p7": 0,
+#             "deviceNew": "xsUpL/sq1XLkHe62VR10KJ1y2TABxBTRAJJPFNGKhc7jU7WadOUla9c4I51 KKeGmXdUojkuDmEUIoi5/wjdb5hH1aUuKzgDfOLPCSVMzwfGXajiYmXETFO4cmPV833B/vnM9PNMMhN4XfKwfJv 1JvZyDdRO0x4e0vaPr4ua Ryc4F BcDsjR1y2D0WzlnZQtLJ53hQcwiwJFHke9gvVF8vICNvrUjSOTPezYpNukS0lLWyJvyH3To=",
+#             "deviceName": "Chrome Windows 10",
+#             "deviceInfo": "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
+
+#         }
+
+#         headers = {
+#             'Content-Type': 'application/json'
+#         }
+
+#         try:
+#             response = requests.request("POST", url, headers=headers, data=payload)
+#             print(f'Mã trạng thái phản hồi login_get_session_vps_step_2 :', response.status_code)
+#             print(f'Nội dung phản hồi login_get_session_vps_step_2:', response.text)
+#             res_text = response.text
+#             res_object = json.loads(res_text)
+#             session_id  = res_object['data']['sid']
+#             print('check session_id 2: ', session_id)
+#             return session_id
+#         except requests.exceptions.RequestException as e:
+#             print('Đã xảy ra lỗi khi gửi yêu cầu:', e)
+#             return None
 
 
 import json
 import logging
+import re
+import time
+
 import requests
 
 logger = logging.getLogger(__name__)
 
+# Dùng chung cho cả hai bước đăng nhập.
+LOGIN_TIMEOUT = 30
+
+DEVICE_INFO = (
+    "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIs"
+    "InZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLC"
+    "JkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
+)
+
+# Dùng nguyên chuỗi deviceNew đã cung cấp ở bước 1.
+# Xác nhận lại với giá trị gốc của hệ thống nếu cần.
+DEVICE_NEW = (
+    "xsUpL/sq1XLkHe62VR10KJ1y2TABxBTRAJJPFNGKhc7jU7WadOUla9c4I51"
+    "KKeGmXdUojkuDmEUIoi5/wjdb5hH1aUuKzgDfOLPCSVMzwfGXajiYmXETFO4cmPV"
+    "833B/vnM9PNMMhN4XfKwfJv1JvZyDdRO0x4e0vaPr4uaRyc4FBcDsjR1y2D0Wz"
+    "lnZQtLJ53hQcwiwJFHke9gvVF8vICNvrUjSOTPezYpNukS0lLWyJvyH3To="
+)
+
+
+def _vps_login_request(step, payload):
+    """
+    Gửi request và log thông tin chẩn đoán.
+    Không log payload vì chứa tài khoản, mật khẩu và/hoặc OTP.
+    Trả về (response, parsed_json).
+    """
+    url = api.LOGIN_URL
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    started = time.monotonic()
+
+    logger.info(
+        "[VPS LOGIN][%s] START url=%s cmd=%s",
+        step,
+        url,
+        payload.get("cmd"),
+    )
+
+    try:
+        # Chọn json=payload vì code hiện tại khai báo
+        # Content-Type application/json.
+        # Nếu tài liệu API yêu cầu form data, cần đổi theo tài liệu.
+        response = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=LOGIN_TIMEOUT,
+        )
+
+    except requests.exceptions.Timeout:
+        logger.exception(
+            "[VPS LOGIN][%s] TIMEOUT after %.2fs",
+            step,
+            time.monotonic() - started,
+        )
+        return None, None
+
+    except requests.exceptions.RequestException as exc:
+        # Không log request headers/body hoặc thông tin xác thực.
+        logger.error(
+            "[VPS LOGIN][%s] REQUEST FAILED type=%s message=%s",
+            step,
+            type(exc).__name__,
+            str(exc),
+        )
+        return None, None
+
+    elapsed = time.monotonic() - started
+    content_type = response.headers.get("Content-Type", "")
+    body = response.text or ""
+
+    logger.info(
+        "[VPS LOGIN][%s] RESPONSE status=%s elapsed=%.2fs "
+        "content_type=%r body_length=%s",
+        step,
+        response.status_code,
+        elapsed,
+        content_type,
+        len(body),
+    )
+
+    # Phát hiện mã sự cố trong trang HTML gateway.
+    incident_match = re.search(
+        r"incident ID is:\s*([A-Za-z0-9_-]+)",
+        body,
+        flags=re.IGNORECASE,
+    )
+    if incident_match:
+        logger.error(
+            "[VPS LOGIN][%s] GATEWAY INCIDENT ID=%s",
+            step,
+            incident_match.group(1),
+        )
+
+    # Log một phần nội dung khi phản hồi không phải JSON.
+    # Không in toàn bộ response vì có thể chứa dữ liệu nhạy cảm.
+    try:
+        result = response.json()
+    except ValueError:
+        logger.error(
+            "[VPS LOGIN][%s] INVALID JSON status=%s "
+            "content_type=%r body_preview=%r",
+            step,
+            response.status_code,
+            content_type,
+            body[:800],
+        )
+        return response, None
+
+    logger.info(
+        "[VPS LOGIN][%s] JSON parsed successfully; root_type=%s",
+        step,
+        type(result).__name__,
+    )
+
+    if not response.ok:
+        logger.error(
+            "[VPS LOGIN][%s] HTTP ERROR status=%s",
+            step,
+            response.status_code,
+        )
+        return response, None
+
+    if not isinstance(result, dict):
+        logger.error(
+            "[VPS LOGIN][%s] Unexpected JSON root type=%s",
+            step,
+            type(result).__name__,
+        )
+        return response, None
+
+    # Chỉ log tên các trường, không log giá trị session/token.
+    logger.info(
+        "[VPS LOGIN][%s] JSON root keys=%s",
+        step,
+        list(result.keys()),
+    )
+
+    data = result.get("data")
+    if isinstance(data, dict):
+        logger.info(
+            "[VPS LOGIN][%s] JSON data keys=%s",
+            step,
+            list(data.keys()),
+        )
+
+    return response, result
+
+
+def _extract_session_id(step, response, result):
+    """Lấy session ID nếu phản hồi đúng cấu trúc."""
+    if response is None:
+        logger.error("[VPS LOGIN][%s] No HTTP response", step)
+        return None
+
+    if result is None:
+        logger.error(
+            "[VPS LOGIN][%s] Cannot extract session: "
+            "response was not valid/accepted JSON",
+            step,
+        )
+        return None
+
+    data = result.get("data")
+    if not isinstance(data, dict):
+        logger.error(
+            "[VPS LOGIN][%s] Missing or invalid 'data' field",
+            step,
+        )
+        return None
+
+    session_id = data.get("sid")
+    if not session_id:
+        # Log trạng thái và các trường an toàn, không log giá trị.
+        logger.error(
+            "[VPS LOGIN][%s] Missing data.sid; data keys=%s",
+            step,
+            list(data.keys()),
+        )
+        return None
+
+    logger.info("[VPS LOGIN][%s] Session ID received successfully", step)
+    return session_id
+
 
 def login_get_session_vps_step_1(user_account, password):
-    url = api.LOGIN_URL
-
-    device_info = (
-        "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIs"
-        "InZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLC"
-        "JkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
-    )
-
-    device_new = (
-        "xsUpL/sq1XLkHe62VR10KJ1y2TABxBTRAJJPFNGKhc7jU7WadOUla9c4I51K"
-        "KeGmXdUojkuDmEUIoi5/wjdb5hH1aUuKzgDfOLPCSVMzwfGXajiYmXETFO4cmPV"
-        "833B/vnM9PNMMhN4XfKwfJv1JvZyDdRO0x4e0vaPr4uaRyc4FBcDsjR1y2D0Wz"
-        "lnZQtLJ53hQcwiwJFHke9gvVF8vICNvrUjSOTPezYpNukS0lLWyJvyH3To="
-    )
-
-    device_name = "Chrome Windows 10"
-
+    """Bước 1: kiểm tra tài khoản và mật khẩu."""
     payload = {
         "user": user_account,
         "pass": password,
@@ -116,114 +322,55 @@ def login_get_session_vps_step_1(user_account, password):
         "p5": "",
         "p6": "",
         "p7": 1,
-        "deviceNew": device_new,
-        "deviceName": device_name,
-        "deviceInfo": device_info,
+        "deviceNew": DEVICE_NEW,
+        "deviceName": "Chrome Windows 10",
+        "deviceInfo": DEVICE_INFO,
     }
 
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
+    logger.info("[VPS LOGIN][STEP 1] Checking credentials")
 
-    try:
-        # json=payload sẽ serialize payload thành JSON.
-        response = requests.post(
-            url,
-            headers=headers,
-            json=payload,
-            timeout=30,
-        )
+    response, result = _vps_login_request("STEP 1", payload)
 
-        logger.info(
-            "VPS login step 1: HTTP %s, Content-Type=%s",
-            response.status_code,
-            response.headers.get("Content-Type"),
-        )
+    session_id = _extract_session_id("STEP 1", response, result)
 
-        # Kiểm tra lỗi HTTP 4xx/5xx.
-        response.raise_for_status()
+    if not session_id:
+        logger.error("[VPS LOGIN][STEP 1] FAILED")
+        return None
 
-        # Kiểm tra nội dung có phải JSON hợp lệ không.
-        try:
-            res_object = response.json()
-        except requests.exceptions.JSONDecodeError:
-            logger.error(
-                "VPS login returned invalid JSON. Body: %r",
-                response.text[:1000],
-            )
-            return {
-                "error": "VPS trả về dữ liệu không phải JSON",
-                "status_code": response.status_code,
-            }
+    logger.info("[VPS LOGIN][STEP 1] SUCCESS")
+    return session_id
 
-        logger.info("VPS login step 1: JSON response received")
-
-        # Kiểm tra cấu trúc phản hồi.
-        data = res_object.get("data") if isinstance(res_object, dict) else None
-
-        if not isinstance(data, dict) or not data.get("sid"):
-            logger.warning(
-                "VPS login response missing data.sid; response keys=%s",
-                list(res_object.keys())
-                if isinstance(res_object, dict)
-                else type(res_object).__name__,
-            )
-            return {
-                "error": "Phản hồi đăng nhập VPS không có data.sid",
-            }
-
-        return data["sid"]
-
-    except requests.exceptions.Timeout:
-        logger.exception("VPS login request timed out")
-        return {"error": "Kết nối VPS bị timeout"}
-
-    except requests.exceptions.HTTPError as exc:
-        logger.error(
-            "VPS login HTTP error: %s; body=%r",
-            exc,
-            exc.response.text[:1000] if exc.response is not None else None,
-        )
-        return {"error": "VPS trả về lỗi HTTP"}
-
-    except requests.exceptions.RequestException:
-        logger.exception("VPS login request failed")
-        return {"error": "Không thể kết nối đến VPS"}
 
 def login_get_session_vps_step_2(user_account, password, otp):
-        url = api.LOGIN_URL
-        payload = {
-            "user": user_account,
-            "pass": password,
-            "channel": "I",
-            "language": "vi",
-            "cmd": "Web.sCheckLoginOTP",
-            "p5": otp,
-            "p6": '',
-            "p7": 0,
-            "deviceNew": "xsUpL/sq1XLkHe62VR10KJ1y2TABxBTRAJJPFNGKhc7jU7WadOUla9c4I51 KKeGmXdUojkuDmEUIoi5/wjdb5hH1aUuKzgDfOLPCSVMzwfGXajiYmXETFO4cmPV833B/vnM9PNMMhN4XfKwfJv 1JvZyDdRO0x4e0vaPr4ua Ryc4F BcDsjR1y2D0WzlnZQtLJ53hQcwiwJFHke9gvVF8vICNvrUjSOTPezYpNukS0lLWyJvyH3To=",
-            "deviceName": "Chrome Windows 10",
-            "deviceInfo": "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
+    """Bước 2: xác thực OTP."""
+    payload = {
+        "user": user_account,
+        "pass": password,
+        "channel": "I",
+        "language": "vi",
+        "cmd": "Web.sCheckLoginOTP",
+        "p5": otp,
+        "p6": "",
+        "p7": 0,
+        "deviceNew": DEVICE_NEW,
+        "deviceName": "Chrome Windows 10",
+        "deviceInfo": DEVICE_INFO,
+    }
 
-        }
+    logger.info("[VPS LOGIN][STEP 2] Submitting OTP")
 
-        headers = {
-            'Content-Type': 'application/json'
-        }
+    response, result = _vps_login_request("STEP 2", payload)
 
-        try:
-            response = requests.request("POST", url, headers=headers, data=payload)
-            print(f'Mã trạng thái phản hồi login_get_session_vps_step_2 :', response.status_code)
-            print(f'Nội dung phản hồi login_get_session_vps_step_2:', response.text)
-            res_text = response.text
-            res_object = json.loads(res_text)
-            session_id  = res_object['data']['sid']
-            print('check session_id 2: ', session_id)
-            return session_id
-        except requests.exceptions.RequestException as e:
-            print('Đã xảy ra lỗi khi gửi yêu cầu:', e)
-            return None
+    session_id = _extract_session_id("STEP 2", response, result)
+
+    if not session_id:
+        logger.error("[VPS LOGIN][STEP 2] FAILED")
+        return None
+
+    logger.info("[VPS LOGIN][STEP 2] SUCCESS")
+    return session_id
+
+
 
 def login_smart_one_vps_step_otp(client, request_verification_token, account, password, otp, session_id, cookie):
     otp_payload = {
