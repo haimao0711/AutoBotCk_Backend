@@ -141,8 +141,15 @@ DEVICE_NEW = (
 
 
 
+
+import re
+import time
+import requests
+
+
 def _vps_login_request(step, payload):
     """Gửi request VPS và phân loại phản hồi an toàn."""
+
     url = api.LOGIN_URL
     headers = {
         "Content-Type": "application/json",
@@ -153,7 +160,9 @@ def _vps_login_request(step, payload):
 
     logger.info(
         "[VPS LOGIN][%s] START url=%s cmd=%s",
-        step, url, payload.get("cmd"),
+        step,
+        url,
+        payload.get("cmd"),
     )
 
     try:
@@ -163,60 +172,82 @@ def _vps_login_request(step, payload):
             json=payload,
             timeout=LOGIN_TIMEOUT,
         )
+
     except requests.exceptions.Timeout:
         logger.exception(
             "[VPS LOGIN][%s] TIMEOUT after %.2fs",
-            step, time.monotonic() - started,
-        )
-        return None, None
-    except requests.exceptions.RequestException as exc:
-        # Tránh log str(exc), vì một số exception có thể chứa URL
-        # hoặc thông tin nhạy cảm.
-        logger.error(
-            "[VPS LOGIN][%s] REQUEST FAILED type=%s",
-            step, type(exc).__name__,
+            step,
+            time.monotonic() - started,
         )
         return None, None
 
+    except requests.exceptions.RequestException as exc:
+        # Không log URL chi tiết, request headers hoặc payload.
+        logger.error(
+            "[VPS LOGIN][%s] REQUEST FAILED type=%s",
+            step,
+            type(exc).__name__,
+        )
+        return None, None
+
+    elapsed = time.monotonic() - started
     content_type = response.headers.get("Content-Type", "")
     body = response.text or ""
 
+    # Chẩn đoán chuyển hướng HTTP.
+    logger.info(
+        "[VPS LOGIN][%s] final_url=%s "
+        "redirected=%s history_count=%d",
+        step,
+        response.url,
+        bool(response.history),
+        len(response.history),
+    )
+
+    # Thông tin phản hồi tổng quát.
     logger.info(
         "[VPS LOGIN][%s] RESPONSE status=%s elapsed=%.2fs "
         "content_type=%r body_length=%d",
         step,
         response.status_code,
-        time.monotonic() - started,
+        elapsed,
         content_type,
         len(body),
     )
 
-    match = re.search(
+    # Lấy mã sự cố gateway nếu phản hồi có chứa mã này.
+    incident_match = re.search(
         r"incident ID is:\s*([A-Za-z0-9_-]+)",
         body,
         flags=re.IGNORECASE,
     )
-    if match:
+
+    if incident_match:
         logger.error(
             "[VPS LOGIN][%s] GATEWAY INCIDENT ID=%s",
-            step, match.group(1),
+            step,
+            incident_match.group(1),
         )
 
-    # Phân biệt HTTP lỗi với phản hồi HTML hoặc JSON lỗi.
+    # Phân loại lỗi HTTP.
     if not response.ok:
         logger.error(
             "[VPS LOGIN][%s] HTTP ERROR status=%s",
-            step, response.status_code,
+            step,
+            response.status_code,
         )
         return response, None
 
+    # Kiểm tra loại nội dung trước khi parse JSON.
     if "json" not in content_type.lower():
         logger.error(
             "[VPS LOGIN][%s] UNEXPECTED CONTENT TYPE=%r",
-            step, content_type,
+            step,
+            content_type,
         )
         return response, None
 
+    # Parse JSON.
     try:
         result = response.json()
     except ValueError:
@@ -226,19 +257,37 @@ def _vps_login_request(step, payload):
         )
         return response, None
 
+    # Kiểm tra kiểu dữ liệu gốc.
     if not isinstance(result, dict):
         logger.error(
             "[VPS LOGIN][%s] UNEXPECTED JSON ROOT TYPE=%s",
-            step, type(result).__name__,
+            step,
+            type(result).__name__,
         )
         return response, None
 
+    # Chỉ log tên trường, không log giá trị nhạy cảm.
     logger.info(
         "[VPS LOGIN][%s] JSON root keys=%s",
-        step, list(result.keys()),
+        step,
+        list(result.keys()),
+    )
+
+    data = result.get("data")
+    if isinstance(data, dict):
+        logger.info(
+            "[VPS LOGIN][%s] JSON data keys=%s",
+            step,
+            list(data.keys()),
+        )
+
+    logger.info(
+        "[VPS LOGIN][%s] RESPONSE PARSED SUCCESSFULLY",
+        step,
     )
 
     return response, result
+
 
 
 
