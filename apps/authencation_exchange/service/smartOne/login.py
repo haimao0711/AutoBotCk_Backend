@@ -136,10 +136,7 @@ DEVICE_INFO = (
 # Dùng nguyên chuỗi deviceNew đã cung cấp ở bước 1.
 # Xác nhận lại với giá trị gốc của hệ thống nếu cần.
 DEVICE_NEW = (
-    "xsUpL/sq1XLkHe62VR10KJ1y2TABxBTRAJJPFNGKhc7jU7WadOUla9c4I51"
-    "KKeGmXdUojkuDmEUIoi5/wjdb5hH1aUuKzgDfOLPCSVMzwfGXajiYmXETFO4cmPV"
-    "833B/vnM9PNMMhN4XfKwfJv1JvZyDdRO0x4e0vaPr4uaRyc4FBcDsjR1y2D0Wz"
-    "lnZQtLJ53hQcwiwJFHke9gvVF8vICNvrUjSOTPezYpNukS0lLWyJvyH3To="
+    "AcF7KtmYIxmfYQ9q0k7VWsdOEIx/LSV0NewvJmXZwpIOgpdqrvbs7yr2jzVDt7seFcpg1PTi4SFHMDbjETAdIEx7aaMfJeFOzF6axtIKhJVCyjx1Tiz4qSgNUcgL3vzOoHy9w/BBO62VzMhKftk6sD2ctWEjBbS7YMF9OWXdzM6GKm3BD8AI6B/qfOL4kPfcQpWJxR3aTu9bH/Tjw4RLMuGMq8hzZBEFc6bqKg3QIAXflnwkOpU="
 )
 
 

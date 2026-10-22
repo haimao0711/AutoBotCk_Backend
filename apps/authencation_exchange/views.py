@@ -79,6 +79,7 @@ class AuthencationStockExchagesView(APIView):
             session_login_1 = login_get_session_vps_step_1(account_name, pass_login)
             session_login_2 = None
             if session_login_1:
+                print('Kết quả login_get_session_vps_step_1:', login_get_session_vps_step_1)
                 session_login_2 = login_get_session_vps_step_2(account_name, pass_login, otp)
             else:
                 return Response({"data": {"message": "Tài khoản hoặc mật khẩu VPS chưa đúng. Vui lòng cập nhật lại mật khẩu VPS!", "status": 0}}, status=HTTP_400_BAD_REQUEST)
