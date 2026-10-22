@@ -140,12 +140,9 @@ DEVICE_NEW = (
 )
 
 
+
 def _vps_login_request(step, payload):
-    """
-    Gửi request và log thông tin chẩn đoán.
-    Không log payload vì chứa tài khoản, mật khẩu và/hoặc OTP.
-    Trả về (response, parsed_json).
-    """
+    """Gửi request VPS và phân loại phản hồi an toàn."""
     url = api.LOGIN_URL
     headers = {
         "Content-Type": "application/json",
@@ -156,120 +153,93 @@ def _vps_login_request(step, payload):
 
     logger.info(
         "[VPS LOGIN][%s] START url=%s cmd=%s",
-        step,
-        url,
-        payload.get("cmd"),
+        step, url, payload.get("cmd"),
     )
 
     try:
-        # Chọn json=payload vì code hiện tại khai báo
-        # Content-Type application/json.
-        # Nếu tài liệu API yêu cầu form data, cần đổi theo tài liệu.
         response = requests.post(
             url,
             headers=headers,
             json=payload,
             timeout=LOGIN_TIMEOUT,
         )
-
     except requests.exceptions.Timeout:
         logger.exception(
             "[VPS LOGIN][%s] TIMEOUT after %.2fs",
-            step,
-            time.monotonic() - started,
+            step, time.monotonic() - started,
         )
         return None, None
-
     except requests.exceptions.RequestException as exc:
-        # Không log request headers/body hoặc thông tin xác thực.
+        # Tránh log str(exc), vì một số exception có thể chứa URL
+        # hoặc thông tin nhạy cảm.
         logger.error(
-            "[VPS LOGIN][%s] REQUEST FAILED type=%s message=%s",
-            step,
-            type(exc).__name__,
-            str(exc),
+            "[VPS LOGIN][%s] REQUEST FAILED type=%s",
+            step, type(exc).__name__,
         )
         return None, None
 
-    elapsed = time.monotonic() - started
     content_type = response.headers.get("Content-Type", "")
     body = response.text or ""
 
     logger.info(
         "[VPS LOGIN][%s] RESPONSE status=%s elapsed=%.2fs "
-        "content_type=%r body_length=%s",
+        "content_type=%r body_length=%d",
         step,
         response.status_code,
-        elapsed,
+        time.monotonic() - started,
         content_type,
         len(body),
     )
 
-    # Phát hiện mã sự cố trong trang HTML gateway.
-    incident_match = re.search(
+    match = re.search(
         r"incident ID is:\s*([A-Za-z0-9_-]+)",
         body,
         flags=re.IGNORECASE,
     )
-    if incident_match:
+    if match:
         logger.error(
             "[VPS LOGIN][%s] GATEWAY INCIDENT ID=%s",
-            step,
-            incident_match.group(1),
+            step, match.group(1),
         )
 
-    # Log một phần nội dung khi phản hồi không phải JSON.
-    # Không in toàn bộ response vì có thể chứa dữ liệu nhạy cảm.
+    # Phân biệt HTTP lỗi với phản hồi HTML hoặc JSON lỗi.
+    if not response.ok:
+        logger.error(
+            "[VPS LOGIN][%s] HTTP ERROR status=%s",
+            step, response.status_code,
+        )
+        return response, None
+
+    if "json" not in content_type.lower():
+        logger.error(
+            "[VPS LOGIN][%s] UNEXPECTED CONTENT TYPE=%r",
+            step, content_type,
+        )
+        return response, None
+
     try:
         result = response.json()
     except ValueError:
         logger.error(
-            "[VPS LOGIN][%s] INVALID JSON status=%s "
-            "content_type=%r body_preview=%r",
+            "[VPS LOGIN][%s] INVALID JSON",
             step,
-            response.status_code,
-            content_type,
-            body[:800],
-        )
-        return response, None
-
-    logger.info(
-        "[VPS LOGIN][%s] JSON parsed successfully; root_type=%s",
-        step,
-        type(result).__name__,
-    )
-
-    if not response.ok:
-        logger.error(
-            "[VPS LOGIN][%s] HTTP ERROR status=%s",
-            step,
-            response.status_code,
         )
         return response, None
 
     if not isinstance(result, dict):
         logger.error(
-            "[VPS LOGIN][%s] Unexpected JSON root type=%s",
-            step,
-            type(result).__name__,
+            "[VPS LOGIN][%s] UNEXPECTED JSON ROOT TYPE=%s",
+            step, type(result).__name__,
         )
         return response, None
 
-    # Chỉ log tên các trường, không log giá trị session/token.
     logger.info(
         "[VPS LOGIN][%s] JSON root keys=%s",
-        step,
-        list(result.keys()),
+        step, list(result.keys()),
     )
 
-    data = result.get("data")
-    if isinstance(data, dict):
-        logger.info(
-            "[VPS LOGIN][%s] JSON data keys=%s",
-            step,
-            list(data.keys()),
-        )
-
     return response, result
+
 
 
 def _extract_session_id(step, response, result):
