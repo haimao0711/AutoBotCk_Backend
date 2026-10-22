@@ -239,13 +239,24 @@ def _vps_login_request(step, payload):
         return response, None
 
     # Kiểm tra loại nội dung trước khi parse JSON.
+    
     if "json" not in content_type.lower():
         logger.error(
             "[VPS LOGIN][%s] UNEXPECTED CONTENT TYPE=%r",
             step,
             content_type,
         )
+
+        # Chỉ log một phần HTML để chẩn đoán.
+        # Không log toàn bộ response.
+        logger.error(
+            "[VPS LOGIN][%s] HTML ERROR BODY PREVIEW=%r",
+            step,
+            body[:800],
+        )
+
         return response, None
+
 
     # Parse JSON.
     try:
