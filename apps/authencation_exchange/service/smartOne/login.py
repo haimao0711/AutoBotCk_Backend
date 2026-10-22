@@ -353,7 +353,7 @@ def login_get_session_vps_step_1(user_account, password):
         "deviceName": "Chrome Windows 10",
         "deviceInfo": DEVICE_INFO,
     }
-
+    logger.info("check payload:", payload)
     logger.info("[VPS LOGIN][STEP 1] Checking credentials")
 
     response, result = _vps_login_request("STEP 1", payload)
