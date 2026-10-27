@@ -87,7 +87,7 @@ def login_smart_one_vps_step_1(client, request_verification_token, account, pass
 def login_get_session_vps_step_1(user_account, password):
     url = api.LOGIN_URL
     device_info = "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
-    device_new = "xsUpL/sq1XLkHe62VR10KJ1y2TABxBTRAJJPFNGKhc7jU7WadOUla9c4I51KKeGmXdUojkuDmEUIoi5/wjdb5hH1aUuKzgDfOLPCSVMzwfGXajiYmXETFO4cmPV833B/vnM9PNMMhN4XfKwfJv1JvZyDdRO0x4e0vaPr4uaRyc4FBcDsjR1y2D0WzlnZQtLJ53hQcwiwJFHke9gvVF8vICNvrUjSOTPezYpNukS0lLWyJvyH3To="
+    device_new = "CFE0y/Neafs070CWpn 0fgmFoMd6P9nZPyjD/P4VvUObQUlZ0IGU5DzbTf99mlG1A0WBAM4TAxlQWmQqHmbUz0ZDKwIQ/clX37czeZLuip6cS2MuJw3hdaDywSntSrMWkPCSnFwmRmc95E2CDogeGQ5QYGybFyp5KDOjQZDxBqJcf/AA1uKSfTGy3yuULUGZOI9YudukPT1vG6LyRbQOd/kwj3 oZSqGPMKAL16fFh9KocutZxpG"
     deviceName ="Chrome Windows 10"
     payload = {
         "user": user_account,
@@ -106,10 +106,21 @@ def login_get_session_vps_step_1(user_account, password):
     # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
     # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
     # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
+    handshake_headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Referer": "https://bgapi.vps.com.vn/",
+        "Origin": "https://bgapi.vps.com.vn",
+    }
     try:
         handshake_res = requests.post(
             "https://bgapi.vps.com.vn/handler/core.vpbs",
-            headers={"Content-Type": "application/json"},
+            headers=handshake_headers,
             json={},
             timeout=10,
         )
@@ -118,7 +129,7 @@ def login_get_session_vps_step_1(user_account, password):
             handshake_res.status_code,
             handshake_res.text[:200],
         )
-        # Only parse JSON if response is JSON
+        # Only parse JSON if the response is JSON.
         if "application/json" in handshake_res.headers.get("Content-Type", ""):
             try:
                 handshake_json = handshake_res.json()
@@ -136,7 +147,7 @@ def login_get_session_vps_step_1(user_account, password):
         logger.warning("Handshake request failed: %s", e)
         session_token = None
 
-    # Build headers (including optional session token)
+    # Build headers (including optional session token and handshake cookies)
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
@@ -152,7 +163,14 @@ def login_get_session_vps_step_1(user_account, password):
         # Some VPS APIs accept the token via a custom header or cookie
         headers["X-Session-Id"] = session_token
         headers["Cookie"] = f"session={session_token}"
-    # No handshake_cookies handling needed
+    else:
+        # If handshake returned cookies, forward them
+        if handshake_res.cookies:
+            cookie_str = "; ".join([f"{k}={v}" for k, v in handshake_res.cookies.get_dict().items()])
+            if cookie_str:
+                headers["Cookie"] = cookie_str
+        # No session token and no cookies – proceed without additional auth
+
 
 
     # Duplicate header block removed – using the header built after handshake above
