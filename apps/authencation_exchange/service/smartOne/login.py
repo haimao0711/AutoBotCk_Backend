@@ -105,36 +105,48 @@ def login_get_session_vps_step_1(user_account, password):
 
     # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
     try:
-        handshake_res = requests.post(
-            "https://bgapi.vps.com.vn/handler/core.vpbs",
-            headers={"Content-Type": "application/json"},
-            json={},
-            timeout=10,
-        )
-        logger.debug(
-            "Handshake status %s, cookies %s",
-            handshake_res.status_code,
-            handshake_res.cookies.get_dict(),
-        )
-        # Store cookies for later request
-        handshake_cookies = handshake_res.cookies.get_dict()
-    except Exception as e:
-        logger.warning("Handshake failed: %s", e)
-        handshake_cookies = {}
+        try:
+            handshake_res = requests.post(
+                "https://bgapi.vps.com.vn/handler/core.vpbs",
+                headers={"Content-Type": "application/json"},
+                json={},
+                timeout=10,
+            )
+            logger.debug(
+                "Handshake status %s, body %s",
+                handshake_res.status_code,
+                handshake_res.text[:200],
+            )
+            # Parse handshake JSON to extract session token
+            handshake_json = handshake_res.json()
+            session_token = handshake_json.get("session")
+        except Exception as e:
+            logger.warning("Handshake failed: %s", e)
+            session_token = None
 
-    # Build headers with Accept and User-Agent, include handshake cookies if any
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36"
-        ),
-        "Referer": "https://bgapi.vps.com.vn/",
-    }
-    if handshake_cookies:
-        headers["Cookie"] = "; ".join([f"{k}={v}" for k, v in handshake_cookies.items()])
+        # Build headers (including optional session token)
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Referer": "https://bgapi.vps.com.vn/",
+            "Origin": "https://bgapi.vps.com.vn",
+        }
+        if session_token:
+            # Some VPS APIs accept the token via a custom header or cookie
+            headers["X-Session-Id"] = session_token
+            headers["Cookie"] = f"session={session_token}"
+        else:
+            # Preserve any cookies from handshake (unlikely in this case)
+            if handshake_cookies:
+                headers["Cookie"] = "; ".join([f"{k}={v}" for k, v in handshake_cookies.items()])
+
+
+    # Duplicate header block removed – using the header built after handshake above
 
     logger.info("login_get_session_vps_step_1: start")
     logger.debug("Payload (full): %s", payload)
