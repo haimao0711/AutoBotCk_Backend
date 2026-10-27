@@ -4,10 +4,13 @@ import re
 import json
 import subprocess
 import requests
+import logging
 
 from apps.authencation_exchange.service.http_client import CustomHTTPClient
 from apps.authencation_exchange.service.enums import LoginStatusEnum
 from apps import api
+
+logger = logging.getLogger(__name__)
 
 def login_smart_one_vps_step_1(client, request_verification_token, account, password, cookie):
     payload = {
