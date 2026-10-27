@@ -98,9 +98,9 @@ def login_get_session_vps_step_1(user_account, password):
         "p5": "",
         "p6": "",
         "p7": 1,
-        "deviceNew": device_new,
+        "deviceNew": device_new.strip(),  # ensure no stray whitespace
         "deviceName": deviceName,
-        "deviceInfo": device_info
+        "deviceInfo": device_info,
     }
 
     # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
@@ -131,6 +131,7 @@ def login_get_session_vps_step_1(user_account, password):
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/124.0.0.0 Safari/537.36"
         ),
+        "Referer": "https://bgapi.vps.com.vn/",
     }
     if handshake_cookies:
         headers["Cookie"] = "; ".join([f"{k}={v}" for k, v in handshake_cookies.items()])
@@ -155,6 +156,7 @@ def login_get_session_vps_step_1(user_account, password):
     try:
         res_object = json.loads(response.text)
         logger.debug("Parsed JSON keys step 1: %s", list(res_object.keys()))
+        logger.debug("API response rc: %s, rs: %s", res_object.get('rc'), res_object.get('rs'))
     except json.JSONDecodeError as e:
         logger.error("JSON decode error in step 1: %s", e)
         logger.debug("Full response body (first 500 chars): %s", response.text[:500])
