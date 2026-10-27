@@ -106,17 +106,16 @@ def login_get_session_vps_step_1(user_account, password):
     print('check payload buoc 1', payload)
     try:
         # Send JSON payload correctly
-        try:
-            response = requests.post(url, headers=headers, json=payload)
-            print('check response step 1: ', response)
-            # Validate response content
-            if not response.text.strip():
-                raise ValueError('Empty response from VPS step 1')
-            if 'application/json' not in response.headers.get('Content-Type', ''):
-                logger.warning('Unexpected content type: %s', response.headers.get('Content-Type'))
-            res_object = json.loads(response.text)
-            print('check res_object step 1: ', res_object)
-        session_id  = res_object['data']['sid']
+        response = requests.post(url, headers=headers, json=payload)
+        print('check response step 1: ', response)
+        # Validate response content
+        if not response.text.strip():
+            raise ValueError('Empty response from VPS step 1')
+        if 'application/json' not in response.headers.get('Content-Type', ''):
+            logger.warning('Unexpected content type: %s', response.headers.get('Content-Type'))
+        res_object = json.loads(response.text)
+        print('check res_object step 1: ', res_object)
+        session_id = res_object['data']['sid']
         print('check session_id 1: ', session_id)
         return session_id
     except requests.exceptions.RequestException as e:
@@ -146,24 +145,20 @@ def login_get_session_vps_step_2(user_account, password, otp):
 
         try:
             # Send JSON payload correctly for step 2
-            try:
-                response = requests.request("POST", url, headers=headers, json=payload)
-                print(f'Mã trạng thái phản hồi login_get_session_vps_step_2 :', response.status_code)
-                # Validate response content
-                if not response.text.strip():
-                    raise ValueError('Empty response from VPS step 2')
-                if 'application/json' not in response.headers.get('Content-Type', ''):
-                    logger.warning('Unexpected content type (step 2): %s', response.headers.get('Content-Type'))
-                res_object = json.loads(response.text)
-                session_id = res_object['data']['sid']
-                print('check session_id 2: ', session_id)
-                return session_id
-            except Exception as exc:
-                logger.error('Error in login_get_session_vps_step_2: %s', exc)
-                raise
-        except requests.exceptions.RequestException as e:
-            print('Đã xảy ra lỗi khi gửi yêu cầu:', e)
-            return None
+            response = requests.request("POST", url, headers=headers, json=payload)
+            print(f'Mã trạng thái phản hồi login_get_session_vps_step_2 :', response.status_code)
+            # Validate response content
+            if not response.text.strip():
+                raise ValueError('Empty response from VPS step 2')
+            if 'application/json' not in response.headers.get('Content-Type', ''):
+                logger.warning('Unexpected content type (step 2): %s', response.headers.get('Content-Type'))
+            res_object = json.loads(response.text)
+            session_id = res_object['data']['sid']
+            print('check session_id 2: ', session_id)
+            return session_id
+        except Exception as exc:
+            logger.error('Error in login_get_session_vps_step_2: %s', exc)
+            raise
 
 def login_smart_one_vps_step_otp(client, request_verification_token, account, password, otp, session_id, cookie):
     otp_payload = {
