@@ -162,7 +162,17 @@ def login_get_session_vps_step_1(user_account, password):
         logger.error("JSON decode error in step 1: %s", e)
         logger.debug("Full response body (first 500 chars): %s", response.text[:500])
         return None
-    session_id = res_object["data"]["sid"]
+    # Extract session_id safely – data may be a dict or a list
+    data_obj = res_object.get("data")
+    if isinstance(data_obj, list):
+        if not data_obj:
+            logger.error("API returned empty data list for login step 1")
+            return None
+        data_obj = data_obj[0]
+    if not isinstance(data_obj, dict) or "sid" not in data_obj:
+        logger.error("Unexpected data format in login response: %s", data_obj)
+        return None
+    session_id = data_obj["sid"]
     logger.info("login_get_session_vps_step_1: obtained session_id %s", session_id)
     return session_id
 
