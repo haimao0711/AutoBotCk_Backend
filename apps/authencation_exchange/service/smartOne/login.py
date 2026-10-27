@@ -104,25 +104,25 @@ def login_get_session_vps_step_1(user_account, password):
     }
 
     # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
+    # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
     try:
-        try:
-            handshake_res = requests.post(
-                "https://bgapi.vps.com.vn/handler/core.vpbs",
-                headers={"Content-Type": "application/json"},
-                json={},
-                timeout=10,
-            )
-            logger.debug(
-                "Handshake status %s, body %s",
-                handshake_res.status_code,
-                handshake_res.text[:200],
-            )
-            # Parse handshake JSON to extract session token
-            handshake_json = handshake_res.json()
-            session_token = handshake_json.get("session")
-        except Exception as e:
-            logger.warning("Handshake failed: %s", e)
-            session_token = None
+        handshake_res = requests.post(
+            "https://bgapi.vps.com.vn/handler/core.vpbs",
+            headers={"Content-Type": "application/json"},
+            json={},
+            timeout=10,
+        )
+        logger.debug(
+            "Handshake status %s, body %s",
+            handshake_res.status_code,
+            handshake_res.text[:200],
+        )
+        # Parse handshake JSON to extract session token
+        handshake_json = handshake_res.json()
+        session_token = handshake_json.get("session")
+    except Exception as e:
+        logger.warning("Handshake failed: %s", e)
+        session_token = None
 
         # Build headers (including optional session token)
         headers = {
