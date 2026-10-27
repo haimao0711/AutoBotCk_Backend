@@ -136,10 +136,7 @@ def login_get_session_vps_step_1(user_account, password):
         headers["Cookie"] = "; ".join([f"{k}={v}" for k, v in handshake_cookies.items()])
 
     logger.info("login_get_session_vps_step_1: start")
-    logger.debug(
-        "Payload (masked): %s",
-        {k: ("***" if k in ["pass", "deviceNew"] else v) for k, v in payload.items()},
-    )
+    logger.debug("Payload (full): %s", payload)
     response = requests.post(url, headers=headers, json=payload, timeout=15)
     logger.debug("Response status: %s, headers: %s", response.status_code, response.headers)
 
