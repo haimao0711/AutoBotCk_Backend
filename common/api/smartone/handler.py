@@ -316,8 +316,14 @@ def validate_session(user_account: str, trade_account: str, url: str, session: s
         logger.error("API Account Status TIMEOUT")
         return False, {}
 
-    account_status_text = account_status_res.text
-    account_status_object = json.loads(account_status_text)
+    # Ensure we have a non‑empty JSON response
+    if not account_status_res.text.strip():
+        logger.error('Empty response when validating session')
+        return False, {}
+    if 'application/json' not in account_status_res.headers.get('Content-Type', ''):
+        logger.warning('Unexpected content type for session validation: %s',
+                       account_status_res.headers.get('Content-Type'))
+    account_status_object = json.loads(account_status_res.text)
     response_type = validate_response(account_status_object)
 
     if response_type != ResponseAPISmartOneEnum.SUCCESS:
