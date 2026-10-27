@@ -103,35 +103,68 @@ def login_get_session_vps_step_1(user_account, password):
         "deviceInfo": device_info
     }
 
-    headers = {
-        'Content-Type': 'application/json',
-    }
-    print('check payload buoc 1', payload)
+    # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
     try:
-        logger.info('login_get_session_vps_step_1: start')
-        logger.debug('Payload (masked): %s', {k: ('***' if k in ['pass', 'deviceNew'] else v) for k, v in payload.items()})
-        response = requests.post(url, headers=headers, json=payload)
-        logger.debug('Response status: %s, headers: %s', response.status_code, response.headers)
-        # Validate response content
-        if not response.text.strip():
-            logger.error('Empty response from VPS step 1')
-            raise ValueError('Empty response from VPS step 1')
-        if 'application/json' not in response.headers.get('Content-Type', ''):
-            logger.warning('Unexpected content type step 1: %s', response.headers.get('Content-Type'))
-            return None
-        # Parse JSON safely
-        try:
-            res_object = json.loads(response.text)
-            logger.debug('Parsed JSON keys step 1: %s', list(res_object.keys()))
-        except json.JSONDecodeError as e:
-            logger.error('JSON decode error in step 1: %s', e)
-            return None
-        session_id = res_object['data']['sid']
-        logger.info('login_get_session_vps_step_1: obtained session_id %s', session_id)
-        return session_id
-    except requests.exceptions.RequestException as e:
-        # print(f'Lỗi xảy ra khi gửi yêu cầu: {e}')
-        return {"error": str(e)}
+        handshake_res = requests.post(
+            "https://bgapi.vps.com.vn/handler/core.vpbs",
+            headers={"Content-Type": "application/json"},
+            json={},
+            timeout=10,
+        )
+        logger.debug(
+            "Handshake status %s, cookies %s",
+            handshake_res.status_code,
+            handshake_res.cookies.get_dict(),
+        )
+        # Store cookies for later request
+        handshake_cookies = handshake_res.cookies.get_dict()
+    except Exception as e:
+        logger.warning("Handshake failed: %s", e)
+        handshake_cookies = {}
+
+    # Build headers with Accept and User-Agent, include handshake cookies if any
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+    }
+    if handshake_cookies:
+        headers["Cookie"] = "; ".join([f"{k}={v}" for k, v in handshake_cookies.items()])
+
+    logger.info("login_get_session_vps_step_1: start")
+    logger.debug(
+        "Payload (masked): %s",
+        {k: ("***" if k in ["pass", "deviceNew"] else v) for k, v in payload.items()},
+    )
+    response = requests.post(url, headers=headers, json=payload, timeout=15)
+    logger.debug("Response status: %s, headers: %s", response.status_code, response.headers)
+
+    # Validate response content
+    if not response.text.strip():
+        logger.error("Empty response from VPS step 1")
+        raise ValueError("Empty response from VPS step 1")
+    if "application/json" not in response.headers.get("Content-Type", ""):
+        logger.warning(
+            "Unexpected content type step 1: %s", response.headers.get("Content-Type")
+        )
+        # Log the full HTML response for debugging (may be large)
+        logger.error("Full HTML response received (step 1):\n%s", response.text)
+        return None
+    # Parse JSON safely
+    try:
+        res_object = json.loads(response.text)
+        logger.debug("Parsed JSON keys step 1: %s", list(res_object.keys()))
+    except json.JSONDecodeError as e:
+        logger.error("JSON decode error in step 1: %s", e)
+        logger.debug("Full response body (first 500 chars): %s", response.text[:500])
+        return None
+    session_id = res_object["data"]["sid"]
+    logger.info("login_get_session_vps_step_1: obtained session_id %s", session_id)
+    return session_id
 
 def login_get_session_vps_step_2(user_account, password, otp):
         url = api.LOGIN_URL
