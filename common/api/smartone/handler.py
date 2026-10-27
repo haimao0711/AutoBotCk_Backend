@@ -323,7 +323,16 @@ def validate_session(user_account: str, trade_account: str, url: str, session: s
     if 'application/json' not in account_status_res.headers.get('Content-Type', ''):
         logger.warning('Unexpected content type for session validation: %s',
                        account_status_res.headers.get('Content-Type'))
-    account_status_object = json.loads(account_status_res.text)
+        # Do not attempt to parse non‑JSON response
+        request_new_session()
+        return False, {}
+    # Parse JSON safely
+    try:
+        account_status_object = json.loads(account_status_res.text)
+    except json.JSONDecodeError as e:
+        logger.error('JSON decode error in validate_session: %s', e)
+        request_new_session()
+        return False, {}
     response_type = validate_response(account_status_object)
 
     if response_type != ResponseAPISmartOneEnum.SUCCESS:
