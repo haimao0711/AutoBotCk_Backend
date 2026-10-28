@@ -31,7 +31,7 @@ LOGIN_URL = f"{BASE_URL}/handler/core_check.login"
 
 # ---- Device information ----------------------------------------------------
 # The raw `deviceNew` string you received from the VPS client (very long).
-RAW_DEVICE_NEW = "CFE0y/Neafs070CWpn0fgmFoMd6P9nZPyjD/P4VvUObQUlZ0IGU5DzbTf99mlG1A0WBAM4TAxlQWmQqHmbUz0ZDKwIQ/clX37czeZLuip6cS2MuJw3hdaDywSntSrMWkPCSnFwmRmc95E2CDogeGQ5QYGybFyp5KDOjQZDxBqJcf/AA1uKSfTGy3yuULUGZOI9YudukPT1vG6LyRbQOd/kwj3oZSqGPMKAL16fFh9KocutZxpG"
+RAW_DEVICE_NEW = "0XXTTBzL3r6M4N1Ld30c6sESzIuuliETOq2NjfFdjdIBrVlTOueyvVdp42IlzrGTurfhSHNrr/a/YcsX7K0hwYUGI4eQRFBdh04CFqdNBTzccZplv5IgIzFfURxJbwwu0WAhQ629s0MOmu1AMjM8RIUNiWR7Kj3fys0/rVwDi7Bt4CvxY7g1UOy4UF3AmXoB4vWquzWsuZbmXThEIj1Lecjgnn1/ZKTmPfBejts/A7fYQ6WiBfFg=="
 
 # DeviceInfo is a JSON object that must be base64‑encoded and URL‑encoded.
 DEVICE_INFO_DICT = {
@@ -67,32 +67,39 @@ def encode_device_info(info: dict) -> str:
 # Step 1 – Handshake
 # ---------------------------------------------------------------------------
 def do_handshake() -> dict:
-    payload = {
-        "deviceNew": RAW_DEVICE_NEW,
-        "deviceName": "Chrome Windows 10",
-        "deviceInfo": encode_device_info(DEVICE_INFO_DICT),
-    }
-    print("[Handshake] Sending payload…")
-    resp = requests.post(HANDSHAKE_URL, json=payload, headers=HEADERS, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-    print("[Handshake] Response:", data)
-    if data.get("rc") != 0:
-        raise RuntimeError(
-            f"Handshake failed – rc={data.get('rc')} rs={data.get('rs')}"
-        )
-    handshake_payload = data.get("data")
-    # The API sometimes returns the `data` field as a JSON string or as an empty list.
-    if isinstance(handshake_payload, str):
-        try:
-            handshake_payload = json.loads(handshake_payload)
-        except Exception:
-            # If it cannot be parsed, keep the raw string (will be treated as invalid later)
-            pass
-    # Ensure we always return a dict; if the payload is not a dict (e.g., [] or ""), return empty dict.
-    if not isinstance(handshake_payload, dict):
-        handshake_payload = {}
-    return handshake_payload
+    global RAW_DEVICE_NEW
+    while True:
+        payload = {
+            "deviceNew": urllib.parse.quote_plus(RAW_DEVICE_NEW),
+            "deviceName": "Chrome Windows 10",
+            "deviceInfo": encode_device_info(DEVICE_INFO_DICT),
+        }
+        print("[Handshake] Payload:", json.dumps(payload, indent=2))
+        print("[Handshake] Headers:", HEADERS)
+        resp = requests.post(HANDSHAKE_URL, json=payload, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        raw_text = resp.text
+        print("[Handshake] Raw response text:", raw_text)
+        data = resp.json()
+        print("[Handshake] Response:", data)
+        if data.get("rc") != 0:
+            raise RuntimeError(f"Handshake failed – rc={data.get('rc')} rs={data.get('rs')}")
+        # Detect invalid session or empty data
+        if data.get("rs") == "FOException.InvalidSessionException" or not data.get("data"):
+            new_token = input("Handshake failed - enter new deviceNew token: ").strip()
+            if not new_token:
+                sys.exit("No token provided - exiting.")
+            RAW_DEVICE_NEW = new_token
+            continue  # retry with new token
+        handshake_payload = data.get("data")
+        if isinstance(handshake_payload, str):
+            try:
+                handshake_payload = json.loads(handshake_payload)
+            except Exception:
+                pass
+        if not isinstance(handshake_payload, dict):
+            handshake_payload = {}
+        return handshake_payload
 
 # ---------------------------------------------------------------------------
 # Step 2 – Login (step 1)
@@ -112,11 +119,14 @@ def login_step1(handshake: dict, user: str, pwd_hash: str) -> dict:
         "deviceInfo": handshake["deviceInfo"],
         "sessionId": handshake["sessionId"],
     }
-    print("[Login] Step 1 payload →", payload)
+    print("[Login] Payload:", json.dumps(payload, indent=2))
+    print("[Login] Headers:", HEADERS)
     resp = requests.post(LOGIN_URL, json=payload, headers=HEADERS, timeout=10)
     resp.raise_for_status()
+    raw_text = resp.text
+    print("[Login] Raw response text:", raw_text)
     data = resp.json()
-    print("[Login] Step 1 response →", data)
+    print("[Login] Response:", data)
     return data
 
 # ---------------------------------------------------------------------------
