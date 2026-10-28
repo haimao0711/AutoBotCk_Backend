@@ -87,7 +87,7 @@ def login_smart_one_vps_step_1(client, request_verification_token, account, pass
 def login_get_session_vps_step_1(user_account, password):
     url = api.LOGIN_URL
     device_info = "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
-    device_new = "CFE0y/Neafs070CWpn 0fgmFoMd6P9nZPyjD/P4VvUObQUlZ0IGU5DzbTf99mlG1A0WBAM4TAxlQWmQqHmbUz0ZDKwIQ/clX37czeZLuip6cS2MuJw3hdaDywSntSrMWkPCSnFwmRmc95E2CDogeGQ5QYGybFyp5KDOjQZDxBqJcf/AA1uKSfTGy3yuULUGZOI9YudukPT1vG6LyRbQOd/kwj3 oZSqGPMKAL16fFh9KocutZxpG"
+    device_new = "wmcvbKOW8A0fwquH1Q3Tr/RDweFNIpEA4FMOwrgSJq746PKEffHRx1YJcFh8zzdvJfEiFImd2ieQFoYuQ6ESpHgKxTiKkVPxpBHy76k/OiycYeNbslY5TVEq7XmZ1JTDRpw56FtUtnxDgLu2tXBSxBIpneB4ZBYTamNvhF5c1FFfSFh7o8nyT/vAZP91E7lt2zIxTVlfxhRrMsmaRH7UxEHCA0fKfYsewK3woUUIYNZomVi1mAIPlw=="
     deviceName ="Chrome Windows 10"
     payload = {
         "user": user_account,
@@ -225,7 +225,7 @@ def login_get_session_vps_step_2(user_account, password, otp):
             "p5": otp,
             "p6": '',
             "p7": 0,
-            "deviceNew": "xsUpL/sq1XLkHe62VR10KJ1y2TABxBTRAJJPFNGKhc7jU7WadOUla9c4I51 KKeGmXdUojkuDmEUIoi5/wjdb5hH1aUuKzgDfOLPCSVMzwfGXajiYmXETFO4cmPV833B/vnM9PNMMhN4XfKwfJv 1JvZyDdRO0x4e0vaPr4ua Ryc4F BcDsjR1y2D0WzlnZQtLJ53hQcwiwJFHke9gvVF8vICNvrUjSOTPezYpNukS0lLWyJvyH3To=",
+            "deviceNew": "wmcvbKOW8A0fwquH1Q3Tr/RDweFNIpEA4FMOwrgSJq746PKEffHRx1YJcFh8zzdvJfEiFImd2ieQFoYuQ6ESpHgKxTiKkVPxpBHy76k/OiycYeNbslY5TVEq7XmZ1JTDRpw56FtUtnxDgLu2tXBSxBIpneB4ZBYTamNvhF5c1FFfSFh7o8nyT/vAZP91E7lt2zIxTVlfxhRrMsmaRH7UxEHCA0fKfYsewK3woUUIYNZomVi1mAIPlw==",
             "deviceName": "Chrome Windows 10",
             "deviceInfo": "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
 

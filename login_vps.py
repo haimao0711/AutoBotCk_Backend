@@ -31,7 +31,7 @@ LOGIN_URL = f"{BASE_URL}/handler/core_check.login"
 
 # ---- Device information ----------------------------------------------------
 # The raw `deviceNew` string you received from the VPS client (very long).
-RAW_DEVICE_NEW = "0XXTTBzL3r6M4N1Ld30c6sESzIuuliETOq2NjfFdjdIBrVlTOueyvVdp42IlzrGTurfhSHNrr/a/YcsX7K0hwYUGI4eQRFBdh04CFqdNBTzccZplv5IgIzFfURxJbwwu0WAhQ629s0MOmu1AMjM8RIUNiWR7Kj3fys0/rVwDi7Bt4CvxY7g1UOy4UF3AmXoB4vWquzWsuZbmXThEIj1Lecjgnn1/ZKTmPfBejts/A7fYQ6WiBfFg=="
+RAW_DEVICE_NEW = "SWyBp0tYbPcK2cehnzGtgxJn6TJXiemsNW6BduP9JUKLD9zXsor2X6R8GovcQrokGoFt6gdwZU5 bSGBBLKdLDwzL3MC01ZH1PUw2VY0/5T54llsG87KpzWqvr7Dpdqsndsf1aX6c JMwx4EQ8nRelELk/qAtKVAeGeXewx5oqiWgsGQgDt3XdaQ4FH5KzQgeeUdyVlCNWi5Yw0YlxVW0wTpG1rTkI6rsZ2616YiV6QyOfYnHGKoUw=="
 
 # DeviceInfo is a JSON object that must be base64‑encoded and URL‑encoded.
 DEVICE_INFO_DICT = {
@@ -47,15 +47,8 @@ DEVICE_INFO_DICT = {
 # Helper utilities
 # ---------------------------------------------------------------------------
 HEADERS = {
-    "access-control-allow-origin": "*",
     "content-type": "application/json; charset=UTF-8",
-    "server": "VPS Hometrade Service",
-    "transfer-encoding": "chunked",
-    "accept": "application/json, text/plain, */*",
-    "accept-encoding": "gzip, deflate, br, zstd",
-    "accept-language": "en-US,en;q=0.9",
-    "connection": "keep-alive",
-    "host": "bgapi.vps.com.vn",
+    "accept": "*/*",
     "origin": "https://banggia.vps.com.vn",
     "referer": "https://banggia.vps.com.vn/",
     "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"Google Chrome\";v=\"156\"",
@@ -64,12 +57,21 @@ HEADERS = {
     "sec-fetch-dest": "empty",
     "sec-fetch-mode": "cors",
     "sec-fetch-site": "same-site",
+    "x-requested-with": "XMLHttpRequest",
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
 }
 
 # Session to keep cookies and reuse headers
 session = requests.Session()
 session.headers.update(HEADERS)
+# Warm‑up request to obtain any initial cookies the server may set
+try:
+    session.get(BASE_URL, timeout=5)
+except Exception as e:
+    print("[Info] Warm‑up request failed (ignored):", e)
+
+# Session to keep cookies and reuse headers
+
 
 def encode_device_info(info: dict) -> str:
     """Encode the deviceInfo dict to a plain base64 string (no URL‑encoding)."""
@@ -87,13 +89,18 @@ def do_handshake() -> dict:
             "deviceName": "Chrome Windows 10",
             "deviceInfo": encode_device_info(DEVICE_INFO_DICT),
         }
-        print("[Handshake] Payload:", json.dumps(payload, indent=2))
+        # Print payload as JSON for debugging
+        print("[Handshake] Payload (JSON):", json.dumps(payload, indent=2))
         print("[Handshake] Headers:", HEADERS)
-        resp = session.post(HANDSHAKE_URL, json=payload, timeout=10)
+        resp = session.post(HANDSHAKE_URL, json=payload, timeout=60)
         resp.raise_for_status()
         raw_text = resp.text
         print("[Handshake] Raw response text:", raw_text)
-        data = resp.json()
+        try:
+            data = resp.json()
+        except Exception:
+            print("[Error] Response is not JSON. Exiting.")
+            sys.exit(1)
         print("[Handshake] Response:", data)
         if data.get("rc") != 0:
             raise RuntimeError(f"Handshake failed – rc={data.get('rc')} rs={data.get('rs')}")
@@ -137,7 +144,10 @@ def login_step1(handshake: dict, user: str, pwd_hash: str) -> dict:
     print("[Login] Method: POST")
     print("[Login] Payload:", json.dumps(payload, indent=2))
     print("[Login] Headers:", HEADERS)
-    resp = requests.post(LOGIN_URL, json=payload, headers=HEADERS, timeout=10)
+    # Use form‑encoded payload as the server expects
+    login_headers = HEADERS.copy()
+    login_headers["content-type"] = "application/x-www-form-urlencoded"
+    resp = session.post(LOGIN_URL, data=payload, headers=login_headers, timeout=60)
     print("[Login] Response status code:", resp.status_code)
     print("[Login] Response headers:", dict(resp.headers))
     resp.raise_for_status()
