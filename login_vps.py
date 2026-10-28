@@ -47,21 +47,34 @@ DEVICE_INFO_DICT = {
 # Helper utilities
 # ---------------------------------------------------------------------------
 HEADERS = {
-    "Content-Type": "application/json; charset=UTF-8",
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/json",
-    "Access-Control-Allow-Origin": "*",
+    "access-control-allow-origin": "*",
+    "content-type": "application/json; charset=UTF-8",
+    "server": "VPS Hometrade Service",
+    "transfer-encoding": "chunked",
+    "accept": "application/json, text/plain, */*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.9",
+    "connection": "keep-alive",
+    "host": "bgapi.vps.com.vn",
+    "origin": "https://banggia.vps.com.vn",
+    "referer": "https://banggia.vps.com.vn/",
+    "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"Google Chrome\";v=\"156\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
 }
 
+# Session to keep cookies and reuse headers
+session = requests.Session()
+session.headers.update(HEADERS)
+
 def encode_device_info(info: dict) -> str:
-    """Encode the deviceInfo dict to a URL‑safe base64 string."""
+    """Encode the deviceInfo dict to a plain base64 string (no URL‑encoding)."""
     json_str = json.dumps(info, separators=(",", ":"))
-    b64 = base64.b64encode(json_str.encode()).decode()
-    return urllib.parse.quote_plus(b64)
+    return base64.b64encode(json_str.encode()).decode()
 
 # ---------------------------------------------------------------------------
 # Step 1 – Handshake
@@ -70,13 +83,13 @@ def do_handshake() -> dict:
     global RAW_DEVICE_NEW
     while True:
         payload = {
-            "deviceNew": urllib.parse.quote_plus(RAW_DEVICE_NEW),
+            "deviceNew": RAW_DEVICE_NEW,  # raw token from DevTools, no extra encoding
             "deviceName": "Chrome Windows 10",
             "deviceInfo": encode_device_info(DEVICE_INFO_DICT),
         }
         print("[Handshake] Payload:", json.dumps(payload, indent=2))
         print("[Handshake] Headers:", HEADERS)
-        resp = requests.post(HANDSHAKE_URL, json=payload, headers=HEADERS, timeout=10)
+        resp = session.post(HANDSHAKE_URL, json=payload, timeout=10)
         resp.raise_for_status()
         raw_text = resp.text
         print("[Handshake] Raw response text:", raw_text)
