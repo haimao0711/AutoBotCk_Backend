@@ -68,7 +68,7 @@ def encode_device_info(info: dict) -> str:
 # ---------------------------------------------------------------------------
 def do_handshake() -> dict:
     payload = {
-        "deviceNew": urllib.parse.quote_plus(RAW_DEVICE_NEW),
+        "deviceNew": RAW_DEVICE_NEW,
         "deviceName": "Chrome Windows 10",
         "deviceInfo": encode_device_info(DEVICE_INFO_DICT),
     }
