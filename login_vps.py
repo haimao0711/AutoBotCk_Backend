@@ -119,9 +119,14 @@ def login_step1(handshake: dict, user: str, pwd_hash: str) -> dict:
         "deviceInfo": handshake["deviceInfo"],
         "sessionId": handshake["sessionId"],
     }
+    # Detailed request logging for login step 1
+    print("[Login] URL:", LOGIN_URL)
+    print("[Login] Method: POST")
     print("[Login] Payload:", json.dumps(payload, indent=2))
     print("[Login] Headers:", HEADERS)
     resp = requests.post(LOGIN_URL, json=payload, headers=HEADERS, timeout=10)
+    print("[Login] Response status code:", resp.status_code)
+    print("[Login] Response headers:", dict(resp.headers))
     resp.raise_for_status()
     raw_text = resp.text
     print("[Login] Raw response text:", raw_text)
