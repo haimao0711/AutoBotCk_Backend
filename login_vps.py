@@ -26,12 +26,15 @@ import sys
 # Configuration (replace with your real values)
 # ---------------------------------------------------------------------------
 BASE_URL = "https://bgapi.vps.com.vn"
+USERNAME = "TRANHAIMAO"  # Added for handshake payload
+PASSWORD_HASH = "e4b57d46a8053ddb7341ee6e6b35924c"
 HANDSHAKE_URL = f"{BASE_URL}/handler/core.vpbs"
 LOGIN_URL = f"{BASE_URL}/handler/core_check.login"
+NEW_LOGIN_URL = "https://webtrading-proxy.vps.com.vn/rest-api/L/Web.sCheckLogin"
 
 # ---- Device information ----------------------------------------------------
 # The raw `deviceNew` string you received from the VPS client (very long).
-RAW_DEVICE_NEW = "SWyBp0tYbPcK2cehnzGtgxJn6TJXiemsNW6BduP9JUKLD9zXsor2X6R8GovcQrokGoFt6gdwZU5 bSGBBLKdLDwzL3MC01ZH1PUw2VY0/5T54llsG87KpzWqvr7Dpdqsndsf1aX6c JMwx4EQ8nRelELk/qAtKVAeGeXewx5oqiWgsGQgDt3XdaQ4FH5KzQgeeUdyVlCNWi5Yw0YlxVW0wTpG1rTkI6rsZ2616YiV6QyOfYnHGKoUw=="
+RAW_DEVICE_NEW = "0YXohMEWV1f6zZbFvFtGEah39d4jr2j3ZUb0h1 xKTA2UhauxWjolvCTUSaes0/ ykNezYTdinoMwcDSSpHR1OlQxYExHCwoE0EzavX5d9lITu0Aw 86o4CbLhmzmet99WPDAx0eTjadFKrCMSa 3NifnknMAsYdu6UrXb3Ri81QPSf2BBHBs/oU9snbiw6BZ3hmYv osY7xd5X/5S4fuVQJas2 V/Y5dpnBxNUeBnSccg Ef5zVOQ=="
 
 # DeviceInfo is a JSON object that must be base64‑encoded and URL‑encoded.
 DEVICE_INFO_DICT = {
@@ -48,7 +51,7 @@ DEVICE_INFO_DICT = {
 # ---------------------------------------------------------------------------
 HEADERS = {
     "content-type": "application/json; charset=UTF-8",
-    "accept": "*/*",
+    "accept": "application/json, text/plain, */*",
     "origin": "https://banggia.vps.com.vn",
     "referer": "https://banggia.vps.com.vn/",
     "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"Google Chrome\";v=\"156\"",
@@ -85,9 +88,9 @@ def do_handshake() -> dict:
     global RAW_DEVICE_NEW
     while True:
         payload = {
-            "deviceNew": RAW_DEVICE_NEW,  # raw token from DevTools, no extra encoding
+            "deviceNew": RAW_DEVICE_NEW,
             "deviceName": "Chrome Windows 10",
-            "deviceInfo": encode_device_info(DEVICE_INFO_DICT),
+            "deviceInfo": encode_device_info(DEVICE_INFO_DICT)
         }
         # Print payload as JSON for debugging
         print("[Handshake] Payload (JSON):", json.dumps(payload, indent=2))
@@ -161,23 +164,103 @@ def login_step1(handshake: dict, user: str, pwd_hash: str) -> dict:
 # Step 3 – OTP (step 2)
 # ---------------------------------------------------------------------------
 def login_otp(handshake: dict, otp_code: str) -> dict:
+    # Build payload similar to login_new but include OTP
     payload = {
-        "user": handshake.get("user", ""),  # optional – some APIs require it again
-        "pass": handshake.get("pass", ""),
         "cmd": "Web.sCheckLoginOTP",
+        "type": "string",
+        "p1": handshake.get("user", ""),
+        "p2": handshake.get("pass", ""),
+        "p3": "I",
+        "p4": "",
+        "p6": "",
+        "p8": "Chrome",
+        "p9": "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiU21hcnRPbmUgV2ViIiwidmVyc2lvbiI6IjE1NiIsImFwcFZlcnNpb24iOiIzLjcuNCIsIm9zIjoiV2luZG93cyIsImRldmljZU9TIjoiV2luZG93cyAsIFdpbmRvd3MiLCJtb2RlbCI6IkNocm9tZSIsImRldmljZVZlcnNpb24iOiJDaHJvbWUgLSAxNTYgLSBXaW5kb3dzIiwiZ2VvTG9jYXRpb24iOiIiLCJpcCI6IiIsInRpbWV6b25lIjoiKzA3In0=",
+        "p10": "",
         "otp": otp_code,
         "p5": "",
-        "p6": "",
         "p7": 1,
-        "deviceNew": handshake["deviceNew"],
-        "deviceInfo": handshake["deviceInfo"],
-        "sessionId": handshake["sessionId"],
+        "deviceNew": handshake.get("deviceNew", ""),
+        "deviceInfo": handshake.get("deviceInfo", {}),
+        "sessionId": handshake.get("sessionId", None),
     }
-    print("[OTP] Sending payload →", payload)
-    resp = requests.post(LOGIN_URL, json=payload, headers=HEADERS, timeout=10)
+    # Build headers for OTP request (similar to login_new)
+    otp_headers = HEADERS.copy()
+    otp_headers.update({
+        "content-type": "application/json; charset=UTF-8",
+        "accept": "application/json, text/plain, */*",
+        "accept-language": "vi",
+        "referer": "https://smartoneweb.vps.com.vn/",
+        "x-device-new": handshake.get("deviceNew", ""),
+    })
+    # Optional extra headers if present in handshake dict
+    if handshake.get("extInfo"):
+        otp_headers["x-ext-info"] = handshake["extInfo"]
+    if handshake.get("requestId"):
+        otp_headers["x-request-id"] = handshake["requestId"]
+    if handshake.get("sessionToken"):
+        otp_headers["x-session"] = handshake["sessionToken"]
+    # Debug: print payload and headers
+    print('DEBUG: OTP payload:')
+    print(json.dumps(payload, ensure_ascii=True, indent=2))
+    print('DEBUG: OTP headers:')
+    print(json.dumps(otp_headers, ensure_ascii=True, indent=2))
+    # Send request
+    resp = requests.post(LOGIN_URL, json=payload, headers=otp_headers, timeout=10)
     resp.raise_for_status()
     data = resp.json()
-    print("[OTP] Response →", data)
+    print("[OTP] Response ->", data)
+    return data
+
+# ---------------------------------------------------------------------------
+
+def login_new(user: str, pwd_hash: str, device_new_token: str,
+              ext_info: str = "", request_id: str = "", session_token: str = "") -> dict:
+    """
+    Gửi yêu cầu login tới API mới (webtrading‑proxy).
+    - `device_new_token` được truyền qua header `x-device-new`.
+    - Các header tùy chọn (`x-ext-info`, `x-request-id`, `x-session`) có thể để trống.
+    - Payload được gửi dưới dạng JSON.
+    """
+    payload = {
+        "cmd": "Web.sCheckLogin",
+        "type": "string",
+        "p1": user,
+        "p2": pwd_hash,
+        "p3": "I",
+        "p4": "",
+        "p6": "",
+        "p8": "Chrome",
+        "p9": "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiU21hcnRPbmUgV2ViIiwidmVyc2lvbiI6IjE1NiIsImFwcFZlcnNpb24iOiIzLjcuNCIsIm9zIjoiV2luZG93cyIsImRldmljZU9TIjoiV2luZG93cyAsIFdpbmRvd3MiLCJtb2RlbCI6IkNocm9tZSIsImRldmljZVZlcnNpb24iOiJDaHJvbWUgLSAxNTYgLSBXaW5kb3dzIiwiZ2VvTG9jYXRpb24iOiIiLCJpcCI6IiIsInRpbWV6b25lIjoiKzA3In0=",
+        "p10": "",
+        "type": "string"
+    }
+
+    headers = HEADERS.copy()
+    headers.update({
+        "content-type": "application/json; charset=UTF-8",
+        "accept": "application/json, text/plain, */*",
+        "accept-language": "vi",
+        "referer": "https://smartoneweb.vps.com.vn/",
+        "x-device-new": device_new_token,
+    })
+    if ext_info:
+        headers["x-ext-info"] = ext_info
+    if request_id:
+        headers["x-request-id"] = request_id
+    if session_token:
+        headers["x-session"] = session_token
+
+    print("[LoginNew] URL:", NEW_LOGIN_URL)
+    print("[LoginNew] Payload:", json.dumps(payload, indent=2))
+    print("[LoginNew] Headers:", headers)
+    resp = session.post(NEW_LOGIN_URL, json=payload, headers=headers, timeout=60)
+    print("[LoginNew] Response status code:", resp.status_code)
+    print("[LoginNew] Response headers:", dict(resp.headers))
+    resp.raise_for_status()
+    raw = resp.text
+    print("[LoginNew] Raw response length:", len(raw))
+    data = resp.json()
+    print("[LoginNew] Response JSON (bytes):", json.dumps(data, ensure_ascii=False).encode('utf-8', errors='replace'))
     return data
 
 # ---------------------------------------------------------------------------
@@ -185,7 +268,7 @@ def login_otp(handshake: dict, otp_code: str) -> dict:
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     # Replace these with your actual credentials
-    USERNAME = "P91708"
+    USERNAME = "TRANHAIMAO"
     PASSWORD_HASH = "e4b57d46a8053ddb7341ee6e6b35924c"
 
     # 1️⃣ Handshake

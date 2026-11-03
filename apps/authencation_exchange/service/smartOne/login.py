@@ -84,11 +84,303 @@ def login_smart_one_vps_step_1(client, request_verification_token, account, pass
 #             # Handle errors
 #             return ""
 
+# def login_get_session_vps_step_1(user_account, password):
+#     url = api.LOGIN_URL
+#     device_info = "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
+#     device_new = "wmcvbKOW8A0fwquH1Q3Tr/RDweFNIpEA4FMOwrgSJq746PKEffHRx1YJcFh8zzdvJfEiFImd2ieQFoYuQ6ESpHgKxTiKkVPxpBHy76k/OiycYeNbslY5TVEq7XmZ1JTDRpw56FtUtnxDgLu2tXBSxBIpneB4ZBYTamNvhF5c1FFfSFh7o8nyT/vAZP91E7lt2zIxTVlfxhRrMsmaRH7UxEHCA0fKfYsewK3woUUIYNZomVi1mAIPlw=="
+#     deviceName ="Chrome Windows 10"
+#     payload = {
+#         "user": user_account,
+#         "pass": password,
+#         "channel": "I",
+#         "language": "vi",
+#         "cmd": "Web.sCheckLogin",
+#         "p5": "",
+#         "p6": "",
+#         "p7": 1,
+#         "deviceNew": device_new.strip(),  # ensure no stray whitespace
+#         "deviceName": deviceName,
+#         "deviceInfo": device_info,
+#     }
+
+#     # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
+#     # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
+#     # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
+#     handshake_headers = {
+#         "Content-Type": "application/json",
+#         "Accept": "application/json",
+#         "User-Agent": (
+#             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+#             "AppleWebKit/537.36 (KHTML, like Gecko) "
+#             "Chrome/124.0.0.0 Safari/537.36"
+#         ),
+#         "Referer": "https://bgapi.vps.com.vn/",
+#         "Origin": "https://bgapi.vps.com.vn",
+#     }
+#     try:
+#         handshake_res = requests.post(
+#             "https://bgapi.vps.com.vn/handler/core.vpbs",
+#             headers=handshake_headers,
+#             json={},
+#             timeout=10,
+#         )
+#         logger.debug(
+#             "Handshake status %s, body %s",
+#             handshake_res.status_code,
+#             handshake_res.text[:200],
+#         )
+#         # Only parse JSON if the response is JSON.
+#         if "application/json" in handshake_res.headers.get("Content-Type", ""):
+#             try:
+#                 handshake_json = handshake_res.json()
+#                 session_token = handshake_json.get("session")
+#             except Exception as e:
+#                 logger.warning("Handshake JSON parse failed: %s", e)
+#                 session_token = None
+#         else:
+#             logger.warning(
+#                 "Handshake returned non‑JSON content (Content‑Type: %s). Skipping token extraction.",
+#                 handshake_res.headers.get("Content-Type"),
+#             )
+#             session_token = None
+#     except Exception as e:
+#         logger.warning("Handshake request failed: %s", e)
+#         session_token = None
+
+#     # Build headers (including optional session token and handshake cookies)
+#     headers = {
+#         "Content-Type": "application/json",
+#         "Accept": "application/json",
+#         "User-Agent": (
+#             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+#             "AppleWebKit/537.36 (KHTML, like Gecko) "
+#             "Chrome/124.0.0.0 Safari/537.36"
+#         ),
+#         "Referer": "https://bgapi.vps.com.vn/",
+#         "Origin": "https://bgapi.vps.com.vn",
+#     }
+#     if session_token:
+#         # Some VPS APIs accept the token via a custom header or cookie
+#         headers["X-Session-Id"] = session_token
+#         headers["Cookie"] = f"session={session_token}"
+#     else:
+#         # If handshake returned cookies, forward them
+#         if handshake_res.cookies:
+#             cookie_str = "; ".join([f"{k}={v}" for k, v in handshake_res.cookies.get_dict().items()])
+#             if cookie_str:
+#                 headers["Cookie"] = cookie_str
+#         # No session token and no cookies – proceed without additional auth
+
+
+
+#     # Duplicate header block removed – using the header built after handshake above
+
+#     logger.info("login_get_session_vps_step_1: start")
+#     logger.debug("Payload (full): %s", payload)
+#     response = requests.post(url, headers=headers, json=payload, timeout=15)
+#     logger.debug("Response status: %s, headers: %s", response.status_code, response.headers)
+
+#     # Validate response content
+#     if not response.text.strip():
+#         logger.error("Empty response from VPS step 1")
+#         raise ValueError("Empty response from VPS step 1")
+#     if "application/json" not in response.headers.get("Content-Type", ""):
+#         logger.warning(
+#             "Unexpected content type step 1: %s", response.headers.get("Content-Type")
+#         )
+#         # Log the full HTML response for debugging (may be large)
+#         logger.error("Full HTML response received (step 1):\n%s", response.text)
+#         return None
+#     # Parse JSON safely
+#     try:
+#         res_object = json.loads(response.text)
+#         logger.debug("Parsed JSON keys step 1: %s", list(res_object.keys()))
+#         logger.debug("API response rc: %s, rs: %s", res_object.get('rc'), res_object.get('rs'))
+#     except json.JSONDecodeError as e:
+#         logger.error("JSON decode error in step 1: %s", e)
+#         logger.debug("Full response body (first 500 chars): %s", response.text[:500])
+#         return None
+#     # Extract session_id safely – data may be a dict or a list
+#     data_obj = res_object.get("data")
+#     if isinstance(data_obj, list):
+#         if not data_obj:
+#             logger.error("API returned empty data list for login step 1")
+#             return None
+#         data_obj = data_obj[0]
+#     if not isinstance(data_obj, dict) or "sid" not in data_obj:
+#         logger.error("Unexpected data format in login response: %s", data_obj)
+#         return None
+#     session_id = data_obj["sid"]
+#     logger.info("login_get_session_vps_step_1: obtained session_id %s", session_id)
+#     return session_id
+
+# def login_get_session_vps_step_2(user_account, password, otp):
+#         url = api.LOGIN_URL
+#         payload = {
+#             "user": user_account,
+#             "pass": password,
+#             "channel": "I",
+#             "language": "vi",
+#             "cmd": "Web.sCheckLoginOTP",
+#             "p5": otp,
+#             "p6": '',
+#             "p7": 0,
+#             "deviceNew": "wmcvbKOW8A0fwquH1Q3Tr/RDweFNIpEA4FMOwrgSJq746PKEffHRx1YJcFh8zzdvJfEiFImd2ieQFoYuQ6ESpHgKxTiKkVPxpBHy76k/OiycYeNbslY5TVEq7XmZ1JTDRpw56FtUtnxDgLu2tXBSxBIpneB4ZBYTamNvhF5c1FFfSFh7o8nyT/vAZP91E7lt2zIxTVlfxhRrMsmaRH7UxEHCA0fKfYsewK3woUUIYNZomVi1mAIPlw==",
+#             "deviceName": "Chrome Windows 10",
+#             "deviceInfo": "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
+
+#         }
+
+#         headers = {
+#             'Content-Type': 'application/json'
+#         }
+
+#         logger.info('login_get_session_vps_step_2: start')
+#         logger.debug('Payload (masked): %s', {k: ('***' if k in ['pass', 'deviceNew', 'otp'] else v) for k, v in payload.items()})
+#         response = requests.request("POST", url, headers=headers, json=payload)
+#         logger.debug('Response status: %s, headers: %s', response.status_code, response.headers)
+#         # Validate response content
+#         if not response.text.strip():
+#             logger.error('Empty response from VPS step 2')
+#             raise ValueError('Empty response from VPS step 2')
+#         if 'application/json' not in response.headers.get('Content-Type', ''):
+#             logger.warning('Unexpected content type step 2: %s', response.headers.get('Content-Type'))
+#             return None
+#         # Parse JSON safely
+#         try:
+#             res_object = json.loads(response.text)
+#             logger.debug('Parsed JSON keys step 2: %s', list(res_object.keys()))
+#         except json.JSONDecodeError as e:
+#             logger.error('JSON decode error in step 2: %s', e)
+#             return None
+#         session_id = res_object['data']['sid']
+#         logger.info('login_get_session_vps_step_2: obtained session_id %s', session_id)
+#         return session_id
+
+
+
+import requests
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Dùng chung HTTP Session cho quá trình đăng nhập VPS
+_vps_http_session = requests.Session()
+
+_vps_http_session.headers.update({
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json",
+    "Origin": "https://bgapi.vps.com.vn",
+    "Referer": "https://bgapi.vps.com.vn/",
+})
+
+
+def _vps_parse_login_response(response, step_name):
+    """
+    Kiểm tra HTTP response và trích xuất sid an toàn.
+    """
+
+    logger.info(
+        "%s HTTP status: %s",
+        step_name,
+        response.status_code
+    )
+
+    content_type = response.headers.get(
+        "Content-Type", ""
+    ).lower()
+
+    if response.status_code != 200:
+        logger.error(
+            "%s HTTP error: %s",
+            step_name,
+            response.status_code
+        )
+        return None
+
+    if not response.text.strip():
+        logger.error("%s: Empty response", step_name)
+        return None
+
+    if "application/json" not in content_type:
+        logger.error(
+            "%s: Unexpected Content-Type: %s",
+            step_name,
+            content_type
+        )
+        logger.error(
+            "%s: Response preview: %s",
+            step_name,
+            response.text[:500]
+        )
+        return None
+
+    try:
+        result = response.json()
+    except ValueError:
+        logger.exception(
+            "%s: JSON decoding failed",
+            step_name
+        )
+        return None
+
+    if not isinstance(result, dict):
+        logger.error(
+            "%s: Invalid response structure",
+            step_name
+        )
+        return None
+
+    logger.info(
+        "%s: rc=%s, rs=%s",
+        step_name,
+        result.get("rc"),
+        result.get("rs")
+    )
+
+    data = result.get("data")
+
+    if isinstance(data, list):
+        data = data[0] if data else None
+
+    if not isinstance(data, dict):
+        logger.error(
+            "%s: Invalid data structure",
+            step_name
+        )
+        return None
+
+    sid = data.get("sid")
+
+    if not sid:
+        logger.error(
+            "%s: Missing sid in response",
+            step_name
+        )
+        return None
+
+    return sid
+
+
 def login_get_session_vps_step_1(user_account, password):
+
     url = api.LOGIN_URL
-    device_info = "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
-    device_new = "wmcvbKOW8A0fwquH1Q3Tr/RDweFNIpEA4FMOwrgSJq746PKEffHRx1YJcFh8zzdvJfEiFImd2ieQFoYuQ6ESpHgKxTiKkVPxpBHy76k/OiycYeNbslY5TVEq7XmZ1JTDRpw56FtUtnxDgLu2tXBSxBIpneB4ZBYTamNvhF5c1FFfSFh7o8nyT/vAZP91E7lt2zIxTVlfxhRrMsmaRH7UxEHCA0fKfYsewK3woUUIYNZomVi1mAIPlw=="
-    deviceName ="Chrome Windows 10"
+
+    device_info = (
+        "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIs"
+        "InZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAi"
+        "LCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
+    )
+
+    device_new = (
+        "wmcvbKOW8A0fwquH1Q3Tr/RDweFNIpEA4FMOwrgSJq746PKEffHRx1YJcFh8zzdvJfEiFImd2ieQFoYuQ6ESpHgKxTiKkVPxpBHy76k/OiycYeNbslY5TVEq7XmZ1JTDRpw56FtUtnxDgLu2tXBSxBIpneB4ZBYTamNvhF5c1FFfSFh7o8nyT/vAZP91E7lt2zIxTVlfxhRrMsmaRH7UxEHCA0fKfYsewK3woUUIYNZomVi1mAIPlw=="
+    )
+
     payload = {
         "user": user_account,
         "pass": password,
@@ -98,164 +390,134 @@ def login_get_session_vps_step_1(user_account, password):
         "p5": "",
         "p6": "",
         "p7": 1,
-        "deviceNew": device_new.strip(),  # ensure no stray whitespace
-        "deviceName": deviceName,
+        "deviceNew": device_new,
+        "deviceName": "Chrome Windows 10",
         "deviceInfo": device_info,
     }
 
-    # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
-    # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
-    # ---- Handshake (core.vpbs) to obtain cookies/token if required ----
-    handshake_headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36"
-        ),
-        "Referer": "https://bgapi.vps.com.vn/",
-        "Origin": "https://bgapi.vps.com.vn",
-    }
-    try:
-        handshake_res = requests.post(
-            "https://bgapi.vps.com.vn/handler/core.vpbs",
-            headers=handshake_headers,
-            json={},
-            timeout=10,
-        )
-        logger.debug(
-            "Handshake status %s, body %s",
-            handshake_res.status_code,
-            handshake_res.text[:200],
-        )
-        # Only parse JSON if the response is JSON.
-        if "application/json" in handshake_res.headers.get("Content-Type", ""):
-            try:
-                handshake_json = handshake_res.json()
-                session_token = handshake_json.get("session")
-            except Exception as e:
-                logger.warning("Handshake JSON parse failed: %s", e)
-                session_token = None
-        else:
-            logger.warning(
-                "Handshake returned non‑JSON content (Content‑Type: %s). Skipping token extraction.",
-                handshake_res.headers.get("Content-Type"),
-            )
-            session_token = None
-    except Exception as e:
-        logger.warning("Handshake request failed: %s", e)
-        session_token = None
-
-    # Build headers (including optional session token and handshake cookies)
     headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36"
-        ),
-        "Referer": "https://bgapi.vps.com.vn/",
-        "Origin": "https://bgapi.vps.com.vn",
+        "Content-Type": "application/json"
     }
-    if session_token:
-        # Some VPS APIs accept the token via a custom header or cookie
-        headers["X-Session-Id"] = session_token
-        headers["Cookie"] = f"session={session_token}"
-    else:
-        # If handshake returned cookies, forward them
-        if handshake_res.cookies:
-            cookie_str = "; ".join([f"{k}={v}" for k, v in handshake_res.cookies.get_dict().items()])
-            if cookie_str:
-                headers["Cookie"] = cookie_str
-        # No session token and no cookies – proceed without additional auth
-
-
-
-    # Duplicate header block removed – using the header built after handshake above
 
     logger.info("login_get_session_vps_step_1: start")
-    logger.debug("Payload (full): %s", payload)
-    response = requests.post(url, headers=headers, json=payload, timeout=15)
-    logger.debug("Response status: %s, headers: %s", response.status_code, response.headers)
 
-    # Validate response content
-    if not response.text.strip():
-        logger.error("Empty response from VPS step 1")
-        raise ValueError("Empty response from VPS step 1")
-    if "application/json" not in response.headers.get("Content-Type", ""):
-        logger.warning(
-            "Unexpected content type step 1: %s", response.headers.get("Content-Type")
-        )
-        # Log the full HTML response for debugging (may be large)
-        logger.error("Full HTML response received (step 1):\n%s", response.text)
-        return None
-    # Parse JSON safely
     try:
-        res_object = json.loads(response.text)
-        logger.debug("Parsed JSON keys step 1: %s", list(res_object.keys()))
-        logger.debug("API response rc: %s, rs: %s", res_object.get('rc'), res_object.get('rs'))
-    except json.JSONDecodeError as e:
-        logger.error("JSON decode error in step 1: %s", e)
-        logger.debug("Full response body (first 500 chars): %s", response.text[:500])
-        return None
-    # Extract session_id safely – data may be a dict or a list
-    data_obj = res_object.get("data")
-    if isinstance(data_obj, list):
-        if not data_obj:
-            logger.error("API returned empty data list for login step 1")
+
+        # Không tự gửi handshake core.vpbs khi chưa xác minh
+        # API VPS có yêu cầu handshake riêng hay không.
+
+        response = _vps_http_session.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=(10, 20)
+        )
+
+        session_id = _vps_parse_login_response(
+            response,
+            "VPS_LOGIN_STEP_1"
+        )
+
+        if not session_id:
+            logger.error(
+                "login_get_session_vps_step_1: failed"
+            )
             return None
-        data_obj = data_obj[0]
-    if not isinstance(data_obj, dict) or "sid" not in data_obj:
-        logger.error("Unexpected data format in login response: %s", data_obj)
+
+        logger.info(
+            "login_get_session_vps_step_1: success"
+        )
+
+        return session_id
+
+    except requests.RequestException:
+        logger.exception(
+            "login_get_session_vps_step_1: request failed"
+        )
         return None
-    session_id = data_obj["sid"]
-    logger.info("login_get_session_vps_step_1: obtained session_id %s", session_id)
-    return session_id
+
+    except Exception:
+        logger.exception(
+            "login_get_session_vps_step_1: unexpected error"
+        )
+        return None
+
 
 def login_get_session_vps_step_2(user_account, password, otp):
-        url = api.LOGIN_URL
-        payload = {
-            "user": user_account,
-            "pass": password,
-            "channel": "I",
-            "language": "vi",
-            "cmd": "Web.sCheckLoginOTP",
-            "p5": otp,
-            "p6": '',
-            "p7": 0,
-            "deviceNew": "wmcvbKOW8A0fwquH1Q3Tr/RDweFNIpEA4FMOwrgSJq746PKEffHRx1YJcFh8zzdvJfEiFImd2ieQFoYuQ6ESpHgKxTiKkVPxpBHy76k/OiycYeNbslY5TVEq7XmZ1JTDRpw56FtUtnxDgLu2tXBSxBIpneB4ZBYTamNvhF5c1FFfSFh7o8nyT/vAZP91E7lt2zIxTVlfxhRrMsmaRH7UxEHCA0fKfYsewK3woUUIYNZomVi1mAIPlw==",
-            "deviceName": "Chrome Windows 10",
-            "deviceInfo": "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
 
-        }
+    url = api.LOGIN_URL
 
-        headers = {
-            'Content-Type': 'application/json'
-        }
+    device_info = (
+        "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIs"
+        "InZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAi"
+        "LCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
+    )
 
-        logger.info('login_get_session_vps_step_2: start')
-        logger.debug('Payload (masked): %s', {k: ('***' if k in ['pass', 'deviceNew', 'otp'] else v) for k, v in payload.items()})
-        response = requests.request("POST", url, headers=headers, json=payload)
-        logger.debug('Response status: %s, headers: %s', response.status_code, response.headers)
-        # Validate response content
-        if not response.text.strip():
-            logger.error('Empty response from VPS step 2')
-            raise ValueError('Empty response from VPS step 2')
-        if 'application/json' not in response.headers.get('Content-Type', ''):
-            logger.warning('Unexpected content type step 2: %s', response.headers.get('Content-Type'))
+    device_new = (
+        "wmcvbKOW8A0fwquH1Q3Tr/RDweFNIpEA4FMOwrgSJq746PKEffHRx1YJcFh8zzdvJfEiFImd2ieQFoYuQ6ESpHgKxTiKkVPxpBHy76k/OiycYeNbslY5TVEq7XmZ1JTDRpw56FtUtnxDgLu2tXBSxBIpneB4ZBYTamNvhF5c1FFfSFh7o8nyT/vAZP91E7lt2zIxTVlfxhRrMsmaRH7UxEHCA0fKfYsewK3woUUIYNZomVi1mAIPlw=="
+    )
+
+    payload = {
+        "user": user_account,
+        "pass": password,
+        "channel": "I",
+        "language": "vi",
+        "cmd": "Web.sCheckLoginOTP",
+        "p5": otp,
+        "p6": "",
+        "p7": 0,
+        "deviceNew": device_new,
+        "deviceName": "Chrome Windows 10",
+        "deviceInfo": device_info,
+    }
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    logger.info("login_get_session_vps_step_2: start")
+
+    try:
+
+        # Sử dụng cùng Session đã được tạo ở Step 1
+        response = _vps_http_session.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=(10, 20)
+        )
+
+        session_id = _vps_parse_login_response(
+            response,
+            "VPS_LOGIN_STEP_2"
+        )
+
+        if not session_id:
+            logger.error(
+                "login_get_session_vps_step_2: failed"
+            )
             return None
-        # Parse JSON safely
-        try:
-            res_object = json.loads(response.text)
-            logger.debug('Parsed JSON keys step 2: %s', list(res_object.keys()))
-        except json.JSONDecodeError as e:
-            logger.error('JSON decode error in step 2: %s', e)
-            return None
-        session_id = res_object['data']['sid']
-        logger.info('login_get_session_vps_step_2: obtained session_id %s', session_id)
+
+        logger.info(
+            "login_get_session_vps_step_2: success"
+        )
+
         return session_id
+
+    except requests.RequestException:
+        logger.exception(
+            "login_get_session_vps_step_2: request failed"
+        )
+        return None
+
+    except Exception:
+        logger.exception(
+            "login_get_session_vps_step_2: unexpected error"
+        )
+        return None
+
+
+
 
 def login_smart_one_vps_step_otp(client, request_verification_token, account, password, otp, session_id, cookie):
     otp_payload = {
