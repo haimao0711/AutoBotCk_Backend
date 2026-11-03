@@ -390,8 +390,8 @@ def login_get_session_vps_step_2(account_name, pass_login, otp):
         logger.error("[VPS STEP 2] Không tìm thấy session của bước 1")
         return None
 
-    device_new = YOUR_DEVICE_NEW
-    device_info = YOUR_DEVICE_INFO
+    device_new = "0jeuKA1NqZWTbaWTC/bnSj4Gdn/VQS4C073C7N1gXsY jlOo2LGXeg5fQe09rJa3cRwKdU9VAgKoB5NCanUzOcyhcFt9VfCT5kTJ0NSQqZWy6i4BVrF0rAEz9w9HKmwpLHF2ahwV5apFfXCVHl8mbp MdyXqfD9fhwBrFcdf9bHqvQ/3FenY30eg5V9fcDoeGObQHgE2PnwH6Fv k 8CGRlv3l1cKqMbzYSTe/MncCRCEqszrfEO6w=="
+    device_info = "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
 
     payload = {
         "user": account_name,
