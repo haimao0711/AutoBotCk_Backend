@@ -363,20 +363,50 @@ def login_get_session_vps_step_1(account_name, pass_login):
         "deviceInfo": device_info,
     }
 
-    result = _vps_send_login_request(
-        session,
-        payload,
-        "STEP 1"
+    
+    logger.info("========== VPS LOGIN DEBUG ==========")
+
+    logger.info("URL: %s", VPS_LOGIN_URL)
+
+    logger.info("Payload fields: %s", list(payload.keys()))
+
+    for key, value in payload.items():
+        logger.info(
+            "Payload %s: type=%s, length=%s, empty=%s",
+            key,
+            type(value).__name__,
+            len(str(value)) if value is not None else 0,
+            value in ("", None)
+        )
+
+    logger.info("Request headers: %s", {
+        key: value
+        for key, value in VPS_LOGIN_HEADERS.items()
+        if key.lower() not in ("cookie", "authorization")
+    })
+
+    response = session.post(
+        VPS_LOGIN_URL,
+        data=payload,
+        headers=VPS_LOGIN_HEADERS,
+        timeout=30
     )
+
+    logger.info("HTTP status: %s", response.status_code)
+    logger.info("Response headers: %s", dict(response.headers))
+    logger.info("Response URL: %s", response.url)
+    logger.info("Response body: %s", response.text[:1000])
+
+    result = _vps_parse_response(response, "STEP 1")
 
     if not result or result.get("rc") != 1:
         session.close()
         return None
 
-    # Lưu Session để bước 2 sử dụng đúng kết nối.
     _vps_login_sessions[account_name] = session
 
     return result
+
 
 
 def login_get_session_vps_step_2(account_name, pass_login, otp):
