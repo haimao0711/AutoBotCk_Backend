@@ -412,7 +412,37 @@ def login_get_session_vps_step_1(user_account, password):
             json=payload,
             timeout=(10, 20)
         )
+        logger.error("========== VPS DEBUG ==========")
 
+        logger.error("Request URL: %s", response.url)
+        logger.error("HTTP Status: %s", response.status_code)
+        logger.error("Response URL: %s", response.url)
+        logger.error("Redirect history: %s", [
+            r.status_code for r in response.history
+        ])
+
+        logger.error("Response headers: %s", {
+            k: v for k, v in response.headers.items()
+            if k.lower() in [
+                "content-type",
+                "server",
+                "via",
+                "location",
+                "set-cookie",
+                "content-length",
+                "cache-control",
+                "x-request-id"
+            ]
+        })
+
+        logger.error("Response body:")
+        logger.error("%s", response.text[:2000])
+
+        logger.error("Session cookie names: %s", [
+            cookie.name for cookie in _vps_http_session.cookies
+        ])
+
+        logger.error("========== END VPS DEBUG ==========")
         session_id = _vps_parse_login_response(
             response,
             "VPS_LOGIN_STEP_1"
