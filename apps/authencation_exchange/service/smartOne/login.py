@@ -297,24 +297,54 @@ VPS_LOGIN_HEADERS = {
 }
 
 
+def _vps_post(url, payload, step_name):
+    """
+    Gửi POST request lên VPS API.
+    - Nếu curl_cffi khả dụng: thử lần lượt các Chrome version để bypass WAF JA3.
+    - Fallback về requests nếu tất cả đều thất bại.
+    """
+    # Danh sách Chrome fingerprint thử theo thứ tự (mới nhất trước)
+    CHROME_VERSIONS = ["chrome124", "chrome120", "chrome116", "chrome110", "chrome107"]
+
+    if _CURL_CFFI_AVAILABLE:
+        for version in CHROME_VERSIONS:
+            try:
+                logger.info("[VPS %s] Thử impersonate=%s", step_name, version)
+                response = curl_requests.post(
+                    url,
+                    json=payload,
+                    headers=VPS_LOGIN_HEADERS,
+                    impersonate=version,
+                    timeout=30
+                )
+                content_type = response.headers.get("Content-Type", "")
+                logger.info("[VPS %s] impersonate=%s → HTTP=%s, CT=%s",
+                            step_name, version, response.status_code, content_type)
+
+                if "json" in content_type.lower():
+                    logger.info("[VPS %s] Thành công với %s", step_name, version)
+                    return response
+                else:
+                    logger.warning("[VPS %s] %s → HTML response, thử version tiếp theo", step_name, version)
+
+            except Exception as e:
+                logger.warning("[VPS %s] %s → Lỗi: %s, thử version tiếp theo", step_name, version, e)
+
+        logger.error("[VPS %s] Tất cả Chrome version đều thất bại, fallback về requests", step_name)
+
+    # Fallback: dùng requests bình thường
+    try:
+        session = requests.Session()
+        response = session.post(url, json=payload, headers=VPS_LOGIN_HEADERS, timeout=30)
+        return response
+    except Exception as e:
+        logger.exception("[VPS %s] Fallback requests cũng lỗi: %s", step_name, e)
+        return None
+
+
 def _vps_send_login_request(session, payload, step_name):
     try:
-        if _CURL_CFFI_AVAILABLE:
-            # Dùng curl_cffi với Chrome TLS fingerprint để bypass WAF JA3
-            response = curl_requests.post(
-                VPS_LOGIN_URL,
-                json=payload,
-                headers=VPS_LOGIN_HEADERS,
-                impersonate="chrome110",
-                timeout=30
-            )
-        else:
-            response = session.post(
-                VPS_LOGIN_URL,
-                json=payload,
-                headers=VPS_LOGIN_HEADERS,
-                timeout=30
-            )
+        response = _vps_post(VPS_LOGIN_URL, payload, step_name)
 
         content_type = response.headers.get("Content-Type", "")
 
