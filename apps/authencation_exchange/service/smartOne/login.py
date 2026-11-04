@@ -266,6 +266,9 @@ _vps_login_sessions = {}
 
 VPS_LOGIN_HEADERS = {
     "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Content-Type": "application/json",
     "Origin": "https://banggia.vps.com.vn",
     "Referer": "https://banggia.vps.com.vn/",
     "User-Agent": (
@@ -273,6 +276,13 @@ VPS_LOGIN_HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/156.0.0.0 Safari/537.36"
     ),
+    "sec-ch-ua": '"Google Chrome";v="156", "Chromium";v="156", "Not.A/Brand";v="99"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-site",
+    "Connection": "keep-alive",
 }
 
 
@@ -280,7 +290,7 @@ def _vps_send_login_request(session, payload, step_name):
     try:
         response = session.post(
             VPS_LOGIN_URL,
-            data=payload,
+            json=payload,
             headers=VPS_LOGIN_HEADERS,
             timeout=30
         )
@@ -368,7 +378,8 @@ def login_get_session_vps_step_1(account_name, pass_login):
 
     # Giữ nguyên deviceNew và deviceInfo theo cấu hình
     # thiết bị mà code cũ của bạn đang sử dụng.
-    device_new = "0jeuKA1NqZWTbaWTC/bnSj4Gdn/VQS4C073C7N1gXsY jlOo2LGXeg5fQe09rJa3cRwKdU9VAgKoB5NCanUzOcyhcFt9VfCT5kTJ0NSQqZWy6i4BVrF0rAEz9w9HKmwpLHF2ahwV5apFfXCVHl8mbp MdyXqfD9fhwBrFcdf9bHqvQ/3FenY30eg5V9fcDoeGObQHgE2PnwH6Fv k 8CGRlv3l1cKqMbzYSTe/MncCRCEqszrfEO6w=="
+    # Lưu ý: deviceNew phải là chuỗi Base64 hợp lệ (không có khoảng trắng)
+    device_new = "0jeuKA1NqZWTbaWTC/bnSj4Gdn/VQS4C073C7N1gXsYjlOo2LGXeg5fQe09rJa3cRwKdU9VAgKoB5NCanUzOcyhcFt9VfCT5kTJ0NSQqZWy6i4BVrF0rAEz9w9HKmwpLHF2ahwV5apFfXCVHl8mbpMdyXqfD9fhwBrFcdf9bHqvQ/3FenY30eg5V9fcDoeGObQHgE2PnwH6Fvk8CGRlv3l1cKqMbzYSTe/MncCRCEqszrfEO6w=="
     device_info = "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
 
 
@@ -410,7 +421,7 @@ def login_get_session_vps_step_1(account_name, pass_login):
 
     response = session.post(
         VPS_LOGIN_URL,
-        data=payload,
+        json=payload,
         headers=VPS_LOGIN_HEADERS,
         timeout=30
     )
@@ -444,7 +455,8 @@ def login_get_session_vps_step_2(account_name, pass_login, otp):
         logger.error("[VPS STEP 2] Không tìm thấy session của bước 1")
         return None
 
-    device_new = "0jeuKA1NqZWTbaWTC/bnSj4Gdn/VQS4C073C7N1gXsY jlOo2LGXeg5fQe09rJa3cRwKdU9VAgKoB5NCanUzOcyhcFt9VfCT5kTJ0NSQqZWy6i4BVrF0rAEz9w9HKmwpLHF2ahwV5apFfXCVHl8mbp MdyXqfD9fhwBrFcdf9bHqvQ/3FenY30eg5V9fcDoeGObQHgE2PnwH6Fv k 8CGRlv3l1cKqMbzYSTe/MncCRCEqszrfEO6w=="
+    # Lưu ý: deviceNew phải là chuỗi Base64 hợp lệ (không có khoảng trắng)
+    device_new = "0jeuKA1NqZWTbaWTC/bnSj4Gdn/VQS4C073C7N1gXsYjlOo2LGXeg5fQe09rJa3cRwKdU9VAgKoB5NCanUzOcyhcFt9VfCT5kTJ0NSQqZWy6i4BVrF0rAEz9w9HKmwpLHF2ahwV5apFfXCVHl8mbpMdyXqfD9fhwBrFcdf9bHqvQ/3FenY30eg5V9fcDoeGObQHgE2PnwH6Fvk8CGRlv3l1cKqMbzYSTe/MncCRCEqszrfEO6w=="
     device_info = "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
 
     payload = {
