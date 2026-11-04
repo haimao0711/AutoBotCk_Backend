@@ -6,11 +6,22 @@ import subprocess
 import requests
 import logging
 
+# curl_cffi giả lập TLS fingerprint của Chrome thật để bypass WAF JA3 fingerprinting
+try:
+    from curl_cffi import requests as curl_requests
+    _CURL_CFFI_AVAILABLE = True
+except ImportError:
+    _CURL_CFFI_AVAILABLE = False
+
 from apps.authencation_exchange.service.http_client import CustomHTTPClient
 from apps.authencation_exchange.service.enums import LoginStatusEnum
 from apps import api
 
 logger = logging.getLogger(__name__)
+if _CURL_CFFI_AVAILABLE:
+    logger.info("[VPS] curl_cffi khả dụng — dùng Chrome TLS fingerprint")
+else:
+    logger.warning("[VPS] curl_cffi không có — fallback về requests (có thể bị WAF block)")
 
 def login_smart_one_vps_step_1(client, request_verification_token, account, password, cookie):
     payload = {
@@ -288,12 +299,22 @@ VPS_LOGIN_HEADERS = {
 
 def _vps_send_login_request(session, payload, step_name):
     try:
-        response = session.post(
-            VPS_LOGIN_URL,
-            json=payload,
-            headers=VPS_LOGIN_HEADERS,
-            timeout=30
-        )
+        if _CURL_CFFI_AVAILABLE:
+            # Dùng curl_cffi với Chrome TLS fingerprint để bypass WAF JA3
+            response = curl_requests.post(
+                VPS_LOGIN_URL,
+                json=payload,
+                headers=VPS_LOGIN_HEADERS,
+                impersonate="chrome110",
+                timeout=30
+            )
+        else:
+            response = session.post(
+                VPS_LOGIN_URL,
+                json=payload,
+                headers=VPS_LOGIN_HEADERS,
+                timeout=30
+            )
 
         content_type = response.headers.get("Content-Type", "")
 
@@ -419,12 +440,22 @@ def login_get_session_vps_step_1(account_name, pass_login):
         if key.lower() not in ("cookie", "authorization")
     })
 
-    response = session.post(
-        VPS_LOGIN_URL,
-        json=payload,
-        headers=VPS_LOGIN_HEADERS,
-        timeout=30
-    )
+    if _CURL_CFFI_AVAILABLE:
+        # Dùng curl_cffi với Chrome TLS fingerprint để bypass WAF JA3
+        response = curl_requests.post(
+            VPS_LOGIN_URL,
+            json=payload,
+            headers=VPS_LOGIN_HEADERS,
+            impersonate="chrome110",
+            timeout=30
+        )
+    else:
+        response = session.post(
+            VPS_LOGIN_URL,
+            json=payload,
+            headers=VPS_LOGIN_HEADERS,
+            timeout=30
+        )
 
     logger.info("HTTP status: %s", response.status_code)
     logger.info("Response headers: %s", dict(response.headers))
