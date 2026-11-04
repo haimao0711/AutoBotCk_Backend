@@ -297,64 +297,93 @@ VPS_LOGIN_HEADERS = {
 }
 
 
+
+import logging
+import requests
+
+logger = logging.getLogger(__name__)
+
+
 def _vps_post(url, payload, step_name):
     """
-    Gửi POST request lên VPS API.
-    - Nếu curl_cffi khả dụng: thử lần lượt các Chrome version để bypass WAF JA3.
-    - Fallback về requests nếu tất cả đều thất bại.
+    Gửi POST request đến VPS API.
+    Xử lý timeout, connection error và HTTP error.
+    Không xoay vòng fingerprint.
     """
-    # Danh sách Chrome fingerprint thử theo thứ tự (mới nhất trước)
-    CHROME_VERSIONS = ["chrome124", "chrome120", "chrome116", "chrome110", "chrome107"]
 
-    if _CURL_CFFI_AVAILABLE:
-        for version in CHROME_VERSIONS:
-            try:
-                logger.info("[VPS %s] Thử impersonate=%s", step_name, version)
-                response = curl_requests.post(
-                    url,
-                    json=payload,
-                    headers=VPS_LOGIN_HEADERS,
-                    impersonate=version,
-                    timeout=30
-                )
-                content_type = response.headers.get("Content-Type", "")
-                logger.info("[VPS %s] impersonate=%s → HTTP=%s, CT=%s",
-                            step_name, version, response.status_code, content_type)
+    session = requests.Session()
 
-                if "json" in content_type.lower():
-                    logger.info("[VPS %s] Thành công với %s", step_name, version)
-                    return response
-                else:
-                    logger.warning("[VPS %s] %s → HTML response, thử version tiếp theo", step_name, version)
-
-            except Exception as e:
-                logger.warning("[VPS %s] %s → Lỗi: %s, thử version tiếp theo", step_name, version, e)
-
-        logger.error("[VPS %s] Tất cả Chrome version đều thất bại, fallback về requests", step_name)
-
-    # Fallback: dùng requests bình thường
     try:
-        session = requests.Session()
-        response = session.post(url, json=payload, headers=VPS_LOGIN_HEADERS, timeout=30)
-        return response
-    except Exception as e:
-        logger.exception("[VPS %s] Fallback requests cũng lỗi: %s", step_name, e)
-        return None
+        logger.info(
+            "[VPS %s] Sending POST request: %s",
+            step_name,
+            url
+        )
 
-
-def _vps_send_login_request(session, payload, step_name):
-    try:
-        response = _vps_post(VPS_LOGIN_URL, payload, step_name)
-
-        content_type = response.headers.get("Content-Type", "")
+        response = session.post(
+            url,
+            json=payload,
+            headers=VPS_LOGIN_HEADERS,
+            timeout=(10, 30)
+        )
 
         logger.info(
             "[VPS %s] HTTP=%s, Content-Type=%s",
             step_name,
             response.status_code,
-            content_type
+            response.headers.get("Content-Type", "")
         )
 
+        return response
+
+    except requests.exceptions.Timeout:
+        logger.error(
+            "[VPS %s] Request timeout",
+            step_name
+        )
+
+    except requests.exceptions.ConnectionError:
+        logger.exception(
+            "[VPS %s] Connection error",
+            step_name
+        )
+
+    except requests.exceptions.RequestException:
+        logger.exception(
+            "[VPS %s] Request exception",
+            step_name
+        )
+
+    finally:
+        session.close()
+
+    return None
+
+
+def _vps_send_login_request(session, payload, step_name):
+
+    try:
+        response = _vps_post(
+            VPS_LOGIN_URL,
+            payload,
+            step_name
+        )
+
+        # Kiểm tra response tồn tại
+        if response is None:
+            logger.error(
+                "[VPS %s] Không nhận được response",
+                step_name
+            )
+            return None
+
+        logger.info(
+            "[VPS %s] HTTP=%s",
+            step_name,
+            response.status_code
+        )
+
+        # Kiểm tra HTTP status
         if response.status_code != 200:
             logger.error(
                 "[VPS %s] HTTP error: %s",
@@ -363,18 +392,26 @@ def _vps_send_login_request(session, payload, step_name):
             )
             return None
 
+        content_type = response.headers.get(
+            "Content-Type", ""
+        )
+
         if "json" not in content_type.lower():
             logger.error(
-                "[VPS %s] Response không phải JSON: %s",
+                "[VPS %s] Invalid Content-Type: %s",
                 step_name,
-                response.text[:500]
+                content_type
             )
             return None
 
         try:
             result = response.json()
+
         except ValueError:
-            logger.exception("[VPS %s] JSON không hợp lệ", step_name)
+            logger.exception(
+                "[VPS %s] Invalid JSON response",
+                step_name
+            )
             return None
 
         logger.info(
@@ -386,9 +423,13 @@ def _vps_send_login_request(session, payload, step_name):
 
         return result
 
-    except requests.RequestException:
-        logger.exception("[VPS %s] Lỗi kết nối VPS", step_name)
+    except Exception:
+        logger.exception(
+            "[VPS %s] Unexpected login error",
+            step_name
+        )
         return None
+
 
 def _vps_parse_response(response, step_name):
     content_type = response.headers.get("Content-Type", "")
