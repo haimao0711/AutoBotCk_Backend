@@ -259,11 +259,6 @@ def login_smart_one_vps_step_1(client, request_verification_token, account, pass
 
 
 
-import requests
-import logging
-
-logger = logging.getLogger(__name__)
-
 VPS_LOGIN_URL = "https://bgapi.vps.com.vn/handler/core_check.login"
 
 # Giữ Session giữa bước 1 và bước 2 trong cùng một luồng đăng nhập.
@@ -334,7 +329,35 @@ def _vps_send_login_request(session, payload, step_name):
         logger.exception("[VPS %s] Lỗi kết nối VPS", step_name)
         return None
 
+def _vps_parse_response(response, step_name):
+    content_type = response.headers.get("Content-Type", "")
 
+    if response.status_code != 200:
+        logger.error(
+            "[VPS %s] HTTP error: %s",
+            step_name,
+            response.status_code
+        )
+        return None
+
+    if "json" not in content_type.lower():
+        logger.error(
+            "[VPS %s] Response không phải JSON: %s",
+            step_name,
+            response.text[:500]
+        )
+        return None
+
+    try:
+        result = response.json()
+        return result
+    except ValueError:
+        logger.exception(
+            "[VPS %s] Không thể parse JSON",
+            step_name
+        )
+        return None
+        
 def login_get_session_vps_step_1(account_name, pass_login):
     """
     Bước 1: Kiểm tra tài khoản và mật khẩu.
