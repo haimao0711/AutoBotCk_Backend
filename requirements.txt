@@ -17,6 +17,8 @@ websocket-client
 
 # Celery and Redis
 celery==5.4.0
+kombu==5.4.2
+amqp==5.2.0
 redis==6.1.0
 django-celery-beat==2.6.0
 django-celery-results==2.5.1
