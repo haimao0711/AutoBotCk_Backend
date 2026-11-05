@@ -276,6 +276,25 @@ import os
 import tempfile
 
 
+class VpsBlockedError(Exception):
+    """VPS không trả JSON hợp lệ (vd. WAF chặn IP server hoặc không kết nối được)."""
+
+
+def _vps_raise_if_blocked(response, step_name):
+    """
+    Phân biệt "VPS chặn / không kết nối được" với "sai mật khẩu".
+    Sai mật khẩu vẫn trả JSON (rc != 1); trang HTML hoặc không có response là bị chặn.
+    """
+    if response is None:
+        raise VpsBlockedError(f"[{step_name}] Không kết nối được tới VPS")
+    content_type = response.headers.get("Content-Type", "").lower()
+    if response.status_code != 200 or "json" not in content_type:
+        raise VpsBlockedError(
+            f"[{step_name}] VPS trả về HTTP {response.status_code}, "
+            f"Content-Type={content_type or 'N/A'} (có thể WAF đang chặn IP server)"
+        )
+
+
 class _VpsResponse:
     """Response tối giản, có cùng interface với requests.Response phần đang dùng."""
 
@@ -311,6 +330,8 @@ def _vps_curl_post(url, payload, cookie_file, step_name):
         capture_output=True,
         timeout=40,
     )
+    raw = proc.stdout.decode("utf-8", "replace")
+
     if proc.returncode != 0:
         stderr = proc.stderr.decode("utf-8", "replace")
         logger.error("[VPS %s] curl exit=%s", step_name, proc.returncode)
@@ -320,9 +341,12 @@ def _vps_curl_post(url, payload, cookie_file, step_name):
             line for line in stderr.splitlines() if not line.lower().startswith("> cookie")
         )
         logger.error("[VPS %s] curl verbose (đuôi):\n%s", step_name, verbose[-1500:])
-        return None
-
-    raw = proc.stdout.decode("utf-8", "replace")
+        # exit 56 sau khi đã nhận đủ response: server đóng TLS không báo trước.
+        # Vẫn dùng response đã nhận để log đúng nội dung (vd. trang chặn của WAF).
+        if not (proc.returncode == 56 and raw.startswith("HTTP/")):
+            return None
+        logger.warning("[VPS %s] Server đóng kết nối đột ngột sau khi trả response, "
+                       "vẫn xử lý response đã nhận", step_name)
     # Có thể có nhiều khối header (100-continue, redirect): lấy khối cuối.
     while raw.startswith("HTTP/") and "\r\n\r\n" in raw:
         head, rest = raw.split("\r\n\r\n", 1)
@@ -342,83 +366,11 @@ def _vps_curl_post(url, payload, cookie_file, step_name):
     return None
 
 
-def _vps_diagnose(url, step_name):
-    """
-    Chỉ chạy khi request thất bại. Dùng payload giả (không gửi mật khẩu thật) để so sánh:
-    IP phân giải DNS, IP đi ra internet, phiên bản curl và kết quả của vài biến thể TLS/HTTP.
-    Nhờ vậy biết lỗi do DNS/IP, phiên bản TLS hay HTTP version.
-    """
-    import socket
-    from urllib.parse import urlparse
-
-    host = urlparse(url).hostname
-    try:
-        ips = sorted({ai[4][0] for ai in socket.getaddrinfo(host, 443, proto=socket.IPPROTO_TCP)})
-        logger.info("[VPS %s][DIAG] DNS %s -> %s", step_name, host, ips)
-    except Exception as e:
-        logger.error("[VPS %s][DIAG] DNS lỗi: %s", step_name, e)
-
-    try:
-        out = subprocess.run(["curl", "-sS", "--max-time", "8", "https://ifconfig.me"],
-                             capture_output=True, timeout=12)
-        logger.info("[VPS %s][DIAG] IP đi ra internet: %s", step_name,
-                    out.stdout.decode("utf-8", "replace").strip()
-                    or out.stderr.decode("utf-8", "replace")[:200])
-    except Exception as e:
-        logger.warning("[VPS %s][DIAG] Không lấy được IP ra internet: %s", step_name, e)
-
-    try:
-        ver = subprocess.run(["curl", "--version"], capture_output=True, timeout=5)
-        logger.info("[VPS %s][DIAG] %s", step_name,
-                    ver.stdout.decode("utf-8", "replace").splitlines()[0])
-    except Exception:
-        pass
-
-    # Hai payload thử nghiệm (user/pass luôn là giả, không gửi mật khẩu thật):
-    #  - nho : deviceNew/deviceInfo ngắn  (giống lệnh curl đã chạy OK trên host)
-    #  - that: deviceNew/deviceInfo thật  (giống payload code đang gửi)
-    # So sánh 2 kết quả để biết WAF có chặn theo nội dung payload hay không.
-    base = {"user": "T", "pass": "T", "channel": "I", "language": "vi",
-            "cmd": "Web.sCheckLogin", "p5": "", "p6": "", "p7": "1"}
-    payloads = {
-        "nho": json.dumps({**base, "deviceNew": "t", "deviceName": "Chrome",
-                           "deviceInfo": "t"}),
-        "that": json.dumps({**base, "deviceNew": VPS_DEVICE_NEW,
-                            "deviceName": "Chrome Windows 10",
-                            "deviceInfo": VPS_DEVICE_INFO}),
-    }
-    variants = {
-        "mac dinh": [],
-        "http1.1": ["--http1.1"],
-        "tls1.2": ["--tlsv1.2", "--tls-max", "1.2"],
-        "http1.1+tls1.2": ["--http1.1", "--tlsv1.2", "--tls-max", "1.2"],
-    }
-    for payload_name, body in payloads.items():
-        for name, extra in variants.items():
-            cmd = ["curl", "-sS", "-o", "/dev/null", "--max-time", "10", "-X", "POST", url,
-                   "-w", "http=%{http_code} type=%{content_type} ip=%{remote_ip}",
-                   "-d", "@-"] + extra
-            for key, value in VPS_LOGIN_HEADERS.items():
-                cmd += ["-H", f"{key}: {value}"]
-            try:
-                p = subprocess.run(cmd, input=body.encode("utf-8"),
-                                   capture_output=True, timeout=15)
-                logger.info("[VPS %s][DIAG] payload=%-4s %-15s exit=%s %s %s", step_name,
-                            payload_name, name, p.returncode,
-                            p.stdout.decode("utf-8", "replace"),
-                            p.stderr.decode("utf-8", "replace").strip()[:150])
-            except Exception as e:
-                logger.warning("[VPS %s][DIAG] payload=%s %s lỗi: %s",
-                               step_name, payload_name, name, e)
-
-
 def _vps_post(url, payload, step_name, cookie_file):
     try:
         logger.info("[VPS %s] POST %s", step_name, url)
         response = _vps_curl_post(url, payload, cookie_file, step_name)
-        if response is None:
-            _vps_diagnose(url, step_name)
-        else:
+        if response is not None:
             logger.info("[VPS %s] HTTP=%s, Content-Type=%s", step_name,
                         response.status_code, response.headers.get("Content-Type", ""))
         return response
@@ -483,6 +435,7 @@ def login_get_session_vps_step_1(account_name, pass_login):
 
     payload = _vps_build_payload(account_name, pass_login, "Web.sCheckLogin", "", "1")
     response = _vps_post(VPS_LOGIN_URL, payload, "STEP 1", cookie_file)
+    _vps_raise_if_blocked(response, "STEP 1")
     result = _vps_parse_response(response, "STEP 1")
 
     if not result or result.get("rc") != 1:
@@ -504,6 +457,7 @@ def login_get_session_vps_step_2(account_name, pass_login, otp):
 
     payload = _vps_build_payload(account_name, pass_login, "Web.sCheckLoginOTP", otp, "0")
     response = _vps_post(VPS_LOGIN_URL, payload, "STEP 2", cookie_file)
+    _vps_raise_if_blocked(response, "STEP 2")
     result = _vps_parse_response(response, "STEP 2")
 
     if not result or result.get("rc") != 1:
