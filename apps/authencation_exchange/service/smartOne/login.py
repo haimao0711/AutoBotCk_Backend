@@ -6,23 +6,11 @@ import subprocess
 import requests
 import logging
 
-# curl_cffi giả lập TLS fingerprint của Chrome thật để bypass WAF JA3 fingerprinting
-try:
-    from curl_cffi import requests as curl_requests
-    _CURL_CFFI_AVAILABLE = True
-except ImportError:
-    _CURL_CFFI_AVAILABLE = False
-
 from apps.authencation_exchange.service.http_client import CustomHTTPClient
 from apps.authencation_exchange.service.enums import LoginStatusEnum
 from apps import api
 
 logger = logging.getLogger(__name__)
-if _CURL_CFFI_AVAILABLE:
-    logger.info("[VPS] curl_cffi khả dụng — dùng Chrome TLS fingerprint")
-else:
-    logger.warning("[VPS] curl_cffi không có — fallback về requests (có thể bị WAF block)")
-
 def login_smart_one_vps_step_1(client, request_verification_token, account, password, cookie):
     payload = {
         "__RequestVerificationToken": request_verification_token,
@@ -272,277 +260,159 @@ def login_smart_one_vps_step_1(client, request_verification_token, account, pass
 
 VPS_LOGIN_URL = "https://bgapi.vps.com.vn/handler/core_check.login"
 
-# Giữ Session giữa bước 1 và bước 2 trong cùng một luồng đăng nhập.
-_vps_login_sessions = {}
+# deviceNew phải là chuỗi Base64 hợp lệ (không có khoảng trắng)
+VPS_DEVICE_NEW = "0jeuKA1NqZWTbaWTC/bnSj4Gdn/VQS4C073C7N1gXsYjlOo2LGXeg5fQe09rJa3cRwKdU9VAgKoB5NCanUzOcyhcFt9VfCT5kTJ0NSQqZWy6i4BVrF0rAEz9w9HKmwpLHF2ahwV5apFfXCVHl8mbpMdyXqfD9fhwBrFcdf9bHqvQ/3FenY30eg5V9fcDoeGObQHgE2PnwH6Fvk8CGRlv3l1cKqMbzYSTe/MncCRCEqszrfEO6w=="
+VPS_DEVICE_INFO = "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
 
+# Header gọn, giống đúng lệnh curl đã test thành công trên server.
 VPS_LOGIN_HEADERS = {
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
-    "Accept-Encoding": "gzip, deflate, br",
     "Content-Type": "application/json",
     "Origin": "https://banggia.vps.com.vn",
     "Referer": "https://banggia.vps.com.vn/",
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/156.0.0.0 Safari/537.36"
-    ),
-    "sec-ch-ua": '"Google Chrome";v="156", "Chromium";v="156", "Not.A/Brand";v="99"',
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": '"Windows"',
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-site",
-    "Connection": "keep-alive",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
 }
 
+import os
+import tempfile
 
 
-import logging
-import requests
+class _VpsResponse:
+    """Response tối giản, có cùng interface với requests.Response phần đang dùng."""
 
-logger = logging.getLogger(__name__)
+    def __init__(self, status_code, headers, text):
+        self.status_code = status_code
+        self.headers = headers
+        self.text = text
+
+    def json(self):
+        return json.loads(self.text)
 
 
-def _vps_post(url, payload, step_name):
+def _vps_cookie_file(account_name):
+    # Đường dẫn cố định theo account để bước 1 và bước 2 dùng chung cookie,
+    # kể cả khi gunicorn xử lý 2 bước ở 2 worker khác nhau.
+    safe = re.sub(r"[^A-Za-z0-9_-]", "_", str(account_name))
+    return os.path.join(tempfile.gettempdir(), f"vps_login_{safe}.cookies")
+
+
+def _vps_curl_post(url, payload, cookie_file, step_name):
     """
-    Gửi POST request đến VPS API.
-    Xử lý timeout, connection error và HTTP error.
-    Không xoay vòng fingerprint.
+    POST JSON bằng curl (cùng cách lệnh curl test thành công trên server).
+    Payload đi qua stdin để không lộ mật khẩu trên danh sách tiến trình.
     """
+    cmd = ["curl", "-sS", "-X", "POST", url, "--max-time", "30", "-D", "-",
+           "-b", cookie_file, "-c", cookie_file, "-d", "@-"]
+    for key, value in VPS_LOGIN_HEADERS.items():
+        cmd += ["-H", f"{key}: {value}"]
 
-    session = requests.Session()
+    proc = subprocess.run(
+        cmd,
+        input=json.dumps(payload).encode("utf-8"),
+        capture_output=True,
+        timeout=40,
+    )
+    if proc.returncode != 0:
+        logger.error("[VPS %s] curl exit=%s: %s", step_name, proc.returncode,
+                     proc.stderr.decode("utf-8", "replace")[:300])
+        return None
 
-    try:
-        logger.info(
-            "[VPS %s] Sending POST request: %s",
-            step_name,
-            url
-        )
+    raw = proc.stdout.decode("utf-8", "replace")
+    # Có thể có nhiều khối header (100-continue, redirect): lấy khối cuối.
+    while raw.startswith("HTTP/") and "\r\n\r\n" in raw:
+        head, rest = raw.split("\r\n\r\n", 1)
+        if rest.startswith("HTTP/"):
+            raw = rest
+            continue
+        lines = head.split("\r\n")
+        status_code = int(lines[0].split()[1])
+        headers = {}
+        for line in lines[1:]:
+            if ":" in line:
+                k, v = line.split(":", 1)
+                headers[k.strip()] = v.strip()
+        return _VpsResponse(status_code, headers, rest)
 
-        response = session.post(
-            url,
-            json=payload,
-            headers=VPS_LOGIN_HEADERS,
-            timeout=(10, 30)
-        )
-
-        logger.info(
-            "[VPS %s] HTTP=%s, Content-Type=%s",
-            step_name,
-            response.status_code,
-            response.headers.get("Content-Type", "")
-        )
-
-        return response
-
-    except requests.exceptions.Timeout:
-        logger.error(
-            "[VPS %s] Request timeout",
-            step_name
-        )
-
-    except requests.exceptions.ConnectionError:
-        logger.exception(
-            "[VPS %s] Connection error",
-            step_name
-        )
-
-    except requests.exceptions.RequestException:
-        logger.exception(
-            "[VPS %s] Request exception",
-            step_name
-        )
-
-    finally:
-        session.close()
-
+    logger.error("[VPS %s] Không parse được response của curl", step_name)
     return None
 
 
-def _vps_send_login_request(session, payload, step_name):
-
+def _vps_post(url, payload, step_name, cookie_file):
     try:
-        response = _vps_post(
-            VPS_LOGIN_URL,
-            payload,
-            step_name
-        )
-
-        # Kiểm tra response tồn tại
-        if response is None:
-            logger.error(
-                "[VPS %s] Không nhận được response",
-                step_name
-            )
-            return None
-
-        logger.info(
-            "[VPS %s] HTTP=%s",
-            step_name,
-            response.status_code
-        )
-
-        # Kiểm tra HTTP status
-        if response.status_code != 200:
-            logger.error(
-                "[VPS %s] HTTP error: %s",
-                step_name,
-                response.text[:500]
-            )
-            return None
-
-        content_type = response.headers.get(
-            "Content-Type", ""
-        )
-
-        if "json" not in content_type.lower():
-            logger.error(
-                "[VPS %s] Invalid Content-Type: %s",
-                step_name,
-                content_type
-            )
-            return None
-
-        try:
-            result = response.json()
-
-        except ValueError:
-            logger.exception(
-                "[VPS %s] Invalid JSON response",
-                step_name
-            )
-            return None
-
-        logger.info(
-            "[VPS %s] cmd=%s, rc=%s",
-            step_name,
-            result.get("cmd"),
-            result.get("rc")
-        )
-
-        return result
-
+        logger.info("[VPS %s] POST %s", step_name, url)
+        response = _vps_curl_post(url, payload, cookie_file, step_name)
+        if response is not None:
+            logger.info("[VPS %s] HTTP=%s, Content-Type=%s", step_name,
+                        response.status_code, response.headers.get("Content-Type", ""))
+        return response
+    except FileNotFoundError:
+        logger.error("[VPS %s] Không tìm thấy lệnh curl trong container", step_name)
+    except subprocess.TimeoutExpired:
+        logger.error("[VPS %s] curl timeout", step_name)
     except Exception:
-        logger.exception(
-            "[VPS %s] Unexpected login error",
-            step_name
-        )
-        return None
+        logger.exception("[VPS %s] Lỗi không mong đợi khi gọi VPS", step_name)
+    return None
 
 
 def _vps_parse_response(response, step_name):
+    if response is None:
+        logger.error("[VPS %s] Không nhận được response", step_name)
+        return None
+
     content_type = response.headers.get("Content-Type", "")
 
     if response.status_code != 200:
-        logger.error(
-            "[VPS %s] HTTP error: %s",
-            step_name,
-            response.status_code
-        )
+        logger.error("[VPS %s] HTTP error: %s", step_name, response.status_code)
         return None
 
     if "json" not in content_type.lower():
-        logger.error(
-            "[VPS %s] Response không phải JSON: %s",
-            step_name,
-            response.text[:500]
-        )
+        logger.error("[VPS %s] Response không phải JSON: %s", step_name, response.text[:500])
         return None
 
     try:
         result = response.json()
-        return result
     except ValueError:
-        logger.exception(
-            "[VPS %s] Không thể parse JSON",
-            step_name
-        )
+        logger.exception("[VPS %s] Không thể parse JSON", step_name)
         return None
-        
+
+    logger.info("[VPS %s] cmd=%s, rc=%s", step_name, result.get("cmd"), result.get("rc"))
+    return result
+
+
+def _vps_build_payload(account_name, pass_login, cmd, p5, p7):
+    return {
+        "user": account_name,
+        "pass": pass_login,
+        "channel": "I",
+        "language": "vi",
+        "cmd": cmd,
+        "p5": p5,
+        "p6": "",
+        "p7": p7,
+        "deviceNew": VPS_DEVICE_NEW,
+        "deviceName": "Chrome Windows 10",
+        "deviceInfo": VPS_DEVICE_INFO,
+    }
+
+
 def login_get_session_vps_step_1(account_name, pass_login):
     """
     Bước 1: Kiểm tra tài khoản và mật khẩu.
     Giữ nguyên cách gọi: login_get_session_vps_step_1(account_name, pass_login)
     """
+    cookie_file = _vps_cookie_file(account_name)
+    if os.path.exists(cookie_file):
+        os.remove(cookie_file)
 
-    session = requests.Session()
-
-    # Giữ nguyên deviceNew và deviceInfo theo cấu hình
-    # thiết bị mà code cũ của bạn đang sử dụng.
-    # Lưu ý: deviceNew phải là chuỗi Base64 hợp lệ (không có khoảng trắng)
-    device_new = "0jeuKA1NqZWTbaWTC/bnSj4Gdn/VQS4C073C7N1gXsYjlOo2LGXeg5fQe09rJa3cRwKdU9VAgKoB5NCanUzOcyhcFt9VfCT5kTJ0NSQqZWy6i4BVrF0rAEz9w9HKmwpLHF2ahwV5apFfXCVHl8mbpMdyXqfD9fhwBrFcdf9bHqvQ/3FenY30eg5V9fcDoeGObQHgE2PnwH6Fvk8CGRlv3l1cKqMbzYSTe/MncCRCEqszrfEO6w=="
-    device_info = "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
-
-
-    payload = {
-        "user": account_name,
-        "pass": pass_login,
-        "channel": "I",
-        "language": "vi",
-        "cmd": "Web.sCheckLogin",
-        "p5": "",
-        "p6": "",
-        "p7": "1",
-        "deviceNew": device_new,
-        "deviceName": "Chrome Windows 10",
-        "deviceInfo": device_info,
-    }
-
-    
-    logger.info("========== VPS LOGIN DEBUG ==========")
-
-    logger.info("URL: %s", VPS_LOGIN_URL)
-
-    logger.info("Payload fields: %s", list(payload.keys()))
-
-    for key, value in payload.items():
-        logger.info(
-            "Payload %s: type=%s, length=%s, empty=%s",
-            key,
-            type(value).__name__,
-            len(str(value)) if value is not None else 0,
-            value in ("", None)
-        )
-
-    logger.info("Request headers: %s", {
-        key: value
-        for key, value in VPS_LOGIN_HEADERS.items()
-        if key.lower() not in ("cookie", "authorization")
-    })
-
-    if _CURL_CFFI_AVAILABLE:
-        # Dùng curl_cffi với Chrome TLS fingerprint để bypass WAF JA3
-        response = curl_requests.post(
-            VPS_LOGIN_URL,
-            json=payload,
-            headers=VPS_LOGIN_HEADERS,
-            impersonate="chrome110",
-            timeout=30
-        )
-    else:
-        response = session.post(
-            VPS_LOGIN_URL,
-            json=payload,
-            headers=VPS_LOGIN_HEADERS,
-            timeout=30
-        )
-
-    logger.info("HTTP status: %s", response.status_code)
-    logger.info("Response headers: %s", dict(response.headers))
-    logger.info("Response URL: %s", response.url)
-    logger.info("Response body: %s", response.text[:1000])
-
+    payload = _vps_build_payload(account_name, pass_login, "Web.sCheckLogin", "", "1")
+    response = _vps_post(VPS_LOGIN_URL, payload, "STEP 1", cookie_file)
     result = _vps_parse_response(response, "STEP 1")
 
     if not result or result.get("rc") != 1:
-        session.close()
+        if response is not None:
+            logger.error("[VPS STEP 1] Body: %s", response.text[:300])
         return None
 
-    _vps_login_sessions[account_name] = session
-
     return result
-
 
 
 def login_get_session_vps_step_2(account_name, pass_login, otp):
@@ -550,46 +420,25 @@ def login_get_session_vps_step_2(account_name, pass_login, otp):
     Bước 2: Xác thực OTP.
     Giữ nguyên cách gọi: login_get_session_vps_step_2(account_name, pass_login, otp)
     """
+    cookie_file = _vps_cookie_file(account_name)
+    if not os.path.exists(cookie_file):
+        logger.warning("[VPS STEP 2] Không thấy cookie của bước 1, vẫn thử gửi OTP")
 
-    session = _vps_login_sessions.get(account_name)
-
-    if session is None:
-        logger.error("[VPS STEP 2] Không tìm thấy session của bước 1")
-        return None
-
-    # Lưu ý: deviceNew phải là chuỗi Base64 hợp lệ (không có khoảng trắng)
-    device_new = "0jeuKA1NqZWTbaWTC/bnSj4Gdn/VQS4C073C7N1gXsYjlOo2LGXeg5fQe09rJa3cRwKdU9VAgKoB5NCanUzOcyhcFt9VfCT5kTJ0NSQqZWy6i4BVrF0rAEz9w9HKmwpLHF2ahwV5apFfXCVHl8mbpMdyXqfD9fhwBrFcdf9bHqvQ/3FenY30eg5V9fcDoeGObQHgE2PnwH6Fvk8CGRlv3l1cKqMbzYSTe/MncCRCEqszrfEO6w=="
-    device_info = "eyJ0eXBlIjoid2ViIiwic291cmNlIjoiUHJpY2Vib2FyZCIsInZlcnNpb24iOiIxLjguMCIsIm1vZGVsIjoiQ2hyb21lIFdpbmRvd3MgMTAiLCJkZXZpY2VPUyI6IiIsImdlb0xvY2F0aW9uIjoiIn0="
-
-    payload = {
-        "user": account_name,
-        "pass": pass_login,
-        "channel": "I",
-        "language": "vi",
-        "cmd": "Web.sCheckLoginOTP",
-        "p5": otp,
-        "p6": "",
-        "p7": "0",
-        "deviceNew": device_new,
-        "deviceName": "Chrome Windows 10",
-        "deviceInfo": device_info,
-    }
-
-    result = _vps_send_login_request(
-        session,
-        payload,
-        "STEP 2"
-    )
+    payload = _vps_build_payload(account_name, pass_login, "Web.sCheckLoginOTP", otp, "0")
+    response = _vps_post(VPS_LOGIN_URL, payload, "STEP 2", cookie_file)
+    result = _vps_parse_response(response, "STEP 2")
 
     if not result or result.get("rc") != 1:
+        if response is not None:
+            logger.error("[VPS STEP 2] Body: %s", response.text[:300])
         return None
 
     # Trả về sid để giữ nguyên cách sử dụng session_login_2 hiện tại.
     data = result.get("data") or {}
     session_id = data.get("sid") or data.get("key")
 
-    session.close()
-    _vps_login_sessions.pop(account_name, None)
+    if os.path.exists(cookie_file):
+        os.remove(cookie_file)
 
     return session_id
 
